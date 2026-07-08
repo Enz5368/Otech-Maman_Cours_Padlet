@@ -3,29 +3,35 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>In viaggio per l'Italia - Editeur</title>
+    <title>In viaggio per l'Italia - Studio</title>
     <style>
       :root {
-        --paper: #fbf7f0;
-        --ink: #25201d;
-        --muted: #766b64;
-        --wine: #7a1f3d;
-        --wine-dark: #4b1026;
-        --wine-soft: #f5e7ec;
-        --sea: #0f766e;
-        --line: #ead8d0;
-        --white: #ffffff;
-        --shadow: 0 18px 48px rgba(75, 16, 38, 0.12);
+        --bg: #f6f3ee;
+        --surface: #ffffff;
+        --surface-2: #fbfaf7;
+        --ink: #201d1b;
+        --muted: #716963;
+        --line: #e6ded6;
+        --wine: #8a1f45;
+        --wine-2: #5b1733;
+        --rose: #f8e8ef;
+        --green: #0f766e;
+        --amber: #b45309;
+        --shadow: 0 20px 55px rgba(58, 35, 27, 0.12);
       }
 
       * {
         box-sizing: border-box;
       }
 
+      html {
+        color-scheme: light;
+      }
+
       body {
         margin: 0;
         min-height: 100vh;
-        background: var(--paper);
+        background: var(--bg);
         color: var(--ink);
         font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       }
@@ -41,33 +47,121 @@
         cursor: pointer;
       }
 
+      .login-page {
+        display: grid;
+        min-height: 100vh;
+        grid-template-columns: minmax(0, 1fr) minmax(360px, 460px);
+      }
+
+      .login-visual {
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        min-height: 100vh;
+        padding: 44px;
+        background:
+          linear-gradient(115deg, rgba(91, 23, 51, 0.92), rgba(138, 31, 69, 0.74)),
+          url("https://images.unsplash.com/photo-1523906834658-6e24ef2386f9?auto=format&fit=crop&w=1600&q=80");
+        background-position: center;
+        background-size: cover;
+        color: #fff;
+      }
+
+      .login-visual h1 {
+        max-width: 740px;
+        margin: 0;
+        font-size: clamp(44px, 7vw, 86px);
+        line-height: 0.94;
+        letter-spacing: 0;
+      }
+
+      .login-visual p {
+        max-width: 620px;
+        margin: 18px 0 0;
+        color: rgba(255, 255, 255, 0.82);
+        font-size: 18px;
+        line-height: 1.7;
+      }
+
+      .brand-line {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        font-weight: 800;
+      }
+
+      .mark {
+        display: grid;
+        width: 42px;
+        height: 42px;
+        place-items: center;
+        border-radius: 8px;
+        background: #fff;
+        color: var(--wine);
+        font-weight: 900;
+      }
+
+      .login-card-wrap {
+        display: grid;
+        place-items: center;
+        padding: 28px;
+      }
+
+      .login-card {
+        width: min(100%, 390px);
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: var(--surface);
+        padding: 28px;
+        box-shadow: var(--shadow);
+      }
+
+      .login-card h2,
+      .panel h2,
+      .metric strong,
+      .editor-title {
+        margin: 0;
+        color: var(--wine-2);
+      }
+
+      .login-card p,
+      .muted {
+        color: var(--muted);
+      }
+
       .app {
         display: grid;
         min-height: 100vh;
-        grid-template-columns: 260px minmax(0, 1fr);
+        grid-template-columns: 280px minmax(0, 1fr);
       }
 
       .sidebar {
         position: sticky;
         top: 0;
         height: 100vh;
-        padding: 20px;
-        background: var(--wine-dark);
-        color: var(--white);
+        border-right: 1px solid rgba(255, 255, 255, 0.14);
+        background: #31101f;
+        color: #fff;
+        padding: 22px;
       }
 
       .brand {
-        margin: 0 0 26px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 30px;
       }
 
       .brand strong {
         display: block;
-        font-size: 20px;
+        line-height: 1.1;
       }
 
       .brand span {
-        color: rgba(255, 255, 255, 0.7);
-        font-size: 13px;
+        color: rgba(255, 255, 255, 0.65);
+        font-size: 12px;
+        font-weight: 700;
+        text-transform: uppercase;
       }
 
       .nav {
@@ -75,57 +169,55 @@
         gap: 8px;
       }
 
-      .nav button,
-      .ghost,
-      .primary,
-      .danger {
+      .nav button {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        width: 100%;
         border: 0;
         border-radius: 8px;
-        padding: 11px 14px;
-        font-weight: 700;
-      }
-
-      .nav button {
-        width: 100%;
         background: transparent;
-        color: rgba(255, 255, 255, 0.75);
+        color: rgba(255, 255, 255, 0.74);
+        padding: 12px 13px;
+        font-weight: 800;
         text-align: left;
       }
 
       .nav button.active {
-        background: var(--white);
-        color: var(--wine-dark);
+        background: rgba(255, 255, 255, 0.12);
+        color: #fff;
+      }
+
+      .sidebar-footer {
+        position: absolute;
+        right: 22px;
+        bottom: 22px;
+        left: 22px;
+        display: grid;
+        gap: 10px;
       }
 
       .main {
-        padding: 24px;
+        padding: 28px;
       }
 
       .topbar {
         display: flex;
         align-items: flex-start;
         justify-content: space-between;
-        gap: 16px;
-        margin-bottom: 20px;
-      }
-
-      h1,
-      h2,
-      h3,
-      p {
-        margin-top: 0;
+        gap: 20px;
+        margin-bottom: 22px;
       }
 
       h1 {
-        margin-bottom: 4px;
-        color: var(--wine-dark);
-        font-size: clamp(28px, 4vw, 42px);
+        margin: 0 0 6px;
+        color: var(--wine-2);
+        font-size: clamp(32px, 4vw, 52px);
         letter-spacing: 0;
       }
 
-      .subtitle {
-        margin: 0;
-        color: var(--muted);
+      p {
+        margin-top: 0;
       }
 
       .actions {
@@ -135,35 +227,79 @@
         justify-content: flex-end;
       }
 
-      .primary {
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        min-height: 42px;
+        border: 0;
+        border-radius: 8px;
+        padding: 10px 14px;
+        font-weight: 850;
+      }
+
+      .btn-primary {
         background: var(--wine);
-        color: var(--white);
-        box-shadow: var(--shadow);
+        color: #fff;
       }
 
-      .ghost {
+      .btn-soft {
         border: 1px solid var(--line);
-        background: var(--white);
-        color: var(--wine);
+        background: var(--surface);
+        color: var(--wine-2);
       }
 
-      .danger {
-        background: var(--wine-soft);
-        color: var(--wine-dark);
+      .btn-danger {
+        background: var(--rose);
+        color: var(--wine-2);
       }
 
-      .grid {
+      .btn-small {
+        min-height: 34px;
+        padding: 7px 10px;
+        font-size: 13px;
+      }
+
+      .dashboard {
         display: grid;
-        grid-template-columns: minmax(0, 1fr) minmax(320px, 420px);
         gap: 18px;
-        align-items: start;
       }
 
+      .metrics {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 14px;
+      }
+
+      .metric,
       .panel {
         border: 1px solid var(--line);
         border-radius: 8px;
-        background: var(--white);
+        background: var(--surface);
         box-shadow: var(--shadow);
+      }
+
+      .metric {
+        padding: 17px;
+      }
+
+      .metric strong {
+        display: block;
+        font-size: 32px;
+      }
+
+      .metric span {
+        color: var(--muted);
+        font-size: 13px;
+        font-weight: 750;
+      }
+
+      .workspace {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(340px, 440px);
+        gap: 18px;
+        align-items: start;
       }
 
       .panel-head {
@@ -172,17 +308,15 @@
         justify-content: space-between;
         gap: 12px;
         border-bottom: 1px solid var(--line);
-        padding: 16px;
+        padding: 16px 18px;
       }
 
       .panel-head h2 {
-        margin: 0;
-        color: var(--wine-dark);
         font-size: 18px;
       }
 
       .panel-body {
-        padding: 16px;
+        padding: 18px;
       }
 
       .tree,
@@ -191,61 +325,64 @@
         gap: 10px;
       }
 
-      .node,
-      .row {
+      .item {
         border: 1px solid var(--line);
         border-radius: 8px;
-        background: #fffaf5;
+        background: var(--surface-2);
       }
 
-      .node-title,
-      .row {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
+      .item-main {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
         gap: 12px;
+        align-items: center;
         padding: 12px;
       }
 
-      .node-title button:first-child,
-      .row button:first-child {
-        min-width: 0;
+      .item-title {
         border: 0;
         background: transparent;
         color: var(--ink);
-        font-weight: 800;
+        padding: 0;
+        font-weight: 900;
         text-align: left;
       }
 
-      .node-title small,
-      .row small {
+      .item-title small {
         display: block;
-        margin-top: 3px;
+        margin-top: 4px;
         color: var(--muted);
-        font-weight: 500;
+        font-weight: 600;
+        line-height: 1.4;
       }
 
-      .node-actions {
+      .item-actions {
         display: flex;
         flex-wrap: wrap;
         gap: 6px;
         justify-content: flex-end;
       }
 
-      .icon {
-        min-width: 34px;
-        border: 1px solid var(--line);
-        border-radius: 8px;
-        background: var(--white);
-        color: var(--wine);
-        padding: 7px 9px;
-        font-weight: 900;
-      }
-
       .children {
         display: grid;
         gap: 10px;
-        padding: 0 12px 12px 24px;
+        padding: 0 12px 12px 28px;
+      }
+
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        border-radius: 999px;
+        background: #eef8f7;
+        color: var(--green);
+        padding: 4px 9px;
+        font-size: 12px;
+        font-weight: 850;
+      }
+
+      .badge.hidden {
+        background: var(--rose);
+        color: var(--wine-2);
       }
 
       form {
@@ -258,7 +395,7 @@
         gap: 6px;
         color: var(--muted);
         font-size: 13px;
-        font-weight: 800;
+        font-weight: 850;
       }
 
       input,
@@ -267,14 +404,21 @@
         width: 100%;
         border: 1px solid var(--line);
         border-radius: 8px;
-        background: var(--white);
+        background: #fff;
         color: var(--ink);
-        padding: 10px 11px;
+        padding: 11px 12px;
       }
 
       textarea {
-        min-height: 110px;
+        min-height: 112px;
         resize: vertical;
+      }
+
+      input:focus,
+      textarea:focus,
+      select:focus {
+        outline: 3px solid rgba(138, 31, 69, 0.14);
+        border-color: var(--wine);
       }
 
       .split {
@@ -285,7 +429,7 @@
 
       .empty {
         display: grid;
-        min-height: 280px;
+        min-height: 260px;
         place-items: center;
         border: 1px dashed var(--line);
         border-radius: 8px;
@@ -293,25 +437,48 @@
         text-align: center;
       }
 
-      .export-box {
-        min-height: 360px;
+      .json-box {
+        min-height: 390px;
         font-family: "Cascadia Code", Consolas, monospace;
         font-size: 13px;
       }
 
       .notice {
-        margin-bottom: 14px;
-        border-left: 4px solid var(--sea);
+        position: fixed;
+        right: 22px;
+        bottom: 22px;
+        z-index: 20;
+        max-width: 360px;
+        border: 1px solid #b8e2dc;
         border-radius: 8px;
-        background: #eefaf8;
-        padding: 12px 14px;
+        background: #effaf8;
         color: #115e59;
-        font-weight: 700;
+        padding: 12px 14px;
+        box-shadow: var(--shadow);
+        font-weight: 850;
       }
 
-      @media (max-width: 860px) {
-        .app {
+      .error {
+        border-radius: 8px;
+        background: var(--rose);
+        color: var(--wine-2);
+        padding: 10px 12px;
+        font-weight: 800;
+      }
+
+      [hidden] {
+        display: none !important;
+      }
+
+      @media (max-width: 980px) {
+        .login-page,
+        .app,
+        .workspace {
           grid-template-columns: 1fr;
+        }
+
+        .login-visual {
+          min-height: 44vh;
         }
 
         .sidebar {
@@ -319,8 +486,13 @@
           height: auto;
         }
 
-        .grid {
-          grid-template-columns: 1fr;
+        .sidebar-footer {
+          position: static;
+          margin-top: 22px;
+        }
+
+        .metrics {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
         }
 
         .topbar {
@@ -331,43 +503,86 @@
           justify-content: flex-start;
         }
       }
+
+      @media (max-width: 620px) {
+        .login-visual,
+        .main {
+          padding: 22px;
+        }
+
+        .metrics,
+        .split {
+          grid-template-columns: 1fr;
+        }
+      }
     </style>
   </head>
   <body>
-    <div class="app">
+    <section class="login-page" id="loginPage">
+      <div class="login-visual">
+        <div class="brand-line"><span class="mark">IT</span> Studio pedagogique</div>
+        <div>
+          <h1>In viaggio per l'Italia</h1>
+          <p>Un espace simple pour organiser les classes, sequences, seances, activites et ressources avant publication.</p>
+        </div>
+      </div>
+      <div class="login-card-wrap">
+        <form class="login-card" id="loginForm">
+          <h2>Connexion</h2>
+          <p>Acces reserve a l'edition du contenu.</p>
+          <p class="error" id="loginError" hidden>Identifiant ou mot de passe incorrect.</p>
+          <label>Identifiant <input name="username" autocomplete="username" required /></label>
+          <label>Mot de passe <input name="password" type="password" autocomplete="current-password" required /></label>
+          <button class="btn btn-primary" type="submit">Entrer dans le studio</button>
+        </form>
+      </div>
+    </section>
+
+    <section class="app" id="app" hidden>
       <aside class="sidebar">
-        <p class="brand">
-          <strong>In viaggio per l'Italia</strong>
-          <span>Editeur HTML</span>
-        </p>
+        <div class="brand">
+          <span class="mark">IT</span>
+          <div>
+            <strong>In viaggio</strong>
+            <span>Studio HTML</span>
+          </div>
+        </div>
         <nav class="nav" aria-label="Navigation">
-          <button class="active" data-section="parcours">Parcours</button>
+          <button class="active" data-section="dashboard">Tableau de bord</button>
+          <button data-section="parcours">Parcours</button>
           <button data-section="news">Actualites</button>
           <button data-section="resources">Depot</button>
           <button data-section="backup">Sauvegarde</button>
         </nav>
+        <div class="sidebar-footer">
+          <button class="btn btn-soft" id="lockButton">Verrouiller</button>
+        </div>
       </aside>
 
       <main class="main">
         <header class="topbar">
           <div>
-            <h1 id="pageTitle">Parcours</h1>
-            <p class="subtitle" id="pageSubtitle">Classes, sequences, seances et activites.</p>
+            <h1 id="pageTitle">Tableau de bord</h1>
+            <p class="muted" id="pageSubtitle">Vue d'ensemble du contenu.</p>
           </div>
           <div class="actions" id="pageActions"></div>
         </header>
 
-        <p class="notice" id="notice" hidden></p>
         <section id="content"></section>
       </main>
-    </div>
+    </section>
+
+    <p class="notice" id="notice" hidden></p>
 
     <script>
-      const storageKey = "italia-html-editor-v1";
+      const credentials = { username: "rose", password: "italia" };
+      const authKey = "italia-studio-auth";
+      const storageKey = "italia-studio-data-v2";
       const sections = {
+        dashboard: ["Tableau de bord", "Vue d'ensemble du contenu."],
         parcours: ["Parcours", "Classes, sequences, seances et activites."],
         news: ["Actualites", "Messages et annonces."],
-        resources: ["Depot", "Liens et ressources."],
+        resources: ["Depot", "Liens, documents et supports."],
         backup: ["Sauvegarde", "Exporter ou importer les donnees."]
       };
 
@@ -376,28 +591,28 @@
           {
             id: createId(),
             title: "Cinquieme",
-            description: "Premier espace de cours.",
+            description: "Espace de travail pour les premiers reperes en italien.",
             status: "Disponible",
             visible: true,
             sequences: [
               {
                 id: createId(),
                 title: "Benvenuti",
-                description: "Se presenter et entrer dans la langue.",
+                description: "Se presenter, saluer et entrer dans la langue.",
                 status: "Disponible",
                 visible: true,
                 sessions: [
                   {
                     id: createId(),
-                    title: "Premiers mots",
-                    description: "Saluer, se presenter, ecouter.",
+                    title: "Primi passi",
+                    description: "Premiers mots, ecoute et prise de parole courte.",
                     status: "Disponible",
                     visible: true,
                     activities: [
                       {
                         id: createId(),
                         title: "Mi chiamo...",
-                        description: "Activite orale courte.",
+                        description: "Presentation orale guidee.",
                         status: "Disponible",
                         visible: true,
                         instruction: "Complete la presentation puis entraine-toi a l'oral.",
@@ -414,7 +629,7 @@
           {
             id: createId(),
             title: "Bienvenue",
-            description: "Ajoutez ici les informations importantes.",
+            description: "Ajoutez ici les informations importantes du moment.",
             status: "Disponible",
             visible: true
           }
@@ -433,7 +648,7 @@
       };
 
       let data = loadData();
-      let section = "parcours";
+      let section = "dashboard";
       let selection = null;
 
       function createId() {
@@ -443,16 +658,32 @@
 
       function loadData() {
         try {
-          return JSON.parse(localStorage.getItem(storageKey)) || initialData;
+          return JSON.parse(localStorage.getItem(storageKey)) || structuredClone(initialData);
         } catch {
-          return initialData;
+          return structuredClone(initialData);
         }
       }
 
-      function saveData(message = "Enregistre.") {
+      function saveData(message = "Modifications enregistrees.") {
         localStorage.setItem(storageKey, JSON.stringify(data));
         showNotice(message);
         render();
+      }
+
+      function isLoggedIn() {
+        return sessionStorage.getItem(authKey) === "true";
+      }
+
+      function showApp() {
+        document.querySelector("#loginPage").hidden = true;
+        document.querySelector("#app").hidden = false;
+        render();
+      }
+
+      function showLogin() {
+        sessionStorage.removeItem(authKey);
+        document.querySelector("#loginPage").hidden = false;
+        document.querySelector("#app").hidden = true;
       }
 
       function showNotice(message) {
@@ -462,10 +693,10 @@
         clearTimeout(showNotice.timer);
         showNotice.timer = setTimeout(() => {
           notice.hidden = true;
-        }, 2200);
+        }, 2400);
       }
 
-      function select(nextSection) {
+      function selectSection(nextSection) {
         section = nextSection;
         selection = null;
         document.querySelectorAll(".nav button").forEach((button) => {
@@ -508,7 +739,7 @@
         }
 
         selection = { type, item };
-        saveData("Element ajoute.");
+        saveData("Nouvel element ajoute.");
       }
 
       function newTitle(type) {
@@ -530,11 +761,8 @@
             items.splice(index, 1);
             return true;
           }
-          return items.some((current) => {
-            return removeFrom(current.sequences || []) || removeFrom(current.sessions || []) || removeFrom(current.activities || []);
-          });
+          return items.some((current) => removeFrom(current.sequences || []) || removeFrom(current.sessions || []) || removeFrom(current.activities || []));
         };
-
         removeFrom(data.classes);
         removeFrom(data.news);
         removeFrom(data.resources);
@@ -542,11 +770,26 @@
         saveData("Element supprime.");
       }
 
+      function counts() {
+        const sequences = data.classes.flatMap((classe) => classe.sequences || []);
+        const sessions = sequences.flatMap((sequence) => sequence.sessions || []);
+        const activities = sessions.flatMap((session) => session.activities || []);
+        return {
+          classes: data.classes.length,
+          sequences: sequences.length,
+          sessions: sessions.length,
+          activities: activities.length,
+          news: data.news.length,
+          resources: data.resources.length
+        };
+      }
+
       function render() {
         const [title, subtitle] = sections[section];
         document.querySelector("#pageTitle").textContent = title;
         document.querySelector("#pageSubtitle").textContent = subtitle;
         renderActions();
+        if (section === "dashboard") renderDashboard();
         if (section === "parcours") renderParcours();
         if (section === "news") renderList("news");
         if (section === "resources") renderList("resources");
@@ -556,65 +799,89 @@
       function renderActions() {
         const actions = document.querySelector("#pageActions");
         actions.innerHTML = "";
-        if (section === "parcours") actions.append(button("Nouvelle classe", "primary", () => addItem("class")));
-        if (section === "news") actions.append(button("Nouvelle actualite", "primary", () => addItem("news")));
-        if (section === "resources") actions.append(button("Nouvelle ressource", "primary", () => addItem("resource")));
+        if (section === "dashboard") actions.append(makeButton("Sauvegarder JSON", "btn btn-soft", () => selectSection("backup")));
+        if (section === "parcours") actions.append(makeButton("Nouvelle classe", "btn btn-primary", () => addItem("class")));
+        if (section === "news") actions.append(makeButton("Nouvelle actualite", "btn btn-primary", () => addItem("news")));
+        if (section === "resources") actions.append(makeButton("Nouvelle ressource", "btn btn-primary", () => addItem("resource")));
+      }
+
+      function renderDashboard() {
+        const total = counts();
+        document.querySelector("#content").innerHTML = `
+          <div class="dashboard">
+            <div class="metrics">
+              ${metric(total.classes, "Classes")}
+              ${metric(total.sequences, "Sequences")}
+              ${metric(total.activities, "Activites")}
+              ${metric(total.resources, "Ressources")}
+            </div>
+            <section class="panel">
+              <div class="panel-head"><h2>Derniers contenus</h2><span class="badge">${total.news} actualite(s)</span></div>
+              <div class="panel-body">
+                <div class="list">
+                  ${data.news.concat(data.resources).slice(0, 6).map((item) => `
+                    <article class="item">
+                      <div class="item-main">
+                        <button class="item-title" type="button">${escapeHtml(item.title)}<small>${escapeHtml(item.description || item.status)}</small></button>
+                        <span class="badge ${item.visible === false ? "hidden" : ""}">${item.visible === false ? "Masque" : "Visible"}</span>
+                      </div>
+                    </article>
+                  `).join("") || `<div class="empty">Aucun contenu recent.</div>`}
+                </div>
+              </div>
+            </section>
+          </div>
+        `;
+      }
+
+      function metric(value, label) {
+        return `<article class="metric"><strong>${value}</strong><span>${label}</span></article>`;
       }
 
       function renderParcours() {
-        document.querySelector("#content").innerHTML = `
-          <div class="grid">
-            <section class="panel">
-              <div class="panel-head"><h2>Arborescence</h2></div>
-              <div class="panel-body"><div class="tree" id="tree"></div></div>
-            </section>
-            <aside class="panel">
-              <div class="panel-head"><h2>Edition</h2></div>
-              <div class="panel-body" id="editor"></div>
-            </aside>
-          </div>
-        `;
-        const tree = document.querySelector("#tree");
+        document.querySelector("#content").innerHTML = workspace("Arborescence", "Edition");
+        const tree = document.querySelector("#primaryList");
         if (!data.classes.length) {
-          tree.innerHTML = `<div class="empty">Aucune classe.</div>`;
+          tree.innerHTML = `<div class="empty">Aucune classe pour le moment.</div>`;
         } else {
-          data.classes.forEach((classe) => tree.append(node("class", classe, [
-            ["+ Sequence", () => addItem("sequence", classe)]
-          ], classe.sequences, "sequence")));
+          data.classes.forEach((classe) => tree.append(renderNode("class", classe, [["+ Sequence", () => addItem("sequence", classe)]], classe.sequences, "sequence")));
         }
         renderEditor();
       }
 
-      function node(type, item, actions, children = [], childType = "") {
+      function renderNode(type, item, actions, children = [], childType = "") {
         const element = document.createElement("article");
-        element.className = "node";
-        const title = document.createElement("div");
-        title.className = "node-title";
-        const open = button("", "", () => {
+        element.className = "item";
+
+        const main = document.createElement("div");
+        main.className = "item-main";
+        const open = makeButton("", "item-title", () => {
           selection = { type, item };
           render();
         });
         open.innerHTML = `${escapeHtml(item.title)}<small>${escapeHtml(item.description || item.status)}</small>`;
+
         const actionBox = document.createElement("div");
-        actionBox.className = "node-actions";
-        actions.forEach(([label, action]) => actionBox.append(button(label, "icon", action)));
-        actionBox.append(button("Editer", "icon", () => {
+        actionBox.className = "item-actions";
+        actions.forEach(([label, action]) => actionBox.append(makeButton(label, "btn btn-soft btn-small", action)));
+        actionBox.append(makeButton("Editer", "btn btn-soft btn-small", () => {
           selection = { type, item };
           render();
         }));
-        actionBox.append(button("Suppr.", "icon", () => removeItem(type, item)));
-        title.append(open, actionBox);
-        element.append(title);
+        actionBox.append(makeButton("Supprimer", "btn btn-danger btn-small", () => removeItem(type, item)));
+
+        main.append(open, actionBox);
+        element.append(main);
 
         if (children.length) {
           const childBox = document.createElement("div");
           childBox.className = "children";
           children.forEach((child) => {
             const next = childType === "sequence"
-              ? node("sequence", child, [["+ Seance", () => addItem("session", child)]], child.sessions, "session")
+              ? renderNode("sequence", child, [["+ Seance", () => addItem("session", child)]], child.sessions, "session")
               : childType === "session"
-                ? node("session", child, [["+ Activite", () => addItem("activity", child)]], child.activities, "activity")
-                : node("activity", child, [], [], "");
+                ? renderNode("session", child, [["+ Activite", () => addItem("activity", child)]], child.activities, "activity")
+                : renderNode("activity", child, [], [], "");
             childBox.append(next);
           });
           element.append(childBox);
@@ -624,51 +891,59 @@
 
       function renderList(type) {
         const items = data[type];
-        document.querySelector("#content").innerHTML = `
-          <div class="grid">
-            <section class="panel">
-              <div class="panel-head"><h2>${type === "news" ? "Actualites" : "Ressources"}</h2></div>
-              <div class="panel-body"><div class="list" id="list"></div></div>
-            </section>
-            <aside class="panel">
-              <div class="panel-head"><h2>Edition</h2></div>
-              <div class="panel-body" id="editor"></div>
-            </aside>
-          </div>
-        `;
-        const list = document.querySelector("#list");
-        if (!items.length) list.innerHTML = `<div class="empty">Aucun element.</div>`;
+        document.querySelector("#content").innerHTML = workspace(type === "news" ? "Actualites" : "Ressources", "Edition");
+        const list = document.querySelector("#primaryList");
+        if (!items.length) list.innerHTML = `<div class="empty">Aucun element pour le moment.</div>`;
         items.forEach((item) => {
           const row = document.createElement("article");
-          row.className = "row";
-          const open = button("", "", () => {
+          row.className = "item";
+          const main = document.createElement("div");
+          main.className = "item-main";
+          const open = makeButton("", "item-title", () => {
             selection = { type: type === "news" ? "news" : "resource", item };
             render();
           });
           open.innerHTML = `${escapeHtml(item.title)}<small>${escapeHtml(item.description || item.status)}</small>`;
           const actionBox = document.createElement("div");
-          actionBox.className = "node-actions";
-          actionBox.append(button("Editer", "icon", () => {
+          actionBox.className = "item-actions";
+          actionBox.append(makeButton("Editer", "btn btn-soft btn-small", () => {
             selection = { type: type === "news" ? "news" : "resource", item };
             render();
           }));
-          actionBox.append(button("Suppr.", "icon", () => removeItem(type, item)));
-          row.append(open, actionBox);
+          actionBox.append(makeButton("Supprimer", "btn btn-danger btn-small", () => removeItem(type, item)));
+          main.append(open, actionBox);
+          row.append(main);
           list.append(row);
         });
         renderEditor();
       }
 
+      function workspace(leftTitle, rightTitle) {
+        return `
+          <div class="workspace">
+            <section class="panel">
+              <div class="panel-head"><h2>${leftTitle}</h2></div>
+              <div class="panel-body"><div class="tree" id="primaryList"></div></div>
+            </section>
+            <aside class="panel">
+              <div class="panel-head"><h2>${rightTitle}</h2></div>
+              <div class="panel-body" id="editor"></div>
+            </aside>
+          </div>
+        `;
+      }
+
       function renderEditor() {
         const editor = document.querySelector("#editor");
         if (!selection) {
-          editor.innerHTML = `<div class="empty">Selectionnez un element.</div>`;
+          editor.innerHTML = `<div class="empty">Selectionnez un element pour le modifier.</div>`;
           return;
         }
         const item = selection.item;
         editor.innerHTML = `
           <form id="editForm">
-            <label>Titre <input name="title" value="${escapeAttr(item.title)}" /></label>
+            <p class="editor-title">${escapeHtml(item.title)}</p>
+            <label>Titre <input name="title" value="${escapeAttr(item.title)}" required /></label>
             <label>Description <textarea name="description">${escapeHtml(item.description || "")}</textarea></label>
             <div class="split">
               <label>Statut
@@ -693,23 +968,23 @@
                 <label>URL ou fichier <input name="url" value="${escapeAttr(item.url || "")}" /></label>
               </div>
             ` : ""}
-            <button class="primary" type="submit">Enregistrer</button>
+            <button class="btn btn-primary" type="submit">Enregistrer</button>
           </form>
         `;
         document.querySelector("#editForm").addEventListener("submit", (event) => {
           event.preventDefault();
           const form = new FormData(event.currentTarget);
-          item.title = form.get("title").trim();
-          item.description = form.get("description").trim();
+          item.title = String(form.get("title")).trim();
+          item.description = String(form.get("description")).trim();
           item.status = form.get("status");
           item.visible = form.get("visible") === "true";
           if (selection.type === "activity") {
-            item.instruction = form.get("instruction").trim();
-            item.text = form.get("text").trim();
+            item.instruction = String(form.get("instruction")).trim();
+            item.text = String(form.get("text")).trim();
           }
           if (selection.type === "resource") {
-            item.type = form.get("type").trim();
-            item.url = form.get("url").trim();
+            item.type = String(form.get("type")).trim();
+            item.url = String(form.get("url")).trim();
           }
           saveData();
         });
@@ -719,15 +994,15 @@
         document.querySelector("#content").innerHTML = `
           <section class="panel">
             <div class="panel-head">
-              <h2>Donnees</h2>
+              <h2>Donnees du site</h2>
               <div class="actions">
-                <button class="ghost" id="copyJson">Copier</button>
-                <button class="primary" id="applyJson">Importer</button>
-                <button class="danger" id="resetData">Reinitialiser</button>
+                <button class="btn btn-soft" id="copyJson">Copier</button>
+                <button class="btn btn-primary" id="applyJson">Importer</button>
+                <button class="btn btn-danger" id="resetData">Reinitialiser</button>
               </div>
             </div>
             <div class="panel-body">
-              <textarea class="export-box" id="jsonBox">${escapeHtml(JSON.stringify(data, null, 2))}</textarea>
+              <textarea class="json-box" id="jsonBox">${escapeHtml(JSON.stringify(data, null, 2))}</textarea>
             </div>
           </section>
         `;
@@ -739,7 +1014,7 @@
             box.select();
             document.execCommand("copy");
           }
-          showNotice("Copie.");
+          showNotice("JSON copie.");
         });
         document.querySelector("#applyJson").addEventListener("click", () => {
           try {
@@ -758,7 +1033,7 @@
         });
       }
 
-      function button(label, className, action) {
+      function makeButton(label, className, action) {
         const element = document.createElement("button");
         element.type = "button";
         element.className = className;
@@ -768,21 +1043,34 @@
       }
 
       function escapeHtml(value) {
-        return String(value)
-          .replaceAll("&", "&amp;")
-          .replaceAll("<", "&lt;")
-          .replaceAll(">", "&gt;");
+        return String(value).replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
       }
 
       function escapeAttr(value) {
         return escapeHtml(value).replaceAll('"', "&quot;");
       }
 
-      document.querySelectorAll(".nav button").forEach((button) => {
-        button.addEventListener("click", () => select(button.dataset.section));
+      document.querySelector("#loginForm").addEventListener("submit", (event) => {
+        event.preventDefault();
+        const form = new FormData(event.currentTarget);
+        const username = String(form.get("username")).trim();
+        const password = String(form.get("password"));
+        if (username === credentials.username && password === credentials.password) {
+          sessionStorage.setItem(authKey, "true");
+          document.querySelector("#loginError").hidden = true;
+          showApp();
+        } else {
+          document.querySelector("#loginError").hidden = false;
+        }
       });
 
-      render();
+      document.querySelectorAll(".nav button").forEach((button) => {
+        button.addEventListener("click", () => selectSection(button.dataset.section));
+      });
+
+      document.querySelector("#lockButton").addEventListener("click", showLogin);
+
+      if (isLoggedIn()) showApp();
     </script>
   </body>
 </html>

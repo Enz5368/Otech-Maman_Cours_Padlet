@@ -1,4 +1,4 @@
-# In viaggio per l'Italia - Editeur HTML
+# In viaggio per l'Italia - Studio HTML
 
 Site HTML autonome pour organiser les classes, sequences, seances, activites, actualites et ressources.
 
@@ -11,6 +11,11 @@ index.html
 ```
 
 Aucune installation Node.js n'est necessaire.
+
+## Connexion
+
+- Identifiant : `rose`
+- Mot de passe : `italia`
 
 ## Donnees
 
@@ -26,4 +31,9 @@ Pour restaurer une sauvegarde, collez le JSON dans le meme onglet puis cliquez s
 
 ## Publication
 
-Pour publier plus tard, il suffira d'heberger `index.html` sur un hebergeur de site statique.
+Le fichier `netlify.toml` indique a Netlify de publier directement le dossier courant, sans commande de build.
+
+Si Netlify garde une ancienne configuration dans son interface, utilisez :
+
+- Build command : vide
+- Publish directory : `.`
