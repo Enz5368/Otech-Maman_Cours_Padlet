@@ -1,8 +1,1 @@
-.next
-node_modules
-.env
-.tools
-dev-server*.log
-*.db
-uploads/*
-!uploads/.gitkeep
+*.log

@@ -1,0 +1,788 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>In viaggio per l'Italia - Editeur</title>
+    <style>
+      :root {
+        --paper: #fbf7f0;
+        --ink: #25201d;
+        --muted: #766b64;
+        --wine: #7a1f3d;
+        --wine-dark: #4b1026;
+        --wine-soft: #f5e7ec;
+        --sea: #0f766e;
+        --line: #ead8d0;
+        --white: #ffffff;
+        --shadow: 0 18px 48px rgba(75, 16, 38, 0.12);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        background: var(--paper);
+        color: var(--ink);
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+
+      button,
+      input,
+      textarea,
+      select {
+        font: inherit;
+      }
+
+      button {
+        cursor: pointer;
+      }
+
+      .app {
+        display: grid;
+        min-height: 100vh;
+        grid-template-columns: 260px minmax(0, 1fr);
+      }
+
+      .sidebar {
+        position: sticky;
+        top: 0;
+        height: 100vh;
+        padding: 20px;
+        background: var(--wine-dark);
+        color: var(--white);
+      }
+
+      .brand {
+        margin: 0 0 26px;
+      }
+
+      .brand strong {
+        display: block;
+        font-size: 20px;
+      }
+
+      .brand span {
+        color: rgba(255, 255, 255, 0.7);
+        font-size: 13px;
+      }
+
+      .nav {
+        display: grid;
+        gap: 8px;
+      }
+
+      .nav button,
+      .ghost,
+      .primary,
+      .danger {
+        border: 0;
+        border-radius: 8px;
+        padding: 11px 14px;
+        font-weight: 700;
+      }
+
+      .nav button {
+        width: 100%;
+        background: transparent;
+        color: rgba(255, 255, 255, 0.75);
+        text-align: left;
+      }
+
+      .nav button.active {
+        background: var(--white);
+        color: var(--wine-dark);
+      }
+
+      .main {
+        padding: 24px;
+      }
+
+      .topbar {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 16px;
+        margin-bottom: 20px;
+      }
+
+      h1,
+      h2,
+      h3,
+      p {
+        margin-top: 0;
+      }
+
+      h1 {
+        margin-bottom: 4px;
+        color: var(--wine-dark);
+        font-size: clamp(28px, 4vw, 42px);
+        letter-spacing: 0;
+      }
+
+      .subtitle {
+        margin: 0;
+        color: var(--muted);
+      }
+
+      .actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        justify-content: flex-end;
+      }
+
+      .primary {
+        background: var(--wine);
+        color: var(--white);
+        box-shadow: var(--shadow);
+      }
+
+      .ghost {
+        border: 1px solid var(--line);
+        background: var(--white);
+        color: var(--wine);
+      }
+
+      .danger {
+        background: var(--wine-soft);
+        color: var(--wine-dark);
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(320px, 420px);
+        gap: 18px;
+        align-items: start;
+      }
+
+      .panel {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: var(--white);
+        box-shadow: var(--shadow);
+      }
+
+      .panel-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        border-bottom: 1px solid var(--line);
+        padding: 16px;
+      }
+
+      .panel-head h2 {
+        margin: 0;
+        color: var(--wine-dark);
+        font-size: 18px;
+      }
+
+      .panel-body {
+        padding: 16px;
+      }
+
+      .tree,
+      .list {
+        display: grid;
+        gap: 10px;
+      }
+
+      .node,
+      .row {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: #fffaf5;
+      }
+
+      .node-title,
+      .row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 12px;
+      }
+
+      .node-title button:first-child,
+      .row button:first-child {
+        min-width: 0;
+        border: 0;
+        background: transparent;
+        color: var(--ink);
+        font-weight: 800;
+        text-align: left;
+      }
+
+      .node-title small,
+      .row small {
+        display: block;
+        margin-top: 3px;
+        color: var(--muted);
+        font-weight: 500;
+      }
+
+      .node-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        justify-content: flex-end;
+      }
+
+      .icon {
+        min-width: 34px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: var(--white);
+        color: var(--wine);
+        padding: 7px 9px;
+        font-weight: 900;
+      }
+
+      .children {
+        display: grid;
+        gap: 10px;
+        padding: 0 12px 12px 24px;
+      }
+
+      form {
+        display: grid;
+        gap: 14px;
+      }
+
+      label {
+        display: grid;
+        gap: 6px;
+        color: var(--muted);
+        font-size: 13px;
+        font-weight: 800;
+      }
+
+      input,
+      textarea,
+      select {
+        width: 100%;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: var(--white);
+        color: var(--ink);
+        padding: 10px 11px;
+      }
+
+      textarea {
+        min-height: 110px;
+        resize: vertical;
+      }
+
+      .split {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+      }
+
+      .empty {
+        display: grid;
+        min-height: 280px;
+        place-items: center;
+        border: 1px dashed var(--line);
+        border-radius: 8px;
+        color: var(--muted);
+        text-align: center;
+      }
+
+      .export-box {
+        min-height: 360px;
+        font-family: "Cascadia Code", Consolas, monospace;
+        font-size: 13px;
+      }
+
+      .notice {
+        margin-bottom: 14px;
+        border-left: 4px solid var(--sea);
+        border-radius: 8px;
+        background: #eefaf8;
+        padding: 12px 14px;
+        color: #115e59;
+        font-weight: 700;
+      }
+
+      @media (max-width: 860px) {
+        .app {
+          grid-template-columns: 1fr;
+        }
+
+        .sidebar {
+          position: static;
+          height: auto;
+        }
+
+        .grid {
+          grid-template-columns: 1fr;
+        }
+
+        .topbar {
+          display: grid;
+        }
+
+        .actions {
+          justify-content: flex-start;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app">
+      <aside class="sidebar">
+        <p class="brand">
+          <strong>In viaggio per l'Italia</strong>
+          <span>Editeur HTML</span>
+        </p>
+        <nav class="nav" aria-label="Navigation">
+          <button class="active" data-section="parcours">Parcours</button>
+          <button data-section="news">Actualites</button>
+          <button data-section="resources">Depot</button>
+          <button data-section="backup">Sauvegarde</button>
+        </nav>
+      </aside>
+
+      <main class="main">
+        <header class="topbar">
+          <div>
+            <h1 id="pageTitle">Parcours</h1>
+            <p class="subtitle" id="pageSubtitle">Classes, sequences, seances et activites.</p>
+          </div>
+          <div class="actions" id="pageActions"></div>
+        </header>
+
+        <p class="notice" id="notice" hidden></p>
+        <section id="content"></section>
+      </main>
+    </div>
+
+    <script>
+      const storageKey = "italia-html-editor-v1";
+      const sections = {
+        parcours: ["Parcours", "Classes, sequences, seances et activites."],
+        news: ["Actualites", "Messages et annonces."],
+        resources: ["Depot", "Liens et ressources."],
+        backup: ["Sauvegarde", "Exporter ou importer les donnees."]
+      };
+
+      const initialData = {
+        classes: [
+          {
+            id: createId(),
+            title: "Cinquieme",
+            description: "Premier espace de cours.",
+            status: "Disponible",
+            visible: true,
+            sequences: [
+              {
+                id: createId(),
+                title: "Benvenuti",
+                description: "Se presenter et entrer dans la langue.",
+                status: "Disponible",
+                visible: true,
+                sessions: [
+                  {
+                    id: createId(),
+                    title: "Premiers mots",
+                    description: "Saluer, se presenter, ecouter.",
+                    status: "Disponible",
+                    visible: true,
+                    activities: [
+                      {
+                        id: createId(),
+                        title: "Mi chiamo...",
+                        description: "Activite orale courte.",
+                        status: "Disponible",
+                        visible: true,
+                        instruction: "Complete la presentation puis entraine-toi a l'oral.",
+                        text: "Ciao, mi chiamo..."
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        news: [
+          {
+            id: createId(),
+            title: "Bienvenue",
+            description: "Ajoutez ici les informations importantes.",
+            status: "Disponible",
+            visible: true
+          }
+        ],
+        resources: [
+          {
+            id: createId(),
+            title: "WordReference",
+            description: "Dictionnaire italien-francais.",
+            status: "Disponible",
+            visible: true,
+            type: "Lien",
+            url: "https://www.wordreference.com/itfr/"
+          }
+        ]
+      };
+
+      let data = loadData();
+      let section = "parcours";
+      let selection = null;
+
+      function createId() {
+        if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
+        return `id-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+      }
+
+      function loadData() {
+        try {
+          return JSON.parse(localStorage.getItem(storageKey)) || initialData;
+        } catch {
+          return initialData;
+        }
+      }
+
+      function saveData(message = "Enregistre.") {
+        localStorage.setItem(storageKey, JSON.stringify(data));
+        showNotice(message);
+        render();
+      }
+
+      function showNotice(message) {
+        const notice = document.querySelector("#notice");
+        notice.textContent = message;
+        notice.hidden = false;
+        clearTimeout(showNotice.timer);
+        showNotice.timer = setTimeout(() => {
+          notice.hidden = true;
+        }, 2200);
+      }
+
+      function select(nextSection) {
+        section = nextSection;
+        selection = null;
+        document.querySelectorAll(".nav button").forEach((button) => {
+          button.classList.toggle("active", button.dataset.section === section);
+        });
+        render();
+      }
+
+      function addItem(type, parent) {
+        const item = {
+          id: createId(),
+          title: newTitle(type),
+          description: "",
+          status: "Disponible",
+          visible: true
+        };
+
+        if (type === "class") {
+          item.sequences = [];
+          data.classes.push(item);
+        }
+        if (type === "sequence") {
+          item.sessions = [];
+          parent.sequences.push(item);
+        }
+        if (type === "session") {
+          item.activities = [];
+          parent.sessions.push(item);
+        }
+        if (type === "activity") {
+          item.instruction = "";
+          item.text = "";
+          parent.activities.push(item);
+        }
+        if (type === "news") data.news.push(item);
+        if (type === "resource") {
+          item.type = "Document";
+          item.url = "";
+          data.resources.push(item);
+        }
+
+        selection = { type, item };
+        saveData("Element ajoute.");
+      }
+
+      function newTitle(type) {
+        return {
+          class: "Nouvelle classe",
+          sequence: "Nouvelle sequence",
+          session: "Nouvelle seance",
+          activity: "Nouvelle activite",
+          news: "Nouvelle actualite",
+          resource: "Nouvelle ressource"
+        }[type];
+      }
+
+      function removeItem(type, item) {
+        if (!confirm("Supprimer cet element ?")) return;
+        const removeFrom = (items) => {
+          const index = items.findIndex((current) => current.id === item.id);
+          if (index >= 0) {
+            items.splice(index, 1);
+            return true;
+          }
+          return items.some((current) => {
+            return removeFrom(current.sequences || []) || removeFrom(current.sessions || []) || removeFrom(current.activities || []);
+          });
+        };
+
+        removeFrom(data.classes);
+        removeFrom(data.news);
+        removeFrom(data.resources);
+        selection = null;
+        saveData("Element supprime.");
+      }
+
+      function render() {
+        const [title, subtitle] = sections[section];
+        document.querySelector("#pageTitle").textContent = title;
+        document.querySelector("#pageSubtitle").textContent = subtitle;
+        renderActions();
+        if (section === "parcours") renderParcours();
+        if (section === "news") renderList("news");
+        if (section === "resources") renderList("resources");
+        if (section === "backup") renderBackup();
+      }
+
+      function renderActions() {
+        const actions = document.querySelector("#pageActions");
+        actions.innerHTML = "";
+        if (section === "parcours") actions.append(button("Nouvelle classe", "primary", () => addItem("class")));
+        if (section === "news") actions.append(button("Nouvelle actualite", "primary", () => addItem("news")));
+        if (section === "resources") actions.append(button("Nouvelle ressource", "primary", () => addItem("resource")));
+      }
+
+      function renderParcours() {
+        document.querySelector("#content").innerHTML = `
+          <div class="grid">
+            <section class="panel">
+              <div class="panel-head"><h2>Arborescence</h2></div>
+              <div class="panel-body"><div class="tree" id="tree"></div></div>
+            </section>
+            <aside class="panel">
+              <div class="panel-head"><h2>Edition</h2></div>
+              <div class="panel-body" id="editor"></div>
+            </aside>
+          </div>
+        `;
+        const tree = document.querySelector("#tree");
+        if (!data.classes.length) {
+          tree.innerHTML = `<div class="empty">Aucune classe.</div>`;
+        } else {
+          data.classes.forEach((classe) => tree.append(node("class", classe, [
+            ["+ Sequence", () => addItem("sequence", classe)]
+          ], classe.sequences, "sequence")));
+        }
+        renderEditor();
+      }
+
+      function node(type, item, actions, children = [], childType = "") {
+        const element = document.createElement("article");
+        element.className = "node";
+        const title = document.createElement("div");
+        title.className = "node-title";
+        const open = button("", "", () => {
+          selection = { type, item };
+          render();
+        });
+        open.innerHTML = `${escapeHtml(item.title)}<small>${escapeHtml(item.description || item.status)}</small>`;
+        const actionBox = document.createElement("div");
+        actionBox.className = "node-actions";
+        actions.forEach(([label, action]) => actionBox.append(button(label, "icon", action)));
+        actionBox.append(button("Editer", "icon", () => {
+          selection = { type, item };
+          render();
+        }));
+        actionBox.append(button("Suppr.", "icon", () => removeItem(type, item)));
+        title.append(open, actionBox);
+        element.append(title);
+
+        if (children.length) {
+          const childBox = document.createElement("div");
+          childBox.className = "children";
+          children.forEach((child) => {
+            const next = childType === "sequence"
+              ? node("sequence", child, [["+ Seance", () => addItem("session", child)]], child.sessions, "session")
+              : childType === "session"
+                ? node("session", child, [["+ Activite", () => addItem("activity", child)]], child.activities, "activity")
+                : node("activity", child, [], [], "");
+            childBox.append(next);
+          });
+          element.append(childBox);
+        }
+        return element;
+      }
+
+      function renderList(type) {
+        const items = data[type];
+        document.querySelector("#content").innerHTML = `
+          <div class="grid">
+            <section class="panel">
+              <div class="panel-head"><h2>${type === "news" ? "Actualites" : "Ressources"}</h2></div>
+              <div class="panel-body"><div class="list" id="list"></div></div>
+            </section>
+            <aside class="panel">
+              <div class="panel-head"><h2>Edition</h2></div>
+              <div class="panel-body" id="editor"></div>
+            </aside>
+          </div>
+        `;
+        const list = document.querySelector("#list");
+        if (!items.length) list.innerHTML = `<div class="empty">Aucun element.</div>`;
+        items.forEach((item) => {
+          const row = document.createElement("article");
+          row.className = "row";
+          const open = button("", "", () => {
+            selection = { type: type === "news" ? "news" : "resource", item };
+            render();
+          });
+          open.innerHTML = `${escapeHtml(item.title)}<small>${escapeHtml(item.description || item.status)}</small>`;
+          const actionBox = document.createElement("div");
+          actionBox.className = "node-actions";
+          actionBox.append(button("Editer", "icon", () => {
+            selection = { type: type === "news" ? "news" : "resource", item };
+            render();
+          }));
+          actionBox.append(button("Suppr.", "icon", () => removeItem(type, item)));
+          row.append(open, actionBox);
+          list.append(row);
+        });
+        renderEditor();
+      }
+
+      function renderEditor() {
+        const editor = document.querySelector("#editor");
+        if (!selection) {
+          editor.innerHTML = `<div class="empty">Selectionnez un element.</div>`;
+          return;
+        }
+        const item = selection.item;
+        editor.innerHTML = `
+          <form id="editForm">
+            <label>Titre <input name="title" value="${escapeAttr(item.title)}" /></label>
+            <label>Description <textarea name="description">${escapeHtml(item.description || "")}</textarea></label>
+            <div class="split">
+              <label>Statut
+                <select name="status">
+                  ${["Disponible", "Bientot", "A venir"].map((status) => `<option ${item.status === status ? "selected" : ""}>${status}</option>`).join("")}
+                </select>
+              </label>
+              <label>Visible
+                <select name="visible">
+                  <option value="true" ${item.visible !== false ? "selected" : ""}>Oui</option>
+                  <option value="false" ${item.visible === false ? "selected" : ""}>Non</option>
+                </select>
+              </label>
+            </div>
+            ${selection.type === "activity" ? `
+              <label>Consigne <textarea name="instruction">${escapeHtml(item.instruction || "")}</textarea></label>
+              <label>Texte <textarea name="text">${escapeHtml(item.text || "")}</textarea></label>
+            ` : ""}
+            ${selection.type === "resource" ? `
+              <div class="split">
+                <label>Type <input name="type" value="${escapeAttr(item.type || "")}" /></label>
+                <label>URL ou fichier <input name="url" value="${escapeAttr(item.url || "")}" /></label>
+              </div>
+            ` : ""}
+            <button class="primary" type="submit">Enregistrer</button>
+          </form>
+        `;
+        document.querySelector("#editForm").addEventListener("submit", (event) => {
+          event.preventDefault();
+          const form = new FormData(event.currentTarget);
+          item.title = form.get("title").trim();
+          item.description = form.get("description").trim();
+          item.status = form.get("status");
+          item.visible = form.get("visible") === "true";
+          if (selection.type === "activity") {
+            item.instruction = form.get("instruction").trim();
+            item.text = form.get("text").trim();
+          }
+          if (selection.type === "resource") {
+            item.type = form.get("type").trim();
+            item.url = form.get("url").trim();
+          }
+          saveData();
+        });
+      }
+
+      function renderBackup() {
+        document.querySelector("#content").innerHTML = `
+          <section class="panel">
+            <div class="panel-head">
+              <h2>Donnees</h2>
+              <div class="actions">
+                <button class="ghost" id="copyJson">Copier</button>
+                <button class="primary" id="applyJson">Importer</button>
+                <button class="danger" id="resetData">Reinitialiser</button>
+              </div>
+            </div>
+            <div class="panel-body">
+              <textarea class="export-box" id="jsonBox">${escapeHtml(JSON.stringify(data, null, 2))}</textarea>
+            </div>
+          </section>
+        `;
+        document.querySelector("#copyJson").addEventListener("click", async () => {
+          const box = document.querySelector("#jsonBox");
+          if (navigator.clipboard) {
+            await navigator.clipboard.writeText(box.value);
+          } else {
+            box.select();
+            document.execCommand("copy");
+          }
+          showNotice("Copie.");
+        });
+        document.querySelector("#applyJson").addEventListener("click", () => {
+          try {
+            data = JSON.parse(document.querySelector("#jsonBox").value);
+            selection = null;
+            saveData("Donnees importees.");
+          } catch {
+            showNotice("JSON invalide.");
+          }
+        });
+        document.querySelector("#resetData").addEventListener("click", () => {
+          if (!confirm("Reinitialiser les donnees ?")) return;
+          data = structuredClone(initialData);
+          selection = null;
+          saveData("Donnees reinitialisees.");
+        });
+      }
+
+      function button(label, className, action) {
+        const element = document.createElement("button");
+        element.type = "button";
+        element.className = className;
+        element.textContent = label;
+        element.addEventListener("click", action);
+        return element;
+      }
+
+      function escapeHtml(value) {
+        return String(value)
+          .replaceAll("&", "&amp;")
+          .replaceAll("<", "&lt;")
+          .replaceAll(">", "&gt;");
+      }
+
+      function escapeAttr(value) {
+        return escapeHtml(value).replaceAll('"', "&quot;");
+      }
+
+      document.querySelectorAll(".nav button").forEach((button) => {
+        button.addEventListener("click", () => select(button.dataset.section));
+      });
+
+      render();
+    </script>
+  </body>
+</html>
