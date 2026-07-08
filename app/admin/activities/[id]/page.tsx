@@ -18,14 +18,11 @@ export default async function AdminActivityPage({ params }: { params: Promise<{ 
   if (!activity) notFound();
 
   const session = activity.session;
-  const sequence = session.sequence;
-  const classe = sequence.class;
 
   return (
     <AdminShell
       title={activity.title}
       subtitle="Activite : modifier le texte et ajouter ses fichiers ou liens."
-      previewHref={`/classes/${classe.slug}/sequences/${sequence.slug}/sessions/${session.slug}/activities/${activity.slug}`}
       backHref={`/admin/sessions/${session.id}`}
     >
       <div className="space-y-5">

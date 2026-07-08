@@ -18,7 +18,6 @@ export default async function AdminSequencePage({ params }: { params: Promise<{ 
     <AdminShell
       title={sequence.title}
       subtitle={`Sequence de ${sequence.class.title} : modifier et ouvrir ses seances.`}
-      previewHref={`/classes/${sequence.class.slug}/sequences/${sequence.slug}`}
       backHref={`/admin/classes/${sequence.classId}`}
     >
       <div className="space-y-5">

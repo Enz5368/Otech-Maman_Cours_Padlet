@@ -18,13 +18,11 @@ export default async function AdminSessionPage({ params }: { params: Promise<{ i
   if (!session) notFound();
 
   const sequence = session.sequence;
-  const classe = sequence.class;
 
   return (
     <AdminShell
       title={session.title}
       subtitle={`Seance de ${sequence.title} : modifier et ouvrir ses activites.`}
-      previewHref={`/classes/${classe.slug}/sequences/${sequence.slug}/sessions/${session.slug}`}
       backHref={`/admin/sequences/${sequence.id}`}
     >
       <div className="space-y-5">

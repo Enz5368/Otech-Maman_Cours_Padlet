@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import Sortable from "sortablejs";
 import {
   CheckCircle2,
-  Eye,
   FilePlus2,
   GripVertical,
   LayoutDashboard,
@@ -221,9 +220,6 @@ export function AdminDashboard() {
               <p className="text-sm text-ink/60">{sectionHelp(section)}</p>
             </div>
             <div className="flex flex-wrap gap-2">
-              <a href="/" target="_blank" className="inline-flex items-center gap-2 rounded-lg border border-wine-100 bg-white px-4 py-2 text-sm font-semibold text-wine-700">
-                <Eye size={16} /> Apercu
-              </a>
               {section === "classes" && <ActionButton onClick={() => startCreate("class")} label="Nouvelle classe" />}
               {section === "news" && <ActionButton onClick={() => startCreate("news")} label="Nouvelle actualite" />}
               {section === "depot" && <ActionButton onClick={() => startCreate("resource")} label="Nouvelle ressource" />}

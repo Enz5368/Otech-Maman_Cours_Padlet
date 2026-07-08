@@ -4,11 +4,10 @@ Application web Next.js pour organiser un depot pedagogique d'italien : classes,
 
 ## Fonctionnalites
 
-- Mode visionneur public, sans connexion et en lecture seule.
 - Mode editeur protege par mot de passe avec session admin.
 - Structure : Classe > Sequence > Seance > Activite > Ressources.
 - Depot global pour audios, videos, affiches, PDF, documents et liens.
-- Dashboard admin avec formulaires, suppression confirmee, visibilite public/prive, ordre par glisser-deposer et upload.
+- Dashboard admin avec formulaires, suppression confirmee, ordre par glisser-deposer et upload.
 - Base SQLite via Prisma.
 - Fichiers stockes dans `uploads/` et servis par la route `/uploads/[filename]`.
 
@@ -82,7 +81,6 @@ Si Node.js n'est pas installe globalement mais que la version portable du projet
 
 Ouvrez ensuite :
 
-- Visionneur : `http://localhost:3000`
 - Editeur : `http://localhost:3000/admin`
 
 ## Uploads
@@ -102,9 +100,8 @@ Les donnees de demonstration pointent vers des noms d'exemples comme `exemple-fi
 1. Connectez-vous sur `/admin` avec `ADMIN_PASSWORD`.
 2. Gerez les classes, actualites et ressources depuis la sidebar.
 3. Utilisez l'arborescence pour ajouter des sequences, seances et activites.
-4. Cochez ou decochez `Visible cote visionneur` pour publier ou masquer un element.
+4. Utilisez la case `Visible` pour marquer un element comme actif ou masque.
 5. Glissez-deposez une ressource pour l'uploader, puis enregistrez la fiche.
-6. Utilisez `Apercu visionneur` pour verifier le rendu public.
 
 ## Production
 

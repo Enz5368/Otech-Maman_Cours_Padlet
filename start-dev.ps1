@@ -1,6 +1,6 @@
 $ErrorActionPreference = "Stop"
 
-$nodeDir = Join-Path $PSScriptRoot ".tools\node-v24.18.0-win-x64"
+$nodeDir = Join-Path $PSScriptRoot ".tools\node-v22.13.1-win-x64"
 if (!(Test-Path $nodeDir)) {
   Write-Error "Node portable est introuvable dans $nodeDir"
 }

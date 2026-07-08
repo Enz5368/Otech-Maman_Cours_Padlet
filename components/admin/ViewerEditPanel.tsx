@@ -153,7 +153,7 @@ export function ViewerEditPanel({
           <div className="absolute inset-y-0 right-0 flex w-full max-w-2xl flex-col bg-white shadow-2xl">
             <div className="flex items-start justify-between gap-4 border-b border-wine-100 bg-paper px-5 py-4">
               <div>
-                <p className="text-xs font-bold uppercase text-wine-700">Edition visionneur</p>
+                <p className="text-xs font-bold uppercase text-wine-700">Edition</p>
                 <h2 className="text-2xl font-bold text-wine-900">{title}</h2>
                 <p className="mt-1 text-sm text-ink/60">Vous restez sur la page publique, l'ajout est rattache ici.</p>
               </div>
@@ -286,7 +286,7 @@ function Select({ name, label, options, defaultValue }: { name: string; label: s
 function Preview({ url }: { url: string }) {
   if (/\.(mp3|wav)$/i.test(url)) return <audio controls className="w-full" src={url} />;
   if (/\.(mp4)$/i.test(url)) return <video controls className="aspect-video w-full rounded-lg bg-ink" src={url} />;
-  if (/\.(jpg|jpeg|png|webp)$/i.test(url)) return <img className="max-h-56 w-full rounded-lg object-cover" src={url} alt="Apercu" />;
+  if (/\.(jpg|jpeg|png|webp)$/i.test(url)) return <img className="max-h-56 w-full rounded-lg object-cover" src={url} alt="Preview" />;
   return (
     <a href={url} target="_blank" className="inline-flex items-center gap-2 text-sm font-semibold text-wine-700">
       {/\.(pdf|doc|docx)$/i.test(url) ? <FileText size={16} /> : <LinkIcon size={16} />} Ouvrir l'apercu

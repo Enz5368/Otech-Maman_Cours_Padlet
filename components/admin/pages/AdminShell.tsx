@@ -1,16 +1,14 @@
 import Link from "next/link";
-import { ArrowLeft, Eye, LayoutDashboard, LogOut } from "lucide-react";
+import { ArrowLeft, LayoutDashboard, LogOut } from "lucide-react";
 
 export function AdminShell({
   title,
   subtitle,
-  previewHref,
   backHref,
   children
 }: {
   title: string;
   subtitle?: string;
-  previewHref?: string;
   backHref?: string;
   children: React.ReactNode;
 }) {
@@ -31,11 +29,6 @@ export function AdminShell({
             </div>
           </div>
           <div className="flex flex-wrap gap-2">
-            {previewHref && (
-              <Link href={previewHref} target="_blank" className="inline-flex items-center gap-2 rounded-lg border border-wine-100 bg-white px-4 py-2 text-sm font-semibold text-wine-700">
-                <Eye size={16} /> Apercu
-              </Link>
-            )}
             <form action="/api/admin/logout" method="post">
               <button className="inline-flex items-center gap-2 rounded-lg bg-wine-700 px-4 py-2 text-sm font-semibold text-white">
                 <LogOut size={16} /> Deconnexion

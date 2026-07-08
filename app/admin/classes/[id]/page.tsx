@@ -15,7 +15,7 @@ export default async function AdminClassPage({ params }: { params: Promise<{ id:
   if (!classe) notFound();
 
   return (
-    <AdminShell title={classe.title} subtitle="Classe : modifier les informations et ouvrir ses sequences." previewHref={`/classes/${classe.slug}`}>
+    <AdminShell title={classe.title} subtitle="Classe : modifier les informations et ouvrir ses sequences.">
       <div className="space-y-5">
         <AdminItemList
           title="Sequences de cette classe"
