@@ -73,8 +73,11 @@
       }
 
       .login-panel {
-        display: grid;
-        place-items: center;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        gap: 14px;
         padding: 32px;
       }
 
@@ -86,6 +89,54 @@
         padding: 28px;
         box-shadow: var(--shadow);
       }
+
+      .contact-card {
+        width: min(100%, 440px);
+        display: grid;
+        gap: 8px;
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        background: rgba(255, 255, 255, 0.62);
+        padding: 10px 12px;
+        color: var(--ink);
+      }
+
+      .contact-card button {
+        border: 0;
+        border-radius: var(--radius);
+        background: transparent;
+        color: inherit;
+        padding: 0;
+        text-align: left;
+      }
+
+      .contact-card button:hover { background: rgba(116, 24, 42, 0.06); }
+
+      .contact-card span {
+        display: block;
+        color: var(--muted);
+        font-size: 11px;
+        font-weight: 900;
+        text-transform: uppercase;
+      }
+
+      .contact-card strong {
+        display: block;
+        margin-top: 4px;
+        color: #031225;
+        font-size: 14px;
+        word-break: break-word;
+      }
+
+      .forgot-link {
+        justify-self: end;
+        margin-top: -4px;
+        color: var(--wine-700);
+        font-size: 13px;
+        font-weight: 850;
+      }
+
+      .forgot-link:hover { text-decoration: underline; }
 
       .brand-row {
         display: flex;
@@ -180,40 +231,43 @@
         color: var(--wine-900);
       }
 
-      .sidebar-ad {
+      .sidebar-mail {
         display: grid;
         gap: 8px;
         margin-top: auto;
-        border: 1px solid rgba(255, 255, 255, 0.14);
-        border-radius: var(--radius);
-        background: rgba(255, 255, 255, 0.07);
-        color: rgba(255, 255, 255, 0.78);
-        padding: 10px;
-      }
-
-      .sidebar-ad:hover {
-        background: rgba(255, 255, 255, 0.1);
-      }
-
-      .sidebar-ad-title {
-        color: rgba(255, 255, 255, 0.9);
-        font-weight: 900;
-        font-size: 13px;
-      }
-
-      .sidebar-ad-box {
         width: 100%;
-        border: 1px solid rgba(255, 255, 255, 0.12);
+        border: 0;
         border-radius: var(--radius);
-        padding: 9px;
-        background: rgba(255, 255, 255, 0.06);
-        color: inherit;
+        background: transparent;
+        color: rgba(255, 255, 255, 0.78);
+        padding: 10px 12px;
         text-align: left;
       }
 
-      .sidebar-ad-box:hover { background: rgba(255, 255, 255, 0.12); }
+      .sidebar-mail:hover { background: rgba(255, 255, 255, 0.08); }
 
-      .sidebar-ad-box span {
+      .sidebar-mail button {
+        border: 0;
+        border-radius: var(--radius);
+        background: transparent;
+        color: inherit;
+        padding: 0;
+        text-align: left;
+      }
+
+      .sidebar-mail button:hover { background: rgba(255, 255, 255, 0.08); }
+
+      .sidebar-site-link {
+        display: block;
+        margin-bottom: 8px;
+        color: rgba(255, 255, 255, 0.82);
+        font-size: 13px;
+        font-weight: 900;
+      }
+
+      .sidebar-site-link:hover { color: white; }
+
+      .sidebar-mail span {
         display: block;
         color: rgba(255, 255, 255, 0.5);
         font-size: 11px;
@@ -221,10 +275,55 @@
         text-transform: uppercase;
       }
 
-      .sidebar-ad-box strong {
+      .sidebar-mail strong {
         display: block;
         margin-top: 6px;
         color: rgba(255, 255, 255, 0.86);
+        font-size: 13px;
+        word-break: break-word;
+      }
+
+      .example-ad {
+        display: grid;
+        gap: 8px;
+        margin-top: auto;
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        border-radius: var(--radius);
+        background: rgba(255, 255, 255, 0.08);
+        padding: 10px;
+        color: rgba(255, 255, 255, 0.82);
+      }
+
+      .example-ad-title {
+        color: white;
+        font-size: 13px;
+        font-weight: 900;
+      }
+
+      .example-ad button {
+        width: 100%;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: var(--radius);
+        background: rgba(255, 255, 255, 0.06);
+        color: inherit;
+        padding: 9px;
+        text-align: left;
+      }
+
+      .example-ad button:hover { background: rgba(255, 255, 255, 0.12); }
+
+      .example-ad span {
+        display: block;
+        color: rgba(255, 255, 255, 0.5);
+        font-size: 11px;
+        font-weight: 900;
+        text-transform: uppercase;
+      }
+
+      .example-ad strong {
+        display: block;
+        margin-top: 5px;
+        color: rgba(255, 255, 255, 0.9);
         font-size: 13px;
         word-break: break-word;
       }
@@ -631,6 +730,17 @@
         resize: both;
         box-shadow: 0 10px 20px rgba(59, 13, 22, 0.08);
       }
+
+      .board-slide-inner .slide-el {
+        overflow: hidden;
+        resize: none;
+        box-shadow: none;
+      }
+
+      .board-slide-inner .slide-text {
+        overflow: hidden;
+        padding: 10px;
+      }
       .slide-el.selected {
         outline: 3px solid var(--wine-700);
         outline-offset: 2px;
@@ -847,10 +957,22 @@
           <div class="stack">
             <label class="label">Identifiant <input name="username" autocomplete="username" required autofocus /></label>
             <label class="label">Mot de passe <input name="password" type="password" autocomplete="current-password" required /></label>
+            <a class="forgot-link" href="mailto:orellanatech37@gmail.com?subject=Mot%20de%20passe%20oublie%20-%20In%20viaggio%20per%20l'Italia&body=Bonjour%2C%0A%0AJ'ai%20oublie%20mon%20mot%20de%20passe%20pour%20In%20viaggio%20per%20l'Italia.%0A%0AIdentifiant%20%3A%20" target="_blank" rel="noopener noreferrer">Mot de passe oublie ?</a>
             <p id="loginError" class="small" style="color:#a11" hidden>Mot de passe incorrect pour cet identifiant.</p>
             <button class="btn primary" type="submit">Se connecter</button>
+            <button class="btn" type="button" onclick="openFreeExample()">Voir l'exemple gratuit</button>
           </div>
         </form>
+        <div class="contact-card">
+          <button type="button" onclick="copyContact('07 59 72 78 56')">
+            <span>Telephone</span>
+            <strong>07 59 72 78 56</strong>
+          </button>
+          <button type="button" onclick="copyContact('orellanatech37@gmail.com')">
+            <span>Email</span>
+            <strong>orellanatech37@gmail.com</strong>
+          </button>
+        </div>
       </div>
     </section>
 
@@ -869,14 +991,26 @@
         <button class="nav-button" data-view="search">Recherche</button>
         <button class="nav-button" data-view="tutorial">Tutoriel</button>
         <button class="nav-button" data-view="settings">Reglages</button>
+        <button id="loginNavBtn" class="nav-button" style="margin-top:22px">Connexion</button>
         <button id="logoutBtn" class="nav-button" style="margin-top:22px">Deconnexion</button>
-        <div class="sidebar-ad">
-          <a class="sidebar-ad-title" href="https://orellanatech38.netlify.app/" target="_blank" rel="noopener noreferrer">OrellanaTech</a>
-          <button class="sidebar-ad-box" type="button" onclick="copyContact('07 59 72 78 56')">
+        <div id="exampleAd" class="example-ad" hidden>
+          <a class="example-ad-title" href="https://orellanatech38.netlify.app/" target="_blank" rel="noopener noreferrer">OrellanaTech</a>
+          <button type="button" onclick="copyContact('07 59 72 78 56')">
             <span>Telephone</span>
             <strong>07 59 72 78 56</strong>
           </button>
-          <button class="sidebar-ad-box" type="button" onclick="copyContact('orellanatech37@gmail.com')">
+          <button type="button" onclick="copyContact('orellanatech37@gmail.com')">
+            <span>Email</span>
+            <strong>orellanatech37@gmail.com</strong>
+          </button>
+        </div>
+        <div class="sidebar-mail">
+          <a class="sidebar-site-link" href="https://orellanatech38.netlify.app/" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()">OrellanaTech</a>
+          <button type="button" onclick="copyContact('07 59 72 78 56')">
+            <span>Telephone</span>
+            <strong>07 59 72 78 56</strong>
+          </button>
+          <button type="button" onclick="copyContact('orellanatech37@gmail.com')">
             <span>Email</span>
             <strong>orellanatech37@gmail.com</strong>
           </button>
@@ -907,6 +1041,7 @@
       const accountsKey = "italia-html-accounts-v1";
       const userKey = "italia-html-current-user";
       const storagePrefix = "italia-html-data-v2";
+      const publicStorageKey = "italia-html-public-demo-v1";
       const resourceTypes = {
         TEXT: "Texte",
         IMAGE: "Image / affiche",
@@ -932,6 +1067,8 @@
       let currentStudioSlideIndex = 0;
       let tourIndex = 0;
       let tourRunning = false;
+      let activeTutorialSteps = null;
+      let freeExampleOpen = false;
 
       function uid(prefix) {
         return `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`;
@@ -978,8 +1115,42 @@
         return sessionStorage.getItem(userKey) || "";
       }
 
+      function isLoggedIn() {
+        return Boolean(currentUsername());
+      }
+
+      function editOnly(html) {
+        return isLoggedIn() ? html : "";
+      }
+
+      function requireLogin() {
+        if (isLoggedIn()) return true;
+        toast("Connectez-vous pour modifier.");
+        return false;
+      }
+
+      function showLogin() {
+        freeExampleOpen = false;
+        endTutorial();
+        document.querySelector("#appPage").hidden = true;
+        document.querySelector("#boardPage").hidden = true;
+        document.querySelector("#loginPage").hidden = false;
+        setTimeout(() => document.querySelector("input[name='username']")?.focus(), 50);
+      }
+
+      function openFreeExample() {
+        sessionStorage.removeItem(userKey);
+        freeExampleOpen = true;
+        state = ensureDemoData(seedData());
+        currentView = "dashboard";
+        currentPage = { type: "classes" };
+        currentTableauPage = { type: "classes" };
+        render();
+        setTimeout(startFreeExampleTutorial, 180);
+      }
+
       function currentStorageKey() {
-        return `${storagePrefix}-${currentUsername() || defaultAccount.username}`;
+        return currentUsername() ? `${storagePrefix}-${currentUsername()}` : publicStorageKey;
       }
 
       function defaultStudentClass() {
@@ -997,58 +1168,148 @@
 
       function seedData() {
         const now = new Date().toISOString();
-        return {
-          demoVersion: 2,
-          classes: [{
-            id: uid("class"),
-            title: "Classe exemple",
-            slug: "classe-exemple",
-            description: "Exemple de classe a modifier ou supprimer.",
-            order: 1,
+        const makeActivity = (title, description, objective, instruction, order, slides) => ({
+          id: uid("act"),
+          title,
+          slug: slugify(title),
+          description,
+          objective,
+          instruction,
+          estimatedDuration: "20 min",
+          modality: "classe entiere",
+          level: "",
+          privateNotes: "Notes privees exemple : adapter le rythme selon la classe.",
+          order,
+          isVisible: true,
+          updatedAt: now,
+          slides: slides.map((slide) => ({
+            id: uid("slide"),
+            elements: slide.map((element) => ({ id: uid("el"), ...element }))
+          })),
+          resources: []
+        });
+        const titleSlide = (title, subtitle) => [
+          { kind: "text", x: 70, y: 70, w: 820, h: 120, value: title, fontSize: 54 },
+          { kind: "text", x: 70, y: 220, w: 820, h: 170, value: subtitle, fontSize: 34 }
+        ];
+        const imageSlide = (title, text, url) => [
+          { kind: "text", x: 55, y: 40, w: 470, h: 110, value: title, fontSize: 42 },
+          { kind: "text", x: 55, y: 175, w: 390, h: 250, value: text, fontSize: 30 },
+          { kind: "image", x: 500, y: 60, w: 380, h: 380, value: url }
+        ];
+        const demoPresentationSlide = [
+          { kind: "text", x: 60, y: 30, w: 780, h: 68, value: "Leonardo da Vinci", fontSize: 42 },
+          { kind: "image", x: 70, y: 130, w: 270, h: 340, value: "https://upload.wikimedia.org/wikipedia/commons/b/ba/Leonardo_self.jpg" },
+          { kind: "video", x: 390, y: 130, w: 500, h: 280, value: "uploads/demo-leonardo.mp4" },
+          { kind: "text", x: 390, y: 430, w: 500, h: 56, value: "Observe l'image, lis le titre, puis lance la video.", fontSize: 20 }
+        ];
+        const classes = [
+          {
+            title: "5eme",
+            description: "Decouvrir Leonardo da Vinci par l'observation, les mots simples et les images.",
+            sequences: [
+              {
+                title: "Leonardo, un genio italiano",
+                description: "Premiere approche du personnage et de la Renaissance.",
+                lessons: [
+                  {
+                    title: "Chi e Leonardo?",
+                    description: "Identifier Leonardo et presenter une personne.",
+                    activities: [
+                      makeActivity("Carte d'identite de Leonardo", "Presentation courte pour decouvrir Leonardo da Vinci.", "Comprendre une presentation simple.", "Observe les images et retrouve les informations importantes.", 1, [
+                        demoPresentationSlide,
+                        imageSlide("Osserva", "Nome: Leonardo\nCitta: Vinci\nPaese: Italia\nEpoca: Rinascimento", "https://upload.wikimedia.org/wikipedia/commons/b/ba/Leonardo_self.jpg")
+                      ]),
+                      makeActivity("Vero o falso?", "Petite activite orale sur Leonardo.", "Reagir a des phrases simples.", "Dis si la phrase est vera o falsa, puis corrige avec la classe.", 2, [
+                        titleSlide("Vero o falso?", "Leonardo era solo un pittore.\nLeonardo viveva in Italia.\nLa Gioconda e un quadro famoso."),
+                        titleSlide("Correzione", "Leonardo non era solo pittore: era anche inventore, scienziato e ingegnere.")
+                      ])
+                    ]
+                  },
+                  {
+                    title: "La bottega dell'artista",
+                    description: "Vocabulaire de l'atelier et des objets.",
+                    activities: [
+                      makeActivity("Dans l'atelier", "Associer des mots italiens a des objets.", "Acquerir du vocabulaire culturel.", "Observe l'atelier et associe : pennello, quadro, disegno, macchina.", 1, [
+                        titleSlide("La bottega", "Un artista lavora con idee, strumenti e pazienza."),
+                        imageSlide("Lessico", "il pennello\nil quadro\nil disegno\nla macchina", "https://upload.wikimedia.org/wikipedia/commons/4/4e/Leonardo_da_Vinci_-_study_of_hands.jpg")
+                      ])
+                    ]
+                  }
+                ]
+              },
+              {
+                title: "La Gioconda sorride",
+                description: "Decrire une oeuvre celebre avec des adjectifs simples.",
+                lessons: [
+                  {
+                    title: "Descrivere un ritratto",
+                    description: "Observer et decrire.",
+                    activities: [
+                      makeActivity("La Gioconda", "Lecture d'image autour de Mona Lisa.", "Decrire une image avec des adjectifs.", "Observe il ritratto. Scegli tre parole per descriverlo.", 1, [
+                        imageSlide("La Gioconda", "misteriosa\ncalma\nfamosa\nitaliana", "https://upload.wikimedia.org/wikipedia/commons/6/6a/Mona_Lisa.jpg"),
+                        titleSlide("Parla", "Secondo te, perche sorride?\nFormula una frase semplice in italiano.")
+                      ])
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            title: "Seconde",
+            description: "Analyser l'artiste dans les cours italiennes.",
+            sequences: [
+              {
+                title: "Artista di corte",
+                description: "Leonardo au service des puissants.",
+                lessons: [
+                  {
+                    title: "Scrivere a un mecenate",
+                    description: "Comprendre et produire une lettre de candidature.",
+                    activities: [
+                      makeActivity("Lettre a Ludovico Sforza", "Simulation de candidature.", "Presenter ses competences.", "Ecris 5 lignes : Sono capace di..., posso..., vorrei...", 1, [
+                        titleSlide("Caro Ludovico Sforza", "Leonardo propose ses talents : peinture, architecture, machines, spectacles."),
+                        titleSlide("A toi", "Choisis 3 competences et convaincs ton mecenate.")
+                      ])
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ];
+        const builtClasses = classes.map((classe, classIndex) => ({
+          id: uid("class"),
+          title: classe.title,
+          slug: slugify(classe.title),
+          description: classe.description,
+          order: classIndex + 1,
+          isVisible: true,
+          updatedAt: now,
+          sequences: classe.sequences.map((sequence, sequenceIndex) => ({
+            id: uid("seq"),
+            title: sequence.title,
+            slug: slugify(sequence.title),
+            description: sequence.description,
+            order: sequenceIndex + 1,
             isVisible: true,
             updatedAt: now,
-            sequences: [{
-              id: uid("seq"),
-              title: "Sequence exemple",
-              slug: "sequence-exemple",
-              description: "Exemple de sequence.",
-              order: 1,
+            lessons: sequence.lessons.map((lesson, lessonIndex) => ({
+              id: uid("lesson"),
+              title: lesson.title,
+              slug: slugify(lesson.title),
+              description: lesson.description,
+              order: lessonIndex + 1,
               isVisible: true,
               updatedAt: now,
-              lessons: [{
-                id: uid("lesson"),
-                title: "Seance exemple",
-                slug: "seance-exemple",
-                description: "Exemple de seance.",
-                order: 1,
-                isVisible: true,
-                updatedAt: now,
-                activities: [{
-                  id: uid("act"),
-                  title: "Presentation exemple",
-                  slug: "presentation-exemple",
-                  description: "Une activite exemple sous forme de diapos.",
-                  objective: "",
-                  instruction: "",
-                  estimatedDuration: "10 min",
-                  modality: "classe entiere",
-                  level: "",
-                  privateNotes: "",
-                  order: 1,
-                  isVisible: true,
-                  updatedAt: now,
-                  slides: [{
-                    id: uid("slide"),
-                    elements: [
-                      { id: uid("el"), kind: "text", x: 70, y: 70, w: 820, h: 120, value: "Presentation exemple", fontSize: 54 },
-                      { id: uid("el"), kind: "text", x: 70, y: 220, w: 820, h: 170, value: "Clique sur Modifier dans l'espace Classes pour creer tes propres diapos.", fontSize: 34 }
-                    ]
-                  }],
-                  resources: []
-                }]
-              }]
-            }]
-          }],
+              activities: lesson.activities
+            }))
+          }))
+        }));
+        return {
+          demoVersion: 2,
+          classes: builtClasses,
           studentClasses: [defaultStudentClass()],
           tools: {
             wheelHistory: {},
@@ -1063,7 +1324,8 @@
       function ensureDemoData(data) {
         const oldDemoTitles = ["5eme", "4eme", "3eme", "2nde", "1ere / Tle", "BTS MHR", "BTS Tourisme"];
         const looksLikeOldDemo = Array.isArray(data.classes) && oldDemoTitles.every((title) => data.classes.some((classe) => classe.title === title));
-        if (!data || data.demoVersion !== 2 || !Array.isArray(data.classes) || data.classes.length === 0 || looksLikeOldDemo) {
+        const looksLikeOldPublicExample = !isLoggedIn() && Array.isArray(data.classes) && data.classes.length === 1 && data.classes[0]?.title === "Classe exemple";
+        if (!data || data.demoVersion !== 2 || !Array.isArray(data.classes) || data.classes.length === 0 || looksLikeOldDemo || looksLikeOldPublicExample) {
           data = seedData();
         }
         data.demoVersion = 2;
@@ -1251,10 +1513,8 @@
       }
 
       function render() {
-        if (!currentUsername()) {
-          document.querySelector("#loginPage").hidden = false;
-          document.querySelector("#appPage").hidden = true;
-          document.querySelector("#boardPage").hidden = true;
+        if (!isLoggedIn() && !freeExampleOpen) {
+          showLogin();
           return;
         }
         document.querySelector("#loginPage").hidden = true;
@@ -1273,6 +1533,10 @@
         document.querySelector("#pageTitle").textContent = titles[currentView][0];
         document.querySelector("#pageSubtitle").textContent = titles[currentView][1];
         document.querySelector("#openBoardBtn").hidden = currentView === "dashboard";
+        document.querySelector("#logoutBtn").hidden = !isLoggedIn();
+        document.querySelector("#loginNavBtn").hidden = isLoggedIn();
+        document.querySelector("#exampleAd").hidden = !freeExampleOpen || isLoggedIn();
+        document.querySelector(".sidebar-mail").hidden = freeExampleOpen && !isLoggedIn();
         if (currentView === "dashboard") renderDashboard();
         if (currentView === "classes") renderClasses();
         if (currentView === "studentClasses") renderStudentClasses();
@@ -1309,8 +1573,8 @@
           </div>
           <div class="row wrap">
             <p class="pill">${classe.sequences.length} sequence(s)</p>
-            <button class="btn primary" onclick="openClassPage('${classe.id}')">Modifier</button>
-            <button class="btn danger" onclick="removeItem('class','${classe.id}')">Supprimer</button>
+            <button class="btn primary" onclick="openClassPage('${classe.id}')">${isLoggedIn() ? "Modifier" : "Voir"}</button>
+            ${editOnly(`<button class="btn danger" onclick="removeItem('class','${classe.id}')">Supprimer</button>`)}
           </div>
         </article>`;
       }
@@ -1450,7 +1714,7 @@
                 <h2 style="margin:0;color:var(--wine-900);font-size:34px">Toutes les classes</h2>
                 <p class="muted">Clique sur Modifier pour entrer dans une classe et gerer ses sequences sur une page dediee.</p>
               </div>
-              <button class="btn primary" onclick="openEditor('class')">Ajouter une classe</button>
+              ${editOnly(`<button class="btn primary" onclick="openEditor('class')">Ajouter une classe</button>`)}
             </div>
           </section>
           <section class="page-grid">${state.classes.map(classCard).join("")}</section>
@@ -1467,7 +1731,7 @@
                 <h2 style="margin:0;color:var(--wine-900);font-size:34px">Classes reelles</h2>
                 <p class="muted">Ici, on gere les groupes avec les noms des eleves. C'est separe des classes pedagogiques du site.</p>
               </div>
-              <button class="btn primary" onclick="openEditor('studentClass')">Ajouter une classe</button>
+              ${editOnly(`<button class="btn primary" onclick="openEditor('studentClass')">Ajouter une classe</button>`)}
             </div>
           </section>
           <section class="page-grid">${studentClasses.map(studentClassCard).join("") || empty("Aucune classe reelle.")}</section>
@@ -1483,10 +1747,10 @@
             <p class="pill" style="margin-top:10px">${students.length} eleve(s)</p>
             <div class="small muted" style="margin-top:12px;line-height:1.7">${students.slice(0, 6).map(escapeHtml).join("<br>")}${students.length > 6 ? "<br>..." : ""}</div>
           </div>
-          <div class="row wrap">
+          ${editOnly(`<div class="row wrap">
             <button class="btn" onclick="openEditor('studentClass','${classe.id}')">Modifier</button>
             <button class="btn danger" onclick="removeItem('studentClass','${classe.id}')">Supprimer</button>
-          </div>
+          </div>`)}
         </article>`;
       }
 
@@ -1528,13 +1792,15 @@
             <section class="card">
               <div class="wheel" id="studentWheel"><div class="wheel-result">${escapeHtml(last)}</div></div>
               <label class="label" style="margin:18px auto 0;max-width:330px">Nombre maximum de tirages par eleve
-                <input type="number" min="1" max="20" value="${limit}" onchange="setWheelLimit('${classe.id}', this.value)">
+                <input type="number" min="1" max="20" value="${limit}" ${isLoggedIn() ? "" : "disabled"} onchange="setWheelLimit('${classe.id}', this.value)">
               </label>
               <div class="row wrap" style="justify-content:center;margin-top:18px">
-                <button class="btn primary" ${availableCount ? "" : "disabled"} onclick="spinStudentWheel('${classe.id}')">Lancer la roue</button>
-                <button class="btn" onclick="resetWheelCounts('${classe.id}')">Remettre les compteurs a 0</button>
-                <button class="btn" onclick="resetWheelAbsences('${classe.id}')">Tout le monde present</button>
-                <button class="btn" onclick="clearWheelHistory('${classe.id}')">Vider l'historique</button>
+                ${isLoggedIn() ? `
+                  <button class="btn primary" ${availableCount ? "" : "disabled"} onclick="spinStudentWheel('${classe.id}')">Lancer la roue</button>
+                  <button class="btn" onclick="resetWheelCounts('${classe.id}')">Remettre les compteurs a 0</button>
+                  <button class="btn" onclick="resetWheelAbsences('${classe.id}')">Tout le monde present</button>
+                  <button class="btn" onclick="clearWheelHistory('${classe.id}')">Vider l'historique</button>
+                ` : `<span class="pill">Connectez-vous pour utiliser la roue</span>`}
               </div>
               <p class="small muted" style="text-align:center;margin-top:12px">${availableCount} eleve(s) encore disponible(s), ${presentCount} present(s) sur ${students.length}. Limite actuelle : ${limit} tirage(s) par eleve.</p>
             </section>
@@ -1547,7 +1813,7 @@
                     <strong style="${absent ? "opacity:.48;text-decoration:line-through" : ""}">${escapeHtml(student)}</strong>
                     <div class="row" style="gap:8px">
                       <span class="small muted">${Number(counts[student] || 0)} / ${limit}</span>
-                      <button class="btn ${absent ? "danger" : ""}" style="padding:8px 10px" onclick="toggleWheelAbsence('${classe.id}', ${index})">${absent ? "Absent" : "Present"}</button>
+                      ${editOnly(`<button class="btn ${absent ? "danger" : ""}" style="padding:8px 10px" onclick="toggleWheelAbsence('${classe.id}', ${index})">${absent ? "Absent" : "Present"}</button>`)}
                     </div>
                   </div>`;
                 }).join("") || empty("Aucun eleve.")}
@@ -1580,6 +1846,7 @@
       }
 
       function setWheelLimit(classId, value) {
+        if (!requireLogin()) return;
         state.tools.wheelLimits = state.tools.wheelLimits || {};
         const limit = Math.max(1, Math.min(20, Number(value) || 1));
         state.tools.wheelLimits[classId] = limit;
@@ -1587,6 +1854,7 @@
       }
 
       function toggleWheelAbsence(classId, studentIndex) {
+        if (!requireLogin()) return;
         const classe = (state.studentClasses || []).find((item) => item.id === classId);
         const student = classe?.students?.[studentIndex];
         if (!student) return;
@@ -1602,6 +1870,7 @@
       }
 
       function resetWheelAbsences(classId) {
+        if (!requireLogin()) return;
         state.tools.wheelAbsences = state.tools.wheelAbsences || {};
         state.tools.wheelAbsences[classId] = [];
         saveData("Tous les eleves sont marques presents.");
@@ -1613,6 +1882,7 @@
       }
 
       function spinStudentWheel(classId) {
+        if (!requireLogin()) return;
         const classe = (state.studentClasses || []).find((item) => item.id === classId);
         const students = classe?.students || [];
         if (!students.length) return toast("Aucun eleve dans cette classe.");
@@ -1636,6 +1906,7 @@
       }
 
       function resetWheelCounts(classId) {
+        if (!requireLogin()) return;
         if (!confirm("Remettre tous les compteurs de cette roue a 0 ?")) return;
         state.tools.wheelCounts = state.tools.wheelCounts || {};
         state.tools.wheelCounts[classId] = {};
@@ -1643,6 +1914,7 @@
       }
 
       function clearWheelHistory(classId) {
+        if (!requireLogin()) return;
         if (!confirm("Vider l'historique de cette roue ?")) return;
         state.tools.wheelHistory[classId] = [];
         saveData("Historique vide.");
@@ -1662,12 +1934,12 @@
                 <h2 style="margin:0;color:var(--wine-900);font-size:34px">${escapeHtml(classe.title)}</h2>
                 <p class="muted">${escapeHtml(classe.description)}</p>
               </div>
-              <div class="row wrap">
+              ${editOnly(`<div class="row wrap">
                 ${moveButtons("class", classe.id)}
                 <button class="btn" onclick="openEditor('class','${classe.id}')">Parametres classe</button>
                 <button class="btn primary" onclick="openEditor('sequence',null,{classId:'${classe.id}'})">Ajouter une sequence</button>
                 <button class="btn danger" onclick="removeItem('class','${classe.id}')">Supprimer la classe</button>
-              </div>
+              </div>`)}
             </div>
           </section>
           <section class="page-grid">${classe.sequences.map((sequence) => sequenceCard(classe, sequence)).join("") || empty("Aucune sequence.")}</section>
@@ -1685,8 +1957,8 @@
           <div class="row wrap">
             <span class="pill">${sequence.lessons.length} seance(s)</span>
             <span class="pill">${activityCount} activite(s)</span>
-            <button class="btn primary" onclick="openSequencePage('${classe.id}','${sequence.id}')">Modifier</button>
-            <button class="btn danger" onclick="removeItem('sequence','${sequence.id}')">Supprimer</button>
+            <button class="btn primary" onclick="openSequencePage('${classe.id}','${sequence.id}')">${isLoggedIn() ? "Modifier" : "Voir"}</button>
+            ${editOnly(`<button class="btn danger" onclick="removeItem('sequence','${sequence.id}')">Supprimer</button>`)}
           </div>
         </article>`;
       }
@@ -1706,12 +1978,12 @@
                 <h2 style="margin:0;color:var(--wine-900);font-size:34px">${escapeHtml(sequence.title)}</h2>
                 <p class="muted">${escapeHtml(sequence.description)}</p>
               </div>
-              <div class="row wrap">
+              ${editOnly(`<div class="row wrap">
                 ${moveButtons("sequence", sequence.id)}
                 <button class="btn" onclick="openEditor('sequence','${sequence.id}')">Parametres sequence</button>
                 <button class="btn primary" onclick="openEditor('lesson',null,{classId:'${classe.id}',sequenceId:'${sequence.id}'})">Ajouter une seance</button>
                 <button class="btn danger" onclick="removeItem('sequence','${sequence.id}')">Supprimer la sequence</button>
-              </div>
+              </div>`)}
             </div>
           </section>
           <section class="list-table">${sequence.lessons.map((lesson) => lessonRow(classe, sequence, lesson)).join("") || empty("Aucune seance.")}</section>
@@ -1727,8 +1999,8 @@
           </div>
           <div class="row wrap">
             <span class="pill">${lesson.activities.length} activite(s)</span>
-            <button class="btn primary" onclick="openLessonPage('${classe.id}','${sequence.id}','${lesson.id}')">Modifier</button>
-            <button class="btn danger" onclick="removeItem('lesson','${lesson.id}')">Supprimer</button>
+            <button class="btn primary" onclick="openLessonPage('${classe.id}','${sequence.id}','${lesson.id}')">${isLoggedIn() ? "Modifier" : "Voir"}</button>
+            ${editOnly(`<button class="btn danger" onclick="removeItem('lesson','${lesson.id}')">Supprimer</button>`)}
           </div>
         </article>`;
       }
@@ -1749,12 +2021,12 @@
                 <h2 style="margin:0;color:var(--wine-900);font-size:34px">${escapeHtml(lesson.title)}</h2>
                 <p class="muted">${escapeHtml(lesson.description)}</p>
               </div>
-              <div class="row wrap">
+              ${editOnly(`<div class="row wrap">
                 ${moveButtons("lesson", lesson.id)}
                 <button class="btn" onclick="openEditor('lesson','${lesson.id}')">Parametres seance</button>
                 <button class="btn primary" onclick="createActivityInLesson('${lesson.id}')">Ajouter une activite</button>
                 <button class="btn danger" onclick="removeItem('lesson','${lesson.id}')">Supprimer la seance</button>
-              </div>
+              </div>`)}
             </div>
           </section>
           <section class="page-grid">${lesson.activities.map(activityCard).join("") || empty("Aucune activite.")}</section>
@@ -1765,12 +2037,12 @@
         return `<article class="tree-item">
           <div class="row wrap">
             <div><h3>${escapeHtml(classe.title)} ${classe.isVisible ? "" : "<span class='pill'>Masque</span>"}</h3><p class="muted small">${escapeHtml(classe.description)}</p></div>
-            <div class="row">
+            ${editOnly(`<div class="row">
               ${moveButtons("class", classe.id)}
               <button class="btn" onclick="openEditor('sequence',null,{classId:'${classe.id}'})">+ Sequence</button>
               <button class="btn" onclick="openEditor('class','${classe.id}')">Modifier</button>
               <button class="btn danger" onclick="removeItem('class','${classe.id}')">Supprimer</button>
-            </div>
+            </div>`)}
           </div>
           <div class="tree-child">${classe.sequences.map((sequence) => renderSequenceTree(classe, sequence)).join("") || empty("Aucune sequence.")}</div>
         </article>`;
@@ -1780,12 +2052,12 @@
         return `<div class="tree-item">
           <div class="row wrap">
             <strong>${escapeHtml(sequence.title)} ${sequence.isVisible ? "" : "<span class='pill'>Masque</span>"}</strong>
-            <div class="row">
+            ${editOnly(`<div class="row">
               ${moveButtons("sequence", sequence.id)}
               <button class="btn" onclick="openEditor('lesson',null,{classId:'${classe.id}',sequenceId:'${sequence.id}'})">+ Seance</button>
               <button class="btn" onclick="openEditor('sequence','${sequence.id}')">Modifier</button>
               <button class="btn danger" onclick="removeItem('sequence','${sequence.id}')">Supprimer</button>
-            </div>
+            </div>`)}
           </div>
           <div class="tree-child">${sequence.lessons.map((lesson) => renderLessonTree(classe, sequence, lesson)).join("") || empty("Aucune seance.")}</div>
         </div>`;
@@ -1795,12 +2067,12 @@
         return `<div class="tree-item">
           <div class="row wrap">
             <strong>${escapeHtml(lesson.title)} ${lesson.isVisible ? "" : "<span class='pill'>Masque</span>"}</strong>
-            <div class="row">
+            ${editOnly(`<div class="row">
               ${moveButtons("lesson", lesson.id)}
               <button class="btn" onclick="createActivityInLesson('${lesson.id}')">+ Activite</button>
               <button class="btn" onclick="openEditor('lesson','${lesson.id}')">Modifier</button>
               <button class="btn danger" onclick="removeItem('lesson','${lesson.id}')">Supprimer</button>
-            </div>
+            </div>`)}
           </div>
           <div class="tree-child">${lesson.activities.map(activityCard).join("") || empty("Aucune activite.")}</div>
         </div>`;
@@ -1815,10 +2087,10 @@
               <p class="muted small">${escapeHtml(activity.objective || activity.description)}</p>
             </div>
             <div class="activity-actions">
-              ${moveButtons("activity", activity.id)}
+              ${editOnly(moveButtons("activity", activity.id))}
               <button class="btn primary" onclick="showBoard('${activity.id}')">Tableau</button>
-              <button class="btn" onclick="openActivityStudio('${activity.id}')">Modifier</button>
-              <button class="btn danger" onclick="removeItem('activity','${activity.id}')">Supprimer</button>
+              ${editOnly(`<button class="btn" onclick="openActivityStudio('${activity.id}')">Modifier</button>
+              <button class="btn danger" onclick="removeItem('activity','${activity.id}')">Supprimer</button>`)}
             </div>
           </div>
         </article>`;
@@ -1833,7 +2105,7 @@
         document.querySelector("#content").innerHTML = `
           <div class="grid side">
             <section class="card">
-              <div class="row wrap"><h2>Depot de ressources</h2><button class="btn primary" onclick="openEditor('resource')">Ajouter une ressource</button></div>
+              <div class="row wrap"><h2>Depot de ressources</h2>${editOnly(`<button class="btn primary" onclick="openEditor('resource')">Ajouter une ressource</button>`)}</div>
               <div class="grid" style="margin-top:14px">${categories.map((cat) => `
                 <div class="card" style="box-shadow:none">
                   <h3>${cat}</h3>
@@ -1858,8 +2130,8 @@
             </div>
             <div class="row">
               ${resource.url ? `<a class="btn" href="${resource.url}" target="_blank">Ouvrir</a>` : ""}
-              <button class="btn" onclick="openEditor('resource','${resource.id}')">Modifier</button>
-              <button class="btn danger" onclick="removeItem('resource','${resource.id}')">Supprimer</button>
+              ${editOnly(`<button class="btn" onclick="openEditor('resource','${resource.id}')">Modifier</button>
+              <button class="btn danger" onclick="removeItem('resource','${resource.id}')">Supprimer</button>`)}
             </div>
           </div>
           <div class="resource-preview" style="margin-top:10px">${previewResource(resource)}</div>
@@ -1908,7 +2180,7 @@
         { view: "search", selector: "[data-view='search']", title: "Recherche", text: "La recherche retrouve rapidement une presentation ou une ressource sans parcourir toute l'arborescence." },
         { view: "settings", selector: "[data-view='settings']", title: "Reglages", text: "Dans les reglages, tu peux exporter le ZIP, importer des donnees, ou reinitialiser l'espace du compte." },
         { view: "settings", selector: "#openBoardBtn", title: "Mode tableau", text: "Ce bouton ouvre directement une presentation au tableau. Dans les seances, chaque activite a aussi son bouton de presentation." },
-        { view: "tutorial", selector: ".sidebar-ad", title: "Contact", text: "En bas a gauche, le bloc OrellanaTech reste discret. Le telephone et le mail se copient au clic." }
+        { view: "tutorial", selector: ".sidebar-mail", title: "Contact", text: "En bas a gauche, le telephone et le mail restent discrets et se copient au clic." }
       ];
 
       function renderTutorial() {
@@ -1932,12 +2204,41 @@
       function startTutorial() {
         tourIndex = 0;
         tourRunning = true;
+        activeTutorialSteps = tutorialSteps;
+        showTutorialStep();
+      }
+
+      function startFreeExampleTutorial() {
+        const firstClass = state.classes[0];
+        const firstSequence = firstClass?.sequences?.[0];
+        const firstLesson = firstSequence?.lessons?.[0];
+        const firstActivity = firstLesson?.activities?.[0];
+        activeTutorialSteps = [
+          { view: "dashboard", selector: "#content", title: "Exemple gratuit", text: "Voici l'exemple gratuit sur Leonardo da Vinci. Tu vas etre guide jusqu'a une presentation complete." },
+          { view: "classes", selector: "#content", title: "Classes", text: "Dans Classes, on voit les cours organises par niveau. En gratuit, tu peux consulter sans modifier." },
+          { view: "studentClasses", selector: "#content", title: "Mes Classes", text: "Mes Classes montre les groupes d'eleves. Les actions restent bloquees sans connexion." },
+          { view: "tools", selector: "#content", title: "Outils", text: "Les outils, comme la roue, sont visibles mais utilisables seulement avec un compte connecte." },
+          { view: "depot", selector: "#content", title: "Depot", text: "Le depot rassemble les ressources. En gratuit, tu peux regarder les supports disponibles." },
+          { view: "search", selector: "#content", title: "Recherche", text: "La recherche permet de retrouver rapidement une presentation ou une ressource." },
+          { view: "tutorial", selector: "#content", title: "Tutoriel", text: "Cette entree permet de relancer la visite guidee du portail." },
+          { view: "tutorial", selector: "#exampleAd", title: "Contact OrellanaTech", text: "Dans l'exemple gratuit, la pub est visible ici. Le telephone et le mail se copient au clic." },
+          { view: "settings", selector: "#content", title: "Reglages", text: "Les reglages expliquent le mode public. Les exports et imports demandent une connexion." },
+          { view: "dashboard", selector: "#content", title: "Classe 5eme", text: "On commence par la classe 5eme.", enter: () => firstClass && openTableauClass(firstClass.id) },
+          { view: "dashboard", selector: "#content", title: "Sequence", text: "Le tutoriel ouvre la premiere sequence de l'exemple.", enter: () => firstClass && firstSequence && openTableauSequence(firstClass.id, firstSequence.id) },
+          { view: "dashboard", selector: "#content", title: "Seance", text: "Puis il ouvre la premiere seance pour trouver la presentation.", enter: () => firstClass && firstSequence && firstLesson && openTableauLesson(firstClass.id, firstSequence.id, firstLesson.id) },
+          { view: "dashboard", selector: "#content", title: "Presentation", text: "Le tutoriel ouvre maintenant la presentation exemple." },
+          { view: "dashboard", selector: "#boardPage", title: "Diapo exemple", text: "Cette presentation contient un titre, une image et la video deposee localement.", enter: () => firstActivity && showBoard(firstActivity.id, 0) }
+        ];
+        tourIndex = 0;
+        tourRunning = true;
         showTutorialStep();
       }
 
       function showTutorialStep() {
-        const step = tutorialSteps[tourIndex];
+        const steps = activeTutorialSteps || tutorialSteps;
+        const step = steps[tourIndex];
         if (!step) return endTutorial();
+        if (step.enter) step.enter();
         if (currentView !== step.view) {
           currentView = step.view;
           if (step.view === "dashboard") currentTableauPage = { type: "classes" };
@@ -1949,6 +2250,8 @@
       }
 
       function renderTutorialOverlay(step) {
+        const steps = activeTutorialSteps || tutorialSteps;
+        const forcedTour = activeTutorialSteps && activeTutorialSteps !== tutorialSteps;
         const overlay = document.querySelector("#tourOverlay");
         const target = document.querySelector(step.selector);
         if (!target) return endTutorial();
@@ -1964,20 +2267,21 @@
         overlay.innerHTML = `
           <div class="tour-highlight" style="left:${left}px;top:${top}px;width:${width}px;height:${height}px"></div>
           <section class="tour-panel" style="left:${panelLeft}px;top:${panelTop}px">
-            <span class="tour-step-count">Etape ${tourIndex + 1} / ${tutorialSteps.length}</span>
+            <span class="tour-step-count">Etape ${tourIndex + 1} / ${steps.length}</span>
             <h3>${escapeHtml(step.title)}</h3>
             <p>${escapeHtml(step.text)}</p>
             <div class="row wrap" style="margin-top:16px;justify-content:flex-end">
-              <button class="btn" onclick="endTutorial()">Terminer</button>
+              ${forcedTour ? "" : `<button class="btn" onclick="endTutorial()">Terminer</button>`}
               <button class="btn" ${tourIndex === 0 ? "disabled" : ""} onclick="previousTutorialStep()">Precedent</button>
-              <button class="btn primary" onclick="nextTutorialStep()">${tourIndex === tutorialSteps.length - 1 ? "Finir" : "Suivant"}</button>
+              <button class="btn primary" onclick="nextTutorialStep()">${tourIndex === steps.length - 1 ? "Finir" : "Suivant"}</button>
             </div>
           </section>
         `;
       }
 
       function nextTutorialStep() {
-        if (tourIndex >= tutorialSteps.length - 1) return endTutorial();
+        const steps = activeTutorialSteps || tutorialSteps;
+        if (tourIndex >= steps.length - 1) return endTutorial();
         tourIndex += 1;
         showTutorialStep();
       }
@@ -1989,6 +2293,7 @@
 
       function endTutorial() {
         tourRunning = false;
+        activeTutorialSteps = null;
         const overlay = document.querySelector("#tourOverlay");
         overlay.hidden = true;
         overlay.innerHTML = "";
@@ -1999,27 +2304,26 @@
           <div class="grid two">
             <section class="card">
               <h2>Connexion locale</h2>
-              <p class="muted">Compte connecte : <strong>${escapeHtml(currentUsername())}</strong></p>
-              <p class="muted">Identifiant : <strong>rose</strong></p>
-              <p class="muted">Mot de passe : <strong>it</strong></p>
-              <p class="small muted">Chaque identifiant a ses propres donnees locales. Dans une version HTML autonome, ce n'est pas une securite serveur : les comptes restent stockes dans ce navigateur.</p>
+              <p class="muted">Compte connecte : <strong>${isLoggedIn() ? escapeHtml(currentUsername()) : "visiteur public"}</strong></p>
+              <p class="small muted">${isLoggedIn() ? "Chaque identifiant a ses propres donnees locales. Dans une version HTML autonome, ce n'est pas une securite serveur : les comptes restent stockes dans ce navigateur." : "Vous pouvez consulter les exemples sans identifiant. Connectez-vous pour modifier, exporter ou importer des donnees."}</p>
             </section>
             <section class="card">
               <h2>Donnees</h2>
-              <p class="muted">Les donnees sont stockees dans le navigateur avec localStorage.</p>
-              <div class="row wrap" style="margin-top:12px">
+              <p class="muted">${isLoggedIn() ? "Les donnees sont stockees dans le navigateur avec localStorage." : "Mode consultation uniquement."}</p>
+              ${isLoggedIn() ? `<div class="row wrap" style="margin-top:12px">
                 <button class="btn" onclick="exportData()">Exporter</button>
                 <button class="btn primary" onclick="exportZip()">Exporter ZIP</button>
                 <label class="btn">Importer <input type="file" accept="application/json" hidden onchange="importData(this.files[0])"></label>
                 <button class="btn danger" onclick="resetData()">Reinitialiser</button>
               </div>
-              <p class="small muted">Le ZIP contient toutes les classes, sequences, seances, presentations et donnees completes.</p>
+              <p class="small muted">Le ZIP contient toutes les classes, sequences, seances, presentations et donnees completes.</p>` : `<button class="btn primary" onclick="showLogin()">Se connecter</button>`}
             </section>
           </div>
         `;
       }
 
       function openEditor(type, id, defaults = {}) {
+        if (!requireLogin()) return;
         const item = id ? findItem(type, id) : null;
         const editing = item ? structuredClone(item) : createBlank(type, defaults);
         const modal = document.querySelector("#editorModal");
@@ -2112,6 +2416,7 @@
       }
 
       function createActivityInLesson(lessonId) {
+        if (!requireLogin()) return;
         const lesson = findItem("lesson", lessonId);
         if (!lesson) return;
         const activity = {
@@ -2132,6 +2437,7 @@
       }
 
       function openActivityStudio(id) {
+        if (!requireLogin()) return;
         const activity = ensureActivitySlides(findItem("activity", id));
         if (!activity) return;
         currentStudioSlideIndex = 0;
@@ -2397,6 +2703,7 @@
       }
 
       function removeItem(type, id) {
+        if (!requireLogin()) return;
         if (!confirm("Supprimer cet element ?")) return;
         updatePageAfterRemove(type, id);
         removeFromCollections(type, id);
@@ -2434,6 +2741,7 @@
       }
 
       function moveItem(type, id, direction) {
+        if (!requireLogin()) return;
         const list = findList(type, id);
         if (!list) return;
         const index = list.findIndex((item) => item.id === id);
@@ -2530,6 +2838,7 @@
       }
 
       function exportData() {
+        if (!requireLogin()) return;
         const blob = new Blob([JSON.stringify(state, null, 2)], { type: "application/json" });
         const link = document.createElement("a");
         link.href = URL.createObjectURL(blob);
@@ -2539,6 +2848,7 @@
       }
 
       async function exportZip() {
+        if (!requireLogin()) return;
         const files = buildExportFiles();
         const blob = new Blob([makeZip(files)], { type: "application/zip" });
         const link = document.createElement("a");
@@ -2740,6 +3050,7 @@
       })();
 
       function importData(file) {
+        if (!requireLogin()) return;
         if (!file) return;
         const reader = new FileReader();
         reader.onload = () => {
@@ -2750,6 +3061,7 @@
       }
 
       function resetData() {
+        if (!requireLogin()) return;
         if (!confirm("Reinitialiser toutes les donnees locales ?")) return;
         state = seedData();
         saveData("Donnees reinitialisees.");
@@ -2770,8 +3082,13 @@
       });
 
       document.querySelectorAll(".nav-button[data-view]").forEach((button) => button.addEventListener("click", () => setView(button.dataset.view)));
+      document.querySelector("#loginNavBtn").addEventListener("click", showLogin);
       document.querySelector("#logoutBtn").addEventListener("click", () => {
         sessionStorage.removeItem(userKey);
+        state = ensureDemoData(loadData());
+        currentView = "dashboard";
+        currentPage = { type: "classes" };
+        currentTableauPage = { type: "classes" };
         render();
       });
       document.querySelector("#openBoardBtn").addEventListener("click", () => {
