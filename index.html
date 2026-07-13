@@ -419,6 +419,7 @@
       .grid.two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
       .grid.three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
       .grid.side { grid-template-columns: minmax(0, 1fr) 360px; align-items: start; }
+      .tools-grid { display: grid; grid-template-columns: minmax(420px, 1fr) minmax(280px, 360px) minmax(260px, 320px); gap: 16px; align-items: start; }
       .page-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; }
       .entity-card {
         min-height: 210px;
@@ -922,11 +923,47 @@
         background: rgba(255,255,255,.52);
       }
 
+      .numbered-list {
+        display: grid;
+        gap: 12px;
+        counter-reset: item;
+      }
+
+      .numbered-list > article {
+        counter-increment: item;
+        position: relative;
+        padding-left: 58px;
+      }
+
+      .numbered-list > article::before {
+        content: counter(item);
+        position: absolute;
+        left: 14px;
+        top: 14px;
+        display: grid;
+        place-items: center;
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        background: var(--wine-700);
+        color: white;
+        font-weight: 900;
+      }
+
+      .timer-display {
+        color: var(--wine-900);
+        font-size: clamp(48px, 8vw, 88px);
+        font-weight: 900;
+        text-align: center;
+        font-variant-numeric: tabular-nums;
+      }
+
       @media (max-width: 960px) {
         .login, .app { grid-template-columns: 1fr; }
         .login-hero { min-height: 42vh; padding: 32px; }
         .sidebar { position: static; height: auto; }
         .grid.two, .grid.three, .grid.side { grid-template-columns: 1fr; }
+        .tools-grid { grid-template-columns: 1fr; }
         .form-grid { grid-template-columns: 1fr; }
         .topbar { align-items: flex-start; flex-direction: column; }
       }
@@ -940,7 +977,7 @@
     <section id="loginPage" class="login">
       <div class="login-hero">
         <div>
-          <p>Portail professeur prive</p>
+          <p>Portail professeur privé</p>
           <h1>In viaggio per l'Italia</h1>
           <p>Navigando, s'impara.</p>
         </div>
@@ -965,7 +1002,7 @@
         </form>
         <div class="contact-card">
           <button type="button" onclick="copyContact('07 59 72 78 56')">
-            <span>Telephone</span>
+            <span>Téléphone</span>
             <strong>07 59 72 78 56</strong>
           </button>
           <button type="button" onclick="copyContact('orellanatech37@gmail.com')">
@@ -983,20 +1020,19 @@
           <strong>In viaggio per l'Italia</strong>
           <p class="small" style="color:rgba(255,255,255,.68)">Navigando, s'impara.</p>
         </div>
-        <button class="nav-button active" data-view="dashboard">Tableau</button>
-        <button class="nav-button" data-view="classes">Classes</button>
-        <button class="nav-button" data-view="studentClasses">Mes Classes</button>
+        <button class="nav-button active" data-view="dashboard">Cours par niveau à projeter</button>
+        <button class="nav-button" data-view="classes">Cours par niveau modifiable</button>
+        <button class="nav-button" data-view="studentClasses">Groupes Classes</button>
         <button class="nav-button" data-view="tools">Outils</button>
-        <button class="nav-button" data-view="depot">Depot</button>
-        <button class="nav-button" data-view="search">Recherche</button>
+        <button class="nav-button" data-view="search">Recherche ressource ou activité</button>
         <button class="nav-button" data-view="tutorial">Tutoriel</button>
-        <button class="nav-button" data-view="settings">Reglages</button>
+        <button class="nav-button" data-view="settings">Réglages</button>
         <button id="loginNavBtn" class="nav-button" style="margin-top:22px">Connexion</button>
-        <button id="logoutBtn" class="nav-button" style="margin-top:22px">Deconnexion</button>
+        <button id="logoutBtn" class="nav-button" style="margin-top:22px">Déconnexion</button>
         <div id="exampleAd" class="example-ad" hidden>
           <a class="example-ad-title" href="https://orellanatech38.netlify.app/" target="_blank" rel="noopener noreferrer">OrellanaTech</a>
           <button type="button" onclick="copyContact('07 59 72 78 56')">
-            <span>Telephone</span>
+            <span>Téléphone</span>
             <strong>07 59 72 78 56</strong>
           </button>
           <button type="button" onclick="copyContact('orellanatech37@gmail.com')">
@@ -1007,7 +1043,7 @@
         <div class="sidebar-mail">
           <a class="sidebar-site-link" href="https://orellanatech38.netlify.app/" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()">OrellanaTech</a>
           <button type="button" onclick="copyContact('07 59 72 78 56')">
-            <span>Telephone</span>
+            <span>Téléphone</span>
             <strong>07 59 72 78 56</strong>
           </button>
           <button type="button" onclick="copyContact('orellanatech37@gmail.com')">
@@ -1020,8 +1056,8 @@
         <header class="topbar">
           <div>
             <p class="small" style="font-weight:850;color:var(--wine-700)">In viaggio per l'Italia</p>
-            <h1 id="pageTitle">Tableau</h1>
-            <p id="pageSubtitle">Choisir la bonne presentation.</p>
+            <h1 id="pageTitle">Cours par niveau à projeter</h1>
+            <p id="pageSubtitle">Choisir la bonne présentation.</p>
           </div>
           <div class="row wrap">
             <button class="btn" id="openBoardBtn">Ouvrir le mode tableau</button>
@@ -1051,13 +1087,13 @@
         DOCUMENT: "Document",
         LINK: "Lien externe",
         VOCABULARY: "Fiche vocabulaire",
-        DICTATION: "Dictee",
+        DICTATION: "Dictée",
         QUIZ: "Quiz",
         HOMEWORK: "Devoir",
         CORRECTION: "Correction"
       };
-      const categories = ["Audios", "Videos", "Affiches", "Documents", "Fiches vocabulaire", "Quiz", "Corrections", "Liens utiles"];
-      const modalities = ["seul", "par deux", "groupe", "classe entiere"];
+      const categories = ["Audios", "Vidéos", "Affiches", "Documents", "Fiches vocabulaire", "Quiz", "Corrections", "Liens utiles"];
+      const modalities = ["seul", "par deux", "groupe", "classe entière"];
       const slideSize = { width: 960, height: 540, gap: 36 };
       ensureDefaultAccount();
       let state = ensureDemoData(loadData());
@@ -1065,6 +1101,8 @@
       let currentPage = { type: "classes" };
       let currentTableauPage = { type: "classes" };
       let currentStudioSlideIndex = 0;
+      let timerRemaining = 5 * 60;
+      let timerInterval = null;
       let tourIndex = 0;
       let tourRunning = false;
       let activeTutorialSteps = null;
@@ -1104,6 +1142,7 @@
         }
         if (accounts[cleanUsername] !== password) return false;
         sessionStorage.setItem(userKey, cleanUsername);
+        localStorage.setItem(userKey, cleanUsername);
         state = ensureDemoData(loadData());
         currentView = "dashboard";
         currentPage = { type: "classes" };
@@ -1112,7 +1151,7 @@
       }
 
       function currentUsername() {
-        return sessionStorage.getItem(userKey) || "";
+        return sessionStorage.getItem(userKey) || localStorage.getItem(userKey) || "";
       }
 
       function isLoggedIn() {
@@ -1140,6 +1179,7 @@
 
       function openFreeExample() {
         sessionStorage.removeItem(userKey);
+        localStorage.removeItem(userKey);
         freeExampleOpen = true;
         state = ensureDemoData(seedData());
         currentView = "dashboard";
@@ -1158,7 +1198,7 @@
         return {
           id: uid("student-class"),
           title: "5emeA",
-          description: "Exemple de classe reelle avec eleves.",
+          description: "Exemple de classe réelle avec élèves.",
           order: 1,
           isVisible: true,
           updatedAt: now,
@@ -1351,7 +1391,7 @@
         activity.slides = [{
           id: uid("slide"),
           elements: [
-            { id: uid("el"), kind: "text", x: 70, y: 62, w: 820, h: 105, value: activity.title || "Activite", fontSize: 50 },
+            { id: uid("el"), kind: "text", x: 70, y: 62, w: 820, h: 105, value: activity.title || "Activité", fontSize: 50 },
             { id: uid("el"), kind: "text", x: 70, y: 205, w: 820, h: 210, value: activity.instruction || activity.objective || activity.description || "Nouvelle diapo", fontSize: 34 }
           ]
         }];
@@ -1476,6 +1516,31 @@
         render();
       }
 
+      function appUrl(params = {}) {
+        const url = new URL(window.location.href);
+        url.search = "";
+        Object.entries(params).forEach(([key, value]) => {
+          if (value !== undefined && value !== null && value !== "") url.searchParams.set(key, value);
+        });
+        return url.toString();
+      }
+
+      function openViewInNewTab(view) {
+        window.open(appUrl({ view }), "_blank", "noopener");
+      }
+
+      function openBoardInNewTab(activityId, slideIndex = 0) {
+        window.open(appUrl({ board: activityId, slide: slideIndex }), "_blank", "noopener");
+      }
+
+      function applyInitialRoute() {
+        const params = new URLSearchParams(window.location.search);
+        const view = params.get("view");
+        if (view && ["dashboard", "classes", "studentClasses", "tools", "search", "tutorial", "settings"].includes(view)) {
+          currentView = view;
+        }
+      }
+
       function openTableauClass(id) {
         currentView = "dashboard";
         currentTableauPage = { type: "class", classId: id };
@@ -1521,14 +1586,13 @@
         document.querySelector("#appPage").hidden = false;
         document.querySelector("#boardPage").hidden = true;
         const titles = {
-          dashboard: ["Tableau", "Naviguer jusqu'a la presentation a afficher."],
-          classes: ["Classes", "Classe > Sequence > Seance > Activite."],
-          studentClasses: ["Mes Classes", "Classes reelles et listes d'eleves."],
-          tools: ["Outils", "Tirages et outils de classe."],
-          depot: ["Depot", "Ressources generales et supports de cours."],
-          search: ["Recherche globale", "Retrouver rapidement une activite ou une ressource."],
-          tutorial: ["Tutoriel", "Visite guidee de toutes les parties du site."],
-          settings: ["Reglages", "Configuration locale du site HTML."]
+          dashboard: ["Cours par niveau à projeter", "Naviguer jusqu'à la présentation à afficher."],
+          classes: ["Cours par niveau modifiable", "Classe > Séquence > Séance > Activité."],
+          studentClasses: ["Groupes Classes", "Groupes réels et listes d'élèves."],
+          tools: ["Roue de la fortune et chrono", "Tirages et minuteur de classe."],
+          search: ["Recherche ressource ou activité", "Retrouver rapidement une activité ou une ressource."],
+          tutorial: ["Tutoriel", "Visite guidée de toutes les parties du site."],
+          settings: ["Réglages", "Configuration locale du site HTML."]
         };
         document.querySelector("#pageTitle").textContent = titles[currentView][0];
         document.querySelector("#pageSubtitle").textContent = titles[currentView][1];
@@ -1541,7 +1605,6 @@
         if (currentView === "classes") renderClasses();
         if (currentView === "studentClasses") renderStudentClasses();
         if (currentView === "tools") renderTools();
-        if (currentView === "depot") renderDepot();
         if (currentView === "search") renderSearch();
         if (currentView === "tutorial") renderTutorial();
         if (currentView === "settings") renderSettings();
@@ -1553,9 +1616,9 @@
         if (currentTableauPage.type === "lesson") return renderTableauLesson(currentTableauPage.classId, currentTableauPage.sequenceId, currentTableauPage.lessonId);
         document.querySelector("#content").innerHTML = `
           <section class="page-head">
-            <div class="breadcrumb">Tableau / Classes</div>
+            <div class="breadcrumb">Cours à projeter / Classes</div>
             <h2 style="margin:0;color:var(--wine-900);font-size:34px">Choisir une classe</h2>
-            <p class="muted">Cette vue sert uniquement a trouver et afficher une presentation.</p>
+            <p class="muted">Cette vue sert uniquement à trouver et afficher une présentation.</p>
           </section>
           <section class="page-grid">${state.classes.filter((classe) => classe.isVisible !== false).map(tableauClassCard).join("")}</section>
         `;
@@ -1572,7 +1635,7 @@
             ${classe.isVisible ? "" : "<span class='pill'>Masque</span>"}
           </div>
           <div class="row wrap">
-            <p class="pill">${classe.sequences.length} sequence(s)</p>
+            <p class="pill">${classe.sequences.length} séquence(s)</p>
             <button class="btn primary" onclick="openClassPage('${classe.id}')">${isLoggedIn() ? "Modifier" : "Voir"}</button>
             ${editOnly(`<button class="btn danger" onclick="removeItem('class','${classe.id}')">Supprimer</button>`)}
           </div>
@@ -1596,7 +1659,7 @@
         return `<article class="card entity-card">
           <div>
             <h3 style="font-size:28px">${escapeHtml(classe.title)}</h3>
-            <p class="muted small">${classe.sequences.length} sequence(s)</p>
+            <p class="muted small">${classe.sequences.length} séquence(s)</p>
           </div>
           <button class="btn primary" onclick="openTableauClass('${classe.id}')">Ouvrir</button>
         </article>`;
@@ -1610,20 +1673,20 @@
         }
         document.querySelector("#content").innerHTML = `
           <section class="page-head">
-            <div class="breadcrumb"><button onclick="currentTableauPage={type:'classes'};render()">Tableau</button> / ${escapeHtml(classe.title)}</div>
+            <div class="breadcrumb"><button onclick="currentTableauPage={type:'classes'};render()">Cours à projeter</button> / ${escapeHtml(classe.title)}</div>
             <h2 style="margin:0;color:var(--wine-900);font-size:34px">${escapeHtml(classe.title)}</h2>
-            <p class="muted">Choisir une sequence.</p>
+            <p class="muted">Choisir une séquence.</p>
           </section>
-          <section class="page-grid">${classe.sequences.filter((sequence) => sequence.isVisible !== false).map((sequence) => tableauSequenceCard(classe, sequence)).join("") || empty("Aucune sequence visible.")}</section>
+          <section class="list-table">${classe.sequences.filter((sequence) => sequence.isVisible !== false).map((sequence) => tableauSequenceCard(classe, sequence)).join("") || empty("Aucune séquence visible.")}</section>
         `;
       }
 
       function tableauSequenceCard(classe, sequence) {
         return `<article class="card entity-card">
           <div>
-            <p class="small" style="font-weight:850;color:var(--wine-700)">Sequence</p>
+            <p class="small" style="font-weight:850;color:var(--wine-700)">Séquence</p>
             <h3 style="font-size:24px">${escapeHtml(sequence.title)}</h3>
-            <p class="muted small">${sequence.lessons.length} seance(s)</p>
+            <p class="muted small">${sequence.lessons.length} séance(s)</p>
           </div>
           <button class="btn primary" onclick="openTableauSequence('${classe.id}','${sequence.id}')">Ouvrir</button>
         </article>`;
@@ -1638,20 +1701,20 @@
         }
         document.querySelector("#content").innerHTML = `
           <section class="page-head">
-            <div class="breadcrumb"><button onclick="currentTableauPage={type:'classes'};render()">Tableau</button> / <button onclick="openTableauClass('${classe.id}')">${escapeHtml(classe.title)}</button> / ${escapeHtml(sequence.title)}</div>
+            <div class="breadcrumb"><button onclick="currentTableauPage={type:'classes'};render()">Cours à projeter</button> / <button onclick="openTableauClass('${classe.id}')">${escapeHtml(classe.title)}</button> / ${escapeHtml(sequence.title)}</div>
             <h2 style="margin:0;color:var(--wine-900);font-size:34px">${escapeHtml(sequence.title)}</h2>
-            <p class="muted">Choisir une seance.</p>
+            <p class="muted">Choisir une séance.</p>
           </section>
-          <section class="list-table">${sequence.lessons.filter((lesson) => lesson.isVisible !== false).map((lesson) => tableauLessonRow(classe, sequence, lesson)).join("") || empty("Aucune seance visible.")}</section>
+          <section class="list-table">${sequence.lessons.filter((lesson) => lesson.isVisible !== false).map((lesson) => tableauLessonRow(classe, sequence, lesson)).join("") || empty("Aucune séance visible.")}</section>
         `;
       }
 
       function tableauLessonRow(classe, sequence, lesson) {
         return `<article class="list-row">
           <div>
-            <p class="small" style="font-weight:850;color:var(--wine-700)">Seance</p>
+            <p class="small" style="font-weight:850;color:var(--wine-700)">Séance</p>
             <h3>${escapeHtml(lesson.title)}</h3>
-            <p class="muted small">${lesson.activities.length} activite(s)</p>
+            <p class="muted small">${lesson.activities.length} activité(s)</p>
           </div>
           <button class="btn primary" onclick="openTableauLesson('${classe.id}','${sequence.id}','${lesson.id}')">Ouvrir</button>
         </article>`;
@@ -1667,22 +1730,22 @@
         }
         document.querySelector("#content").innerHTML = `
           <section class="page-head">
-            <div class="breadcrumb"><button onclick="currentTableauPage={type:'classes'};render()">Tableau</button> / <button onclick="openTableauClass('${classe.id}')">${escapeHtml(classe.title)}</button> / <button onclick="openTableauSequence('${classe.id}','${sequence.id}')">${escapeHtml(sequence.title)}</button> / ${escapeHtml(lesson.title)}</div>
+            <div class="breadcrumb"><button onclick="currentTableauPage={type:'classes'};render()">Cours à projeter</button> / <button onclick="openTableauClass('${classe.id}')">${escapeHtml(classe.title)}</button> / <button onclick="openTableauSequence('${classe.id}','${sequence.id}')">${escapeHtml(sequence.title)}</button> / ${escapeHtml(lesson.title)}</div>
             <h2 style="margin:0;color:var(--wine-900);font-size:34px">${escapeHtml(lesson.title)}</h2>
-            <p class="muted">Choisir la presentation a afficher.</p>
+            <p class="muted">Choisir la présentation à afficher.</p>
           </section>
-          <section class="page-grid">${lesson.activities.filter((activity) => activity.isVisible !== false).map(tableauActivityCard).join("") || empty("Aucune activite visible.")}</section>
+          <section class="numbered-list">${lesson.activities.filter((activity) => activity.isVisible !== false).map(tableauActivityCard).join("") || empty("Aucune activité visible.")}</section>
         `;
       }
 
       function tableauActivityCard(activity) {
         return `<article class="card entity-card">
           <div>
-            <p class="small" style="font-weight:850;color:var(--wine-700)">Presentation</p>
+            <p class="small" style="font-weight:850;color:var(--wine-700)">Présentation</p>
             <h3 style="font-size:24px">${escapeHtml(activity.title)}</h3>
-            <p class="muted small">${escapeHtml(activity.description || "Activite a projeter.")}</p>
+            <p class="muted small">${escapeHtml(activity.description || "Activité à projeter.")}</p>
           </div>
-          <button class="btn primary" onclick="showBoard('${activity.id}',0)">Presenter</button>
+          <button class="btn primary" onclick="openBoardInNewTab('${activity.id}',0)">Présenter</button>
         </article>`;
       }
 
@@ -1690,12 +1753,12 @@
         return `<article class="card activity-card">
           <div class="activity-card-body">
             <div>
-              <p class="small" style="font-weight:850;color:var(--wine-700)">${escapeHtml(activity.level || activity.classTitle || "Activite")}</p>
+              <p class="small" style="font-weight:850;color:var(--wine-700)">${escapeHtml(activity.level || activity.classTitle || "Activité")}</p>
               <h3>${escapeHtml(activity.title)}</h3>
-              <p class="muted small">${escapeHtml(activity.objective || activity.description || "Presentation")}</p>
+              <p class="muted small">${escapeHtml(activity.objective || activity.description || "Présentation")}</p>
             </div>
             <div class="activity-actions">
-              <button class="btn primary" onclick="showBoard('${activity.id}',0)">Presenter</button>
+              <button class="btn primary" onclick="openBoardInNewTab('${activity.id}',0)">Présenter</button>
               <button class="btn" onclick="setView('classes')">Retrouver dans les classes</button>
             </div>
           </div>
@@ -1710,9 +1773,9 @@
           <section class="page-head">
             <div class="row wrap">
               <div>
-                <div class="breadcrumb">Accueil / Classes</div>
+                <div class="breadcrumb">Accueil / Cours par niveau modifiable</div>
                 <h2 style="margin:0;color:var(--wine-900);font-size:34px">Toutes les classes</h2>
-                <p class="muted">Clique sur Modifier pour entrer dans une classe et gerer ses sequences sur une page dediee.</p>
+                <p class="muted">Clique sur Modifier pour entrer dans une classe et gérer ses séquences sur une page dédiée.</p>
               </div>
               ${editOnly(`<button class="btn primary" onclick="openEditor('class')">Ajouter une classe</button>`)}
             </div>
@@ -1727,14 +1790,14 @@
           <section class="page-head">
             <div class="row wrap">
               <div>
-                <div class="breadcrumb">Mes Classes</div>
-                <h2 style="margin:0;color:var(--wine-900);font-size:34px">Classes reelles</h2>
-                <p class="muted">Ici, on gere les groupes avec les noms des eleves. C'est separe des classes pedagogiques du site.</p>
+                <div class="breadcrumb">Groupes Classes</div>
+                <h2 style="margin:0;color:var(--wine-900);font-size:34px">Groupes Classes</h2>
+                <p class="muted">Ici, on gère les groupes avec les noms des élèves. C'est séparé des cours par niveau.</p>
               </div>
-              ${editOnly(`<button class="btn primary" onclick="openEditor('studentClass')">Ajouter une classe</button>`)}
+              ${editOnly(`<button class="btn primary" onclick="openEditor('studentClass')">Ajouter un groupe</button>`)}
             </div>
           </section>
-          <section class="page-grid">${studentClasses.map(studentClassCard).join("") || empty("Aucune classe reelle.")}</section>
+          <section class="page-grid">${studentClasses.map(studentClassCard).join("") || empty("Aucun groupe classe.")}</section>
         `;
       }
 
@@ -1744,7 +1807,7 @@
           <div>
             <h3 style="font-size:28px">${escapeHtml(classe.title)}</h3>
             <p class="muted small">${escapeHtml(classe.description || "")}</p>
-            <p class="pill" style="margin-top:10px">${students.length} eleve(s)</p>
+            <p class="pill" style="margin-top:10px">${students.length} élève(s)</p>
             <div class="small muted" style="margin-top:12px;line-height:1.7">${students.slice(0, 6).map(escapeHtml).join("<br>")}${students.length > 6 ? "<br>..." : ""}</div>
           </div>
           ${editOnly(`<div class="row wrap">
@@ -1762,11 +1825,11 @@
         const history = selectedClass ? (state.tools.wheelHistory[selectedClass.id] || []) : [];
         document.querySelector("#content").innerHTML = `
           <section class="page-head">
-            <div class="breadcrumb">Outils / Roue par classe</div>
+            <div class="breadcrumb">Outils / Roue de la fortune et chrono</div>
             <div class="row wrap">
               <div>
-                <h2 style="margin:0;color:var(--wine-900);font-size:34px">Roue par classe</h2>
-                <p class="muted">Tire un eleve au hasard. L'historique est conserve, mais un eleve peut retomber.</p>
+                <h2 style="margin:0;color:var(--wine-900);font-size:34px">Roue de la fortune et chrono</h2>
+                <p class="muted">Tire un élève au hasard et lance un minuteur sur la même page.</p>
               </div>
               <label class="label" style="min-width:260px">Classe
                 <select onchange="selectWheelClass(this.value)">
@@ -1775,8 +1838,12 @@
               </label>
             </div>
           </section>
-          ${selectedClass ? renderWheelTool(selectedClass, history) : empty("Ajoutez d'abord une classe dans Mes Classes.")}
+          <div class="tools-grid">
+            ${selectedClass ? renderWheelTool(selectedClass, history) : empty("Ajoutez d'abord un groupe dans Groupes Classes.")}
+            ${renderTimerTool()}
+          </div>
         `;
+        updateTimerDisplay();
       }
 
       function renderWheelTool(classe, history) {
@@ -1788,24 +1855,23 @@
         const availableCount = students.filter((student) => !absences.includes(student) && Number(counts[student] || 0) < limit).length;
         const presentCount = students.length - absences.length;
         return `
-          <div class="grid side">
             <section class="card">
               <div class="wheel" id="studentWheel"><div class="wheel-result">${escapeHtml(last)}</div></div>
-              <label class="label" style="margin:18px auto 0;max-width:330px">Nombre maximum de tirages par eleve
+              <label class="label" style="margin:18px auto 0;max-width:330px">Nombre maximum de tirages par élève
                 <input type="number" min="1" max="20" value="${limit}" ${isLoggedIn() ? "" : "disabled"} onchange="setWheelLimit('${classe.id}', this.value)">
               </label>
               <div class="row wrap" style="justify-content:center;margin-top:18px">
                 ${isLoggedIn() ? `
                   <button class="btn primary" ${availableCount ? "" : "disabled"} onclick="spinStudentWheel('${classe.id}')">Lancer la roue</button>
-                  <button class="btn" onclick="resetWheelCounts('${classe.id}')">Remettre les compteurs a 0</button>
-                  <button class="btn" onclick="resetWheelAbsences('${classe.id}')">Tout le monde present</button>
+                  <button class="btn" onclick="resetWheelCounts('${classe.id}')">Remettre les compteurs à 0</button>
+                  <button class="btn" onclick="resetWheelAbsences('${classe.id}')">Tout le monde présent</button>
                   <button class="btn" onclick="clearWheelHistory('${classe.id}')">Vider l'historique</button>
                 ` : `<span class="pill">Connectez-vous pour utiliser la roue</span>`}
               </div>
-              <p class="small muted" style="text-align:center;margin-top:12px">${availableCount} eleve(s) encore disponible(s), ${presentCount} present(s) sur ${students.length}. Limite actuelle : ${limit} tirage(s) par eleve.</p>
+              <p class="small muted" style="text-align:center;margin-top:12px">${availableCount} élève(s) encore disponible(s), ${presentCount} présent(s) sur ${students.length}. Limite actuelle : ${limit} tirage(s) par élève.</p>
             </section>
             <aside class="card">
-              <h2>Eleves</h2>
+              <h2>Élèves</h2>
               <div class="history-list" style="margin-top:12px">
                 ${students.map((student, index) => {
                   const absent = absences.includes(student);
@@ -1816,15 +1882,70 @@
                       ${editOnly(`<button class="btn ${absent ? "danger" : ""}" style="padding:8px 10px" onclick="toggleWheelAbsence('${classe.id}', ${index})">${absent ? "Absent" : "Present"}</button>`)}
                     </div>
                   </div>`;
-                }).join("") || empty("Aucun eleve.")}
+                }).join("") || empty("Aucun élève.")}
               </div>
               <h2 style="margin-top:24px">Historique</h2>
               <div class="history-list" style="margin-top:12px">
                 ${history.map((item, index) => `<div class="row"><strong>${index + 1}. ${escapeHtml(item.student)}</strong><span class="small muted">${new Date(item.date).toLocaleString("fr-FR")}</span></div>`).join("") || empty("Aucun tirage.")}
               </div>
             </aside>
-          </div>
         `;
+      }
+
+      function renderTimerTool() {
+        return `<section class="card">
+          <h2>Chrono</h2>
+          <div class="timer-display" id="timerDisplay">05:00</div>
+          <div class="form-grid" style="margin-top:12px">
+            <label class="label">Minutes
+              <input id="timerMinutes" type="number" min="1" max="120" value="${Math.max(1, Math.ceil(timerRemaining / 60))}" onchange="setTimerMinutes(this.value)">
+            </label>
+          </div>
+          <div class="row wrap" style="justify-content:center;margin-top:16px">
+            <button class="btn primary" onclick="startClassTimer()">Démarrer</button>
+            <button class="btn" onclick="pauseClassTimer()">Pause</button>
+            <button class="btn" onclick="resetClassTimer()">Réinitialiser</button>
+          </div>
+        </section>`;
+      }
+
+      function formatTimer(seconds) {
+        const safeSeconds = Math.max(0, Number(seconds) || 0);
+        const minutes = Math.floor(safeSeconds / 60);
+        const rest = safeSeconds % 60;
+        return `${String(minutes).padStart(2, "0")}:${String(rest).padStart(2, "0")}`;
+      }
+
+      function updateTimerDisplay() {
+        const display = document.querySelector("#timerDisplay");
+        if (display) display.textContent = formatTimer(timerRemaining);
+      }
+
+      function setTimerMinutes(value) {
+        timerRemaining = Math.max(1, Math.min(120, Number(value) || 5)) * 60;
+        pauseClassTimer();
+        updateTimerDisplay();
+      }
+
+      function startClassTimer() {
+        if (timerInterval) return;
+        timerInterval = setInterval(() => {
+          timerRemaining = Math.max(0, timerRemaining - 1);
+          updateTimerDisplay();
+          if (!timerRemaining) pauseClassTimer();
+        }, 1000);
+      }
+
+      function pauseClassTimer() {
+        clearInterval(timerInterval);
+        timerInterval = null;
+      }
+
+      function resetClassTimer() {
+        const input = document.querySelector("#timerMinutes");
+        timerRemaining = Math.max(1, Math.min(120, Number(input?.value) || 5)) * 60;
+        pauseClassTimer();
+        updateTimerDisplay();
       }
 
       function wheelLimitForClass(classId) {
@@ -1850,7 +1971,7 @@
         state.tools.wheelLimits = state.tools.wheelLimits || {};
         const limit = Math.max(1, Math.min(20, Number(value) || 1));
         state.tools.wheelLimits[classId] = limit;
-        saveData("Limite mise a jour.");
+        saveData("Limite mise à jour.");
       }
 
       function toggleWheelAbsence(classId, studentIndex) {
@@ -1862,7 +1983,7 @@
         const index = absences.indexOf(student);
         if (index >= 0) {
           absences.splice(index, 1);
-          saveData(`${student} est marque present.`);
+          saveData(`${student} est marqué présent.`);
           return;
         }
         absences.push(student);
@@ -1873,7 +1994,7 @@
         if (!requireLogin()) return;
         state.tools.wheelAbsences = state.tools.wheelAbsences || {};
         state.tools.wheelAbsences[classId] = [];
-        saveData("Tous les eleves sont marques presents.");
+        saveData("Tous les élèves sont marqués présents.");
       }
 
       function selectWheelClass(id) {
@@ -1885,12 +2006,12 @@
         if (!requireLogin()) return;
         const classe = (state.studentClasses || []).find((item) => item.id === classId);
         const students = classe?.students || [];
-        if (!students.length) return toast("Aucun eleve dans cette classe.");
+        if (!students.length) return toast("Aucun élève dans cette classe.");
         const limit = wheelLimitForClass(classId);
         const counts = wheelCountsForClass(classId);
         const absences = wheelAbsencesForClass(classId);
         const availableStudents = students.filter((student) => !absences.includes(student) && Number(counts[student] || 0) < limit);
-        if (!availableStudents.length) return toast("Aucun eleve disponible. Verifie les absents ou remets les compteurs a 0.");
+        if (!availableStudents.length) return toast("Aucun élève disponible. Vérifie les absents ou remets les compteurs à 0.");
         const wheel = document.querySelector("#studentWheel");
         wheel?.classList.add("spinning");
         const student = availableStudents[Math.floor(Math.random() * availableStudents.length)];
@@ -1907,10 +2028,10 @@
 
       function resetWheelCounts(classId) {
         if (!requireLogin()) return;
-        if (!confirm("Remettre tous les compteurs de cette roue a 0 ?")) return;
+        if (!confirm("Remettre tous les compteurs de cette roue à 0 ?")) return;
         state.tools.wheelCounts = state.tools.wheelCounts || {};
         state.tools.wheelCounts[classId] = {};
-        saveData("Compteurs remis a 0.");
+        saveData("Compteurs remis à 0.");
       }
 
       function clearWheelHistory(classId) {
@@ -1928,7 +2049,7 @@
         }
         document.querySelector("#content").innerHTML = `
           <section class="page-head">
-            <div class="breadcrumb"><button onclick="currentPage={type:'classes'};render()">Classes</button> / ${escapeHtml(classe.title)}</div>
+            <div class="breadcrumb"><button onclick="currentPage={type:'classes'};render()">Cours modifiables</button> / ${escapeHtml(classe.title)}</div>
             <div class="row wrap">
               <div>
                 <h2 style="margin:0;color:var(--wine-900);font-size:34px">${escapeHtml(classe.title)}</h2>
@@ -1936,13 +2057,13 @@
               </div>
               ${editOnly(`<div class="row wrap">
                 ${moveButtons("class", classe.id)}
-                <button class="btn" onclick="openEditor('class','${classe.id}')">Parametres classe</button>
-                <button class="btn primary" onclick="openEditor('sequence',null,{classId:'${classe.id}'})">Ajouter une sequence</button>
+                <button class="btn" onclick="openEditor('class','${classe.id}')">Paramètres classe</button>
+                <button class="btn primary" onclick="openEditor('sequence',null,{classId:'${classe.id}'})">Ajouter une séquence</button>
                 <button class="btn danger" onclick="removeItem('class','${classe.id}')">Supprimer la classe</button>
               </div>`)}
             </div>
           </section>
-          <section class="page-grid">${classe.sequences.map((sequence) => sequenceCard(classe, sequence)).join("") || empty("Aucune sequence.")}</section>
+          <section class="list-table">${classe.sequences.map((sequence) => sequenceCard(classe, sequence)).join("") || empty("Aucune séquence.")}</section>
         `;
       }
 
@@ -1950,13 +2071,13 @@
         const activityCount = sequence.lessons.reduce((total, lesson) => total + lesson.activities.length, 0);
         return `<article class="card entity-card">
           <div>
-            <p class="small" style="font-weight:850;color:var(--wine-700)">Sequence</p>
+            <p class="small" style="font-weight:850;color:var(--wine-700)">Séquence</p>
             <h3 style="font-size:24px">${escapeHtml(sequence.title)} ${sequence.isVisible ? "" : "<span class='pill'>Masque</span>"}</h3>
             <p class="muted small">${escapeHtml(sequence.description)}</p>
           </div>
           <div class="row wrap">
-            <span class="pill">${sequence.lessons.length} seance(s)</span>
-            <span class="pill">${activityCount} activite(s)</span>
+            <span class="pill">${sequence.lessons.length} séance(s)</span>
+            <span class="pill">${activityCount} activité(s)</span>
             <button class="btn primary" onclick="openSequencePage('${classe.id}','${sequence.id}')">${isLoggedIn() ? "Modifier" : "Voir"}</button>
             ${editOnly(`<button class="btn danger" onclick="removeItem('sequence','${sequence.id}')">Supprimer</button>`)}
           </div>
@@ -1972,7 +2093,7 @@
         }
         document.querySelector("#content").innerHTML = `
           <section class="page-head">
-            <div class="breadcrumb"><button onclick="currentPage={type:'classes'};render()">Classes</button> / <button onclick="openClassPage('${classe.id}')">${escapeHtml(classe.title)}</button> / ${escapeHtml(sequence.title)}</div>
+            <div class="breadcrumb"><button onclick="currentPage={type:'classes'};render()">Cours modifiables</button> / <button onclick="openClassPage('${classe.id}')">${escapeHtml(classe.title)}</button> / ${escapeHtml(sequence.title)}</div>
             <div class="row wrap">
               <div>
                 <h2 style="margin:0;color:var(--wine-900);font-size:34px">${escapeHtml(sequence.title)}</h2>
@@ -1980,25 +2101,25 @@
               </div>
               ${editOnly(`<div class="row wrap">
                 ${moveButtons("sequence", sequence.id)}
-                <button class="btn" onclick="openEditor('sequence','${sequence.id}')">Parametres sequence</button>
-                <button class="btn primary" onclick="openEditor('lesson',null,{classId:'${classe.id}',sequenceId:'${sequence.id}'})">Ajouter une seance</button>
-                <button class="btn danger" onclick="removeItem('sequence','${sequence.id}')">Supprimer la sequence</button>
+                <button class="btn" onclick="openEditor('sequence','${sequence.id}')">Paramètres séquence</button>
+                <button class="btn primary" onclick="openEditor('lesson',null,{classId:'${classe.id}',sequenceId:'${sequence.id}'})">Ajouter une séance</button>
+                <button class="btn danger" onclick="removeItem('sequence','${sequence.id}')">Supprimer la séquence</button>
               </div>`)}
             </div>
           </section>
-          <section class="list-table">${sequence.lessons.map((lesson) => lessonRow(classe, sequence, lesson)).join("") || empty("Aucune seance.")}</section>
+          <section class="list-table">${sequence.lessons.map((lesson) => lessonRow(classe, sequence, lesson)).join("") || empty("Aucune séance.")}</section>
         `;
       }
 
       function lessonRow(classe, sequence, lesson) {
         return `<article class="list-row">
           <div>
-            <p class="small" style="font-weight:850;color:var(--wine-700)">Seance</p>
+            <p class="small" style="font-weight:850;color:var(--wine-700)">Séance</p>
             <h3>${escapeHtml(lesson.title)} ${lesson.isVisible ? "" : "<span class='pill'>Masque</span>"}</h3>
             <p class="muted small">${escapeHtml(lesson.description)}</p>
           </div>
           <div class="row wrap">
-            <span class="pill">${lesson.activities.length} activite(s)</span>
+            <span class="pill">${lesson.activities.length} activité(s)</span>
             <button class="btn primary" onclick="openLessonPage('${classe.id}','${sequence.id}','${lesson.id}')">${isLoggedIn() ? "Modifier" : "Voir"}</button>
             ${editOnly(`<button class="btn danger" onclick="removeItem('lesson','${lesson.id}')">Supprimer</button>`)}
           </div>
@@ -2015,7 +2136,7 @@
         }
         document.querySelector("#content").innerHTML = `
           <section class="page-head">
-            <div class="breadcrumb"><button onclick="currentPage={type:'classes'};render()">Classes</button> / <button onclick="openClassPage('${classe.id}')">${escapeHtml(classe.title)}</button> / <button onclick="openSequencePage('${classe.id}','${sequence.id}')">${escapeHtml(sequence.title)}</button> / ${escapeHtml(lesson.title)}</div>
+            <div class="breadcrumb"><button onclick="currentPage={type:'classes'};render()">Cours modifiables</button> / <button onclick="openClassPage('${classe.id}')">${escapeHtml(classe.title)}</button> / <button onclick="openSequencePage('${classe.id}','${sequence.id}')">${escapeHtml(sequence.title)}</button> / ${escapeHtml(lesson.title)}</div>
             <div class="row wrap">
               <div>
                 <h2 style="margin:0;color:var(--wine-900);font-size:34px">${escapeHtml(lesson.title)}</h2>
@@ -2023,13 +2144,13 @@
               </div>
               ${editOnly(`<div class="row wrap">
                 ${moveButtons("lesson", lesson.id)}
-                <button class="btn" onclick="openEditor('lesson','${lesson.id}')">Parametres seance</button>
-                <button class="btn primary" onclick="createActivityInLesson('${lesson.id}')">Ajouter une activite</button>
-                <button class="btn danger" onclick="removeItem('lesson','${lesson.id}')">Supprimer la seance</button>
+                <button class="btn" onclick="openEditor('lesson','${lesson.id}')">Paramètres séance</button>
+                <button class="btn primary" onclick="createActivityInLesson('${lesson.id}')">Ajouter une activité</button>
+                <button class="btn danger" onclick="removeItem('lesson','${lesson.id}')">Supprimer la séance</button>
               </div>`)}
             </div>
           </section>
-          <section class="page-grid">${lesson.activities.map(activityCard).join("") || empty("Aucune activite.")}</section>
+          <section class="numbered-list">${lesson.activities.map(activityCard).join("") || empty("Aucune activité.")}</section>
         `;
       }
 
@@ -2039,12 +2160,12 @@
             <div><h3>${escapeHtml(classe.title)} ${classe.isVisible ? "" : "<span class='pill'>Masque</span>"}</h3><p class="muted small">${escapeHtml(classe.description)}</p></div>
             ${editOnly(`<div class="row">
               ${moveButtons("class", classe.id)}
-              <button class="btn" onclick="openEditor('sequence',null,{classId:'${classe.id}'})">+ Sequence</button>
+              <button class="btn" onclick="openEditor('sequence',null,{classId:'${classe.id}'})">+ Séquence</button>
               <button class="btn" onclick="openEditor('class','${classe.id}')">Modifier</button>
               <button class="btn danger" onclick="removeItem('class','${classe.id}')">Supprimer</button>
             </div>`)}
           </div>
-          <div class="tree-child">${classe.sequences.map((sequence) => renderSequenceTree(classe, sequence)).join("") || empty("Aucune sequence.")}</div>
+          <div class="tree-child">${classe.sequences.map((sequence) => renderSequenceTree(classe, sequence)).join("") || empty("Aucune séquence.")}</div>
         </article>`;
       }
 
@@ -2054,7 +2175,7 @@
             <strong>${escapeHtml(sequence.title)} ${sequence.isVisible ? "" : "<span class='pill'>Masque</span>"}</strong>
             ${editOnly(`<div class="row">
               ${moveButtons("sequence", sequence.id)}
-              <button class="btn" onclick="openEditor('lesson',null,{classId:'${classe.id}',sequenceId:'${sequence.id}'})">+ Seance</button>
+              <button class="btn" onclick="openEditor('lesson',null,{classId:'${classe.id}',sequenceId:'${sequence.id}'})">+ Séance</button>
               <button class="btn" onclick="openEditor('sequence','${sequence.id}')">Modifier</button>
               <button class="btn danger" onclick="removeItem('sequence','${sequence.id}')">Supprimer</button>
             </div>`)}
@@ -2074,7 +2195,7 @@
               <button class="btn danger" onclick="removeItem('lesson','${lesson.id}')">Supprimer</button>
             </div>`)}
           </div>
-          <div class="tree-child">${lesson.activities.map(activityCard).join("") || empty("Aucune activite.")}</div>
+          <div class="tree-child">${lesson.activities.map(activityCard).join("") || empty("Aucune activité.")}</div>
         </div>`;
       }
 
@@ -2088,7 +2209,7 @@
             </div>
             <div class="activity-actions">
               ${editOnly(moveButtons("activity", activity.id))}
-              <button class="btn primary" onclick="showBoard('${activity.id}')">Tableau</button>
+              <button class="btn primary" onclick="openBoardInNewTab('${activity.id}')">Présenter</button>
               ${editOnly(`<button class="btn" onclick="openActivityStudio('${activity.id}')">Modifier</button>
               <button class="btn danger" onclick="removeItem('activity','${activity.id}')">Supprimer</button>`)}
             </div>
@@ -2100,31 +2221,11 @@
         return `<button class="btn icon" title="Monter" onclick="moveItem('${type}','${id}',-1)">Up</button><button class="btn icon" title="Descendre" onclick="moveItem('${type}','${id}',1)">Dn</button>`;
       }
 
-      function renderDepot() {
-        const resources = allResources();
-        document.querySelector("#content").innerHTML = `
-          <div class="grid side">
-            <section class="card">
-              <div class="row wrap"><h2>Depot de ressources</h2>${editOnly(`<button class="btn primary" onclick="openEditor('resource')">Ajouter une ressource</button>`)}</div>
-              <div class="grid" style="margin-top:14px">${categories.map((cat) => `
-                <div class="card" style="box-shadow:none">
-                  <h3>${cat}</h3>
-                  <div class="grid two" style="margin-top:10px">${resources.filter((r) => r.category === cat).map(resourceRow).join("") || empty("Aucune ressource.")}</div>
-                </div>`).join("")}</div>
-            </section>
-            <aside class="card">
-              <h2>Categories</h2>
-              <div class="stack" style="margin-top:12px">${categories.map((cat) => `<button class="btn soft" onclick="setView('search')">${cat}</button>`).join("")}</div>
-            </aside>
-          </div>
-        `;
-      }
-
       function resourceRow(resource) {
         return `<article class="card" style="box-shadow:none">
           <div class="row wrap">
             <div>
-              <p class="small" style="font-weight:850;color:var(--wine-700)">${resourceTypes[resource.type] || resource.type} / ${escapeHtml(resource.category || "Sans categorie")}</p>
+              <p class="small" style="font-weight:850;color:var(--wine-700)">${resourceTypes[resource.type] || resource.type} / ${escapeHtml(resource.category || "Sans catégorie")}</p>
               <h3>${escapeHtml(resource.title)} ${resource.isVisible ? "" : "<span class='pill'>Masque</span>"}</h3>
               <p class="muted small">${escapeHtml(resource.description)}</p>
             </div>
@@ -2151,8 +2252,8 @@
       function renderSearch() {
         document.querySelector("#content").innerHTML = `
           <section class="card">
-            <h2>Recherche globale</h2>
-            <input id="globalSearch" style="margin-top:12px" placeholder="Rechercher une activite, une consigne, une ressource..." oninput="renderSearchResults(this.value)" />
+            <h2>Recherche ressource ou activité</h2>
+            <input id="globalSearch" style="margin-top:12px" placeholder="Rechercher une activité, une consigne, une ressource..." oninput="renderSearchResults(this.value)" />
           </section>
           <section id="searchResults" class="grid two" style="margin-top:16px"></section>
         `;
@@ -2165,37 +2266,36 @@
         const activities = flat.activities.filter((a) => !q || `${a.title} ${a.objective} ${a.instruction} ${a.level}`.toLowerCase().includes(q));
         const resources = flat.resources.filter((r) => !q || `${r.title} ${r.description} ${r.type} ${r.category}`.toLowerCase().includes(q));
         document.querySelector("#searchResults").innerHTML = `
-          <div class="card"><h2>Activites</h2><div class="grid" style="margin-top:12px">${activities.slice(0, 20).map(activityCard).join("") || empty("Aucune activite.")}</div></div>
+          <div class="card"><h2>Activités</h2><div class="grid" style="margin-top:12px">${activities.slice(0, 20).map(activityCard).join("") || empty("Aucune activité.")}</div></div>
           <div class="card"><h2>Ressources</h2><div class="grid" style="margin-top:12px">${resources.slice(0, 20).map(resourceRow).join("") || empty("Aucune ressource.")}</div></div>
         `;
       }
 
       const tutorialSteps = [
-        { view: "dashboard", selector: "[data-view='dashboard']", title: "Tableau", text: "Ici, on navigue jusqu'a la presentation a montrer aux eleves. Cette partie ne sert pas a modifier." },
-        { view: "classes", selector: "[data-view='classes']", title: "Classes", text: "C'est l'espace de preparation : classes pedagogiques, sequences, seances et presentations." },
-        { view: "classes", selector: "#content", title: "Preparation", text: "Depuis une classe, tu ouvres une sequence, puis une seance. Les activites se creent uniquement dans une seance." },
-        { view: "studentClasses", selector: "[data-view='studentClasses']", title: "Mes Classes", text: "Ici, tu geres les vraies classes avec les noms des eleves, par exemple 5emeA et 5emeB." },
-        { view: "tools", selector: "[data-view='tools']", title: "Outils", text: "Cette entree contient les outils de classe, comme la roue avec absents, compteurs et historique." },
-        { view: "depot", selector: "[data-view='depot']", title: "Depot", text: "Le depot sert a ranger les ressources generales : documents, liens, videos, audios, quiz et corrections." },
-        { view: "search", selector: "[data-view='search']", title: "Recherche", text: "La recherche retrouve rapidement une presentation ou une ressource sans parcourir toute l'arborescence." },
-        { view: "settings", selector: "[data-view='settings']", title: "Reglages", text: "Dans les reglages, tu peux exporter le ZIP, importer des donnees, ou reinitialiser l'espace du compte." },
-        { view: "settings", selector: "#openBoardBtn", title: "Mode tableau", text: "Ce bouton ouvre directement une presentation au tableau. Dans les seances, chaque activite a aussi son bouton de presentation." },
-        { view: "tutorial", selector: ".sidebar-mail", title: "Contact", text: "En bas a gauche, le telephone et le mail restent discrets et se copient au clic." }
+        { view: "dashboard", selector: "[data-view='dashboard']", title: "Cours à projeter", text: "Ici, on navigue jusqu'à la présentation à montrer aux élèves. Cette partie ne sert pas à modifier." },
+        { view: "classes", selector: "[data-view='classes']", title: "Cours modifiables", text: "C'est l'espace de préparation : classes pédagogiques, séquences, séances et présentations." },
+        { view: "classes", selector: "#content", title: "Préparation", text: "Depuis une classe, tu ouvres une séquence, puis une séance. Les activités se créent uniquement dans une séance." },
+        { view: "studentClasses", selector: "[data-view='studentClasses']", title: "Groupes Classes", text: "Ici, tu gères les vrais groupes avec les noms des élèves, par exemple 5emeA et 5emeB." },
+        { view: "tools", selector: "[data-view='tools']", title: "Outils", text: "Cette entrée contient la roue de la fortune, les absents, les compteurs, l'historique et le chrono." },
+        { view: "search", selector: "[data-view='search']", title: "Recherche", text: "La recherche retrouve rapidement une présentation ou une ressource sans parcourir toute l'arborescence." },
+        { view: "settings", selector: "[data-view='settings']", title: "Réglages", text: "Dans les réglages, tu peux exporter le ZIP, importer des données, ou réinitialiser l'espace du compte." },
+        { view: "settings", selector: "#openBoardBtn", title: "Mode tableau", text: "Ce bouton ouvre directement une présentation au tableau. Dans les séances, chaque activité a aussi son bouton de présentation." },
+        { view: "tutorial", selector: ".sidebar-mail", title: "Contact", text: "En bas à gauche, le téléphone et le mail restent discrets et se copient au clic." }
       ];
 
       function renderTutorial() {
         document.querySelector("#content").innerHTML = `
           <section class="page-head">
             <div class="breadcrumb">Tutoriel</div>
-            <h2 style="margin:0;color:var(--wine-900);font-size:34px">Visite guidee</h2>
+            <h2 style="margin:0;color:var(--wine-900);font-size:34px">Visite guidée</h2>
             <p class="muted">Lance le tutoriel pour parcourir les parties du site une par une.</p>
           </section>
           <section class="card">
             <h2>Comprendre le site en quelques clics</h2>
-            <p class="muted">Le tutoriel change de page automatiquement, encadre la zone importante et explique a quoi elle sert.</p>
+            <p class="muted">Le tutoriel change de page automatiquement, encadre la zone importante et explique à quoi elle sert.</p>
             <div class="row wrap" style="margin-top:18px">
               <button class="btn primary" onclick="startTutorial()">Lancer le tutoriel</button>
-              <button class="btn" onclick="setView('dashboard')">Aller au tableau</button>
+              <button class="btn" onclick="setView('dashboard')">Aller aux cours à projeter</button>
             </div>
           </section>
         `;
@@ -2214,20 +2314,19 @@
         const firstLesson = firstSequence?.lessons?.[0];
         const firstActivity = firstLesson?.activities?.[0];
         activeTutorialSteps = [
-          { view: "dashboard", selector: "#content", title: "Exemple gratuit", text: "Voici l'exemple gratuit sur Leonardo da Vinci. Tu vas etre guide jusqu'a une presentation complete." },
-          { view: "classes", selector: "#content", title: "Classes", text: "Dans Classes, on voit les cours organises par niveau. En gratuit, tu peux consulter sans modifier." },
-          { view: "studentClasses", selector: "#content", title: "Mes Classes", text: "Mes Classes montre les groupes d'eleves. Les actions restent bloquees sans connexion." },
-          { view: "tools", selector: "#content", title: "Outils", text: "Les outils, comme la roue, sont visibles mais utilisables seulement avec un compte connecte." },
-          { view: "depot", selector: "#content", title: "Depot", text: "Le depot rassemble les ressources. En gratuit, tu peux regarder les supports disponibles." },
-          { view: "search", selector: "#content", title: "Recherche", text: "La recherche permet de retrouver rapidement une presentation ou une ressource." },
-          { view: "tutorial", selector: "#content", title: "Tutoriel", text: "Cette entree permet de relancer la visite guidee du portail." },
-          { view: "tutorial", selector: "#exampleAd", title: "Contact OrellanaTech", text: "Dans l'exemple gratuit, la pub est visible ici. Le telephone et le mail se copient au clic." },
-          { view: "settings", selector: "#content", title: "Reglages", text: "Les reglages expliquent le mode public. Les exports et imports demandent une connexion." },
+          { view: "dashboard", selector: "#content", title: "Exemple gratuit", text: "Voici l'exemple gratuit sur Leonardo da Vinci. Tu vas être guidé jusqu'à une présentation complète." },
+          { view: "classes", selector: "#content", title: "Cours modifiables", text: "Dans cette partie, on voit les cours organisés par niveau. En gratuit, tu peux consulter sans modifier." },
+          { view: "studentClasses", selector: "#content", title: "Groupes Classes", text: "Groupes Classes montre les groupes d'élèves. Les actions restent bloquées sans connexion." },
+          { view: "tools", selector: "#content", title: "Outils", text: "Les outils, comme la roue et le chrono, sont visibles mais utilisables seulement avec un compte connecté." },
+          { view: "search", selector: "#content", title: "Recherche", text: "La recherche permet de retrouver rapidement une présentation ou une ressource." },
+          { view: "tutorial", selector: "#content", title: "Tutoriel", text: "Cette entrée permet de relancer la visite guidée du portail." },
+          { view: "tutorial", selector: "#exampleAd", title: "Contact OrellanaTech", text: "Dans l'exemple gratuit, la pub est visible ici. Le téléphone et le mail se copient au clic." },
+          { view: "settings", selector: "#content", title: "Réglages", text: "Les réglages expliquent le mode public. Les exports et imports demandent une connexion." },
           { view: "dashboard", selector: "#content", title: "Classe 5eme", text: "On commence par la classe 5eme.", enter: () => firstClass && openTableauClass(firstClass.id) },
-          { view: "dashboard", selector: "#content", title: "Sequence", text: "Le tutoriel ouvre la premiere sequence de l'exemple.", enter: () => firstClass && firstSequence && openTableauSequence(firstClass.id, firstSequence.id) },
-          { view: "dashboard", selector: "#content", title: "Seance", text: "Puis il ouvre la premiere seance pour trouver la presentation.", enter: () => firstClass && firstSequence && firstLesson && openTableauLesson(firstClass.id, firstSequence.id, firstLesson.id) },
-          { view: "dashboard", selector: "#content", title: "Presentation", text: "Le tutoriel ouvre maintenant la presentation exemple." },
-          { view: "dashboard", selector: "#boardPage", title: "Diapo exemple", text: "Cette presentation contient un titre, une image et la video deposee localement.", enter: () => firstActivity && showBoard(firstActivity.id, 0) }
+          { view: "dashboard", selector: "#content", title: "Séquence", text: "Le tutoriel ouvre la première séquence de l'exemple.", enter: () => firstClass && firstSequence && openTableauSequence(firstClass.id, firstSequence.id) },
+          { view: "dashboard", selector: "#content", title: "Séance", text: "Puis il ouvre la première séance pour trouver la présentation.", enter: () => firstClass && firstSequence && firstLesson && openTableauLesson(firstClass.id, firstSequence.id, firstLesson.id) },
+          { view: "dashboard", selector: "#content", title: "Présentation", text: "Le tutoriel ouvre maintenant la présentation exemple." },
+          { view: "dashboard", selector: "#boardPage", title: "Diapo exemple", text: "Cette présentation contient un titre, une image et la vidéo déposée localement.", enter: () => firstActivity && showBoard(firstActivity.id, 0) }
         ];
         tourIndex = 0;
         tourRunning = true;
@@ -2304,19 +2403,19 @@
           <div class="grid two">
             <section class="card">
               <h2>Connexion locale</h2>
-              <p class="muted">Compte connecte : <strong>${isLoggedIn() ? escapeHtml(currentUsername()) : "visiteur public"}</strong></p>
-              <p class="small muted">${isLoggedIn() ? "Chaque identifiant a ses propres donnees locales. Dans une version HTML autonome, ce n'est pas une securite serveur : les comptes restent stockes dans ce navigateur." : "Vous pouvez consulter les exemples sans identifiant. Connectez-vous pour modifier, exporter ou importer des donnees."}</p>
+              <p class="muted">Compte connecté : <strong>${isLoggedIn() ? escapeHtml(currentUsername()) : "visiteur public"}</strong></p>
+              <p class="small muted">${isLoggedIn() ? "Chaque identifiant a ses propres données locales sur ce PC. En attendant le NAS, les comptes et les sauvegardes restent stockés dans ce navigateur." : "Vous pouvez consulter les exemples sans identifiant. Connectez-vous pour modifier, exporter ou importer des données."}</p>
             </section>
             <section class="card">
-              <h2>Donnees</h2>
-              <p class="muted">${isLoggedIn() ? "Les donnees sont stockees dans le navigateur avec localStorage." : "Mode consultation uniquement."}</p>
+              <h2>Données</h2>
+              <p class="muted">${isLoggedIn() ? "Mode local activé : les données sont stockées dans ce navigateur avec localStorage. Utilisez Exporter ZIP ou Exporter pour faire une copie de sauvegarde." : "Mode consultation uniquement."}</p>
               ${isLoggedIn() ? `<div class="row wrap" style="margin-top:12px">
                 <button class="btn" onclick="exportData()">Exporter</button>
                 <button class="btn primary" onclick="exportZip()">Exporter ZIP</button>
                 <label class="btn">Importer <input type="file" accept="application/json" hidden onchange="importData(this.files[0])"></label>
-                <button class="btn danger" onclick="resetData()">Reinitialiser</button>
+                <button class="btn danger" onclick="resetData()">Réinitialiser</button>
               </div>
-              <p class="small muted">Le ZIP contient toutes les classes, sequences, seances, presentations et donnees completes.</p>` : `<button class="btn primary" onclick="showLogin()">Se connecter</button>`}
+              <p class="small muted">Le ZIP contient toutes les classes, séquences, séances, présentations et données complètes.</p>` : `<button class="btn primary" onclick="showLogin()">Se connecter</button>`}
             </section>
           </div>
         `;
@@ -2331,7 +2430,7 @@
         modal.innerHTML = `
           <div class="drawer">
             <div class="drawer-head">
-              <div><p class="small" style="font-weight:850;color:var(--wine-700)">${id ? "Modification" : "Creation"}</p><h2 style="margin:0;color:var(--wine-900)">${labelType(type)}</h2></div>
+              <div><p class="small" style="font-weight:850;color:var(--wine-700)">${id ? "Modification" : "Création"}</p><h2 style="margin:0;color:var(--wine-900)">${labelType(type)}</h2></div>
               <button class="btn icon" onclick="closeEditor()">X</button>
             </div>
             <form class="drawer-body" id="editForm">
@@ -2352,7 +2451,7 @@
 
       function createBlank(type, defaults) {
         const base = { id: "", title: "", slug: "", description: "", order: 0, isVisible: true, updatedAt: new Date().toISOString(), ...defaults };
-        if (type === "activity") return { ...base, objective: "", instruction: "", estimatedDuration: "20 min", modality: "classe entiere", level: "", privateNotes: "", resources: [], slides: [{ id: uid("slide"), elements: [] }] };
+        if (type === "activity") return { ...base, objective: "", instruction: "", estimatedDuration: "20 min", modality: "classe entière", level: "", privateNotes: "", resources: [], slides: [{ id: uid("slide"), elements: [] }] };
         if (type === "resource") return { ...base, type: "DOCUMENT", category: "Documents", url: "", activityId: defaults.activityId || "" };
         if (type === "studentClass") return { ...base, students: [] };
         return base;
@@ -2363,33 +2462,32 @@
         const base = `
           <div class="form-grid">
             ${field("title", "Titre", item.title, true)}
-            ${field("slug", "Slug", item.slug)}
             ${textarea("description", "Description", item.description, "wide")}
             ${field("order", "Ordre", item.order, false, "number")}
             <label class="label">Visible <select name="isVisible"><option value="true" ${item.isVisible !== false ? "selected" : ""}>Oui</option><option value="false" ${item.isVisible === false ? "selected" : ""}>Non</option></select></label>
           </div>`;
         if (type === "sequence") return base + selectField("classId", "Classe", item.classId || "", flat.classes);
-        if (type === "lesson") return base + selectField("sequenceId", "Sequence", item.sequenceId || "", flat.sequences);
-        if (type === "studentClass") return base + textarea("students", "Eleves (un nom par ligne)", Array.isArray(item.students) ? item.students.join("\n") : "", "wide");
+        if (type === "lesson") return base + selectField("sequenceId", "Séquence", item.sequenceId || "", flat.sequences);
+        if (type === "studentClass") return base + textarea("students", "Élèves (un nom par ligne)", Array.isArray(item.students) ? item.students.join("\n") : "", "wide");
         if (type === "activity") return base + `
-          ${selectField("lessonId", "Seance", item.lessonId || "", flat.lessons)}
+          ${selectField("lessonId", "Séance", item.lessonId || "", flat.lessons)}
           <div class="form-grid">
             ${field("objective", "Objectif", item.objective, false, "text", "wide")}
             ${textarea("instruction", "Consigne", item.instruction, "wide")}
-            ${field("estimatedDuration", "Duree estimee", item.estimatedDuration)}
-            <label class="label">Modalite <select name="modality">${modalities.map((m) => `<option ${item.modality === m ? "selected" : ""}>${m}</option>`).join("")}</select></label>
+            ${field("estimatedDuration", "Durée estimée", item.estimatedDuration)}
+            <label class="label">Modalité <select name="modality">${modalities.map((m) => `<option ${item.modality === m ? "selected" : ""}>${m}</option>`).join("")}</select></label>
             ${field("level", "Niveau", item.level)}
-            ${textarea("privateNotes", "Notes privees prof", item.privateNotes, "wide")}
+            ${textarea("privateNotes", "Notes privées prof", item.privateNotes, "wide")}
           </div>`;
         if (type === "resource") return base + `
           <div class="form-grid">
             <label class="label">Type <select name="type">${Object.entries(resourceTypes).map(([value, label]) => `<option value="${value}" ${item.type === value ? "selected" : ""}>${label}</option>`).join("")}</select></label>
-            <label class="label">Categorie <select name="category">${categories.map((cat) => `<option ${item.category === cat ? "selected" : ""}>${cat}</option>`).join("")}</select></label>
+            <label class="label">Catégorie <select name="category">${categories.map((cat) => `<option ${item.category === cat ? "selected" : ""}>${cat}</option>`).join("")}</select></label>
             ${field("url", "URL ou fichier", item.url, false, "text", "wide")}
-            ${selectField("activityId", "Lier a une activite", item.activityId || "", flat.activities, true)}
+            ${selectField("activityId", "Lier à une activité", item.activityId || "", flat.activities, true)}
             <label class="label wide">Ajouter un fichier local <input type="file" onchange="fileToDataUrl(this.files[0])"></label>
           </div>
-          <p class="small muted">Les fichiers ajoutes en HTML sont stockes dans le navigateur sous forme de donnees locales. Pour les gros fichiers, preferez une URL.</p>`;
+          <p class="small muted">Les fichiers ajoutés en HTML sont stockés dans le navigateur sous forme de données locales. Pour les gros fichiers, préférez une URL.</p>`;
         return base;
       }
 
@@ -2422,9 +2520,9 @@
         const activity = {
           ...createBlank("activity", { lessonId }),
           id: uid("act"),
-          title: "Nouvelle presentation",
+          title: "Nouvelle présentation",
           slug: slugify("nouvelle-presentation"),
-          description: "Presentation a projeter.",
+          description: "Présentation à projeter.",
           objective: "",
           instruction: "",
           level: "",
@@ -2521,7 +2619,7 @@
       }
 
       function addUrlElement(activityId) {
-        const url = prompt("Collez une URL a afficher");
+        const url = prompt("Collez une URL à afficher");
         if (!url) return;
         const kind = kindFromUrl(url);
         const slide = selectedSlide();
@@ -2548,7 +2646,7 @@
         activity.title = title.trim();
         activity.slug = slugify(activity.title);
         activity.updatedAt = new Date().toISOString();
-        saveData("Titre mis a jour.");
+        saveData("Titre mis à jour.");
         openActivityStudio(activityId);
       }
 
@@ -2627,7 +2725,7 @@
         form.forEach((value, key) => item[key] = String(value));
         item.isVisible = item.isVisible === "true";
         item.title = item.title.trim() || "Sans titre";
-        item.slug = item.slug.trim() || slugify(item.title);
+        item.slug = String(item.slug || "").trim() || slugify(item.title);
         item.order = Number(item.order || 0);
         item.updatedAt = new Date().toISOString();
         if (type === "studentClass") {
@@ -2749,7 +2847,7 @@
         if (target < 0 || target >= list.length) return;
         [list[index], list[target]] = [list[target], list[index]];
         list.forEach((item, order) => item.order = order + 1);
-        saveData("Ordre mis a jour.");
+        saveData("Ordre mis à jour.");
       }
 
       function findList(type, id) {
@@ -2767,7 +2865,7 @@
       }
 
       function labelType(type) {
-        return { class: "Classe", studentClass: "Mes Classes", sequence: "Sequence", lesson: "Seance", activity: "Activite", resource: "Ressource" }[type] || type;
+        return { class: "Classe", studentClass: "Groupes Classes", sequence: "Séquence", lesson: "Séance", activity: "Activité", resource: "Ressource" }[type] || type;
       }
 
       function showBoard(id, slideIndex = 0) {
@@ -2905,13 +3003,13 @@
       function presentationSummary(classe, sequence, lesson, activity) {
         return [
           `Classe: ${classe.title}`,
-          `Sequence: ${sequence.title}`,
-          `Seance: ${lesson.title}`,
+          `Séquence: ${sequence.title}`,
+          `Séance: ${lesson.title}`,
           `Presentation: ${activity.title}`,
           `Description: ${activity.description || ""}`,
           `Diapos: ${(activity.slides || []).length}`,
           "",
-          "Ce fichier est une copie lisible. La version complete est dans presentation.json et donnees-completes.json."
+          "Ce fichier est une copie lisible. La version complète est dans presentation.json et donnees-completes.json."
         ].join("\n");
       }
 
@@ -3055,7 +3153,7 @@
         const reader = new FileReader();
         reader.onload = () => {
           state = JSON.parse(reader.result);
-          saveData("Donnees importees.");
+          saveData("Données importées.");
         };
         reader.readAsText(file);
       }
@@ -3064,7 +3162,7 @@
         if (!requireLogin()) return;
         if (!confirm("Reinitialiser toutes les donnees locales ?")) return;
         state = seedData();
-        saveData("Donnees reinitialisees.");
+        saveData("Données réinitialisées.");
       }
 
       function empty(text) {
@@ -3081,10 +3179,11 @@
         }
       });
 
-      document.querySelectorAll(".nav-button[data-view]").forEach((button) => button.addEventListener("click", () => setView(button.dataset.view)));
+      document.querySelectorAll(".nav-button[data-view]").forEach((button) => button.addEventListener("click", () => openViewInNewTab(button.dataset.view)));
       document.querySelector("#loginNavBtn").addEventListener("click", showLogin);
       document.querySelector("#logoutBtn").addEventListener("click", () => {
         sessionStorage.removeItem(userKey);
+        localStorage.removeItem(userKey);
         state = ensureDemoData(loadData());
         currentView = "dashboard";
         currentPage = { type: "classes" };
@@ -3093,14 +3192,19 @@
       });
       document.querySelector("#openBoardBtn").addEventListener("click", () => {
         const first = flatten().activities[0];
-        if (first) showBoard(first.id);
+        if (first) openBoardInNewTab(first.id);
       });
       window.addEventListener("resize", () => {
         fitBoardSlide();
         if (tourRunning) renderTutorialOverlay(tutorialSteps[tourIndex]);
       });
 
+      applyInitialRoute();
       render();
+      const initialParams = new URLSearchParams(window.location.search);
+      if (initialParams.get("board")) {
+        setTimeout(() => showBoard(initialParams.get("board"), Number(initialParams.get("slide") || 0)), 0);
+      }
     </script>
   </body>
 </html>
