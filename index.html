@@ -923,6 +923,23 @@
         background: rgba(255,255,255,.52);
       }
 
+      .category-group .page-grid {
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+        counter-reset: category-item;
+      }
+      .category-group .entity-card { counter-increment: category-item; }
+      .category-group .entity-card::before { content: counter(category-item) "."; font-weight: 850; color: var(--wine-700); margin-right: 10px; }
+      #categoryEditorList, #categoryItems { display: grid; gap: 10px; }
+      .category-editor-item { padding: 10px; border: 1px solid var(--line); border-radius: 12px; background: white; cursor: grab; }
+      .category-editor-item .input { flex: 1; min-width: 180px; }
+      #categoryItems .label { padding: 12px 14px; border: 1px solid var(--line); border-radius: 12px; background: white; }
+      #categoryItems select { margin-top: 6px; }
+      .category-items-group { display: grid; gap: 6px; padding: 12px; border: 1px solid var(--line); border-radius: 12px; background: rgba(255,255,255,.55); }
+      .category-items-group h3 { margin: 0 0 4px; font-size: 18px; color: var(--wine-700); }
+      .category-items-group .label { font-size: 14px; padding: 8px 10px; }
+
       .numbered-list {
         display: grid;
         gap: 12px;
@@ -1097,6 +1114,8 @@
       const slideSize = { width: 960, height: 540, gap: 36 };
       ensureDefaultAccount();
       let state = ensureDemoData(loadData());
+      state.categories = Array.isArray(state.categories) ? state.categories : ["Collège", "Lycée"];
+      state.categories = state.categories.filter((category) => !/séquence\(s\)|ModifierSupprimer|Analyser l'artiste/i.test(category));
       let currentView = "dashboard";
       let currentPage = { type: "classes" };
       let currentTableauPage = { type: "classes" };
@@ -1369,6 +1388,10 @@
           data = seedData();
         }
         data.demoVersion = 2;
+        const defaultClasses = seedData().classes || [];
+        defaultClasses.forEach((defaultClass) => {
+          if (!data.classes.some((classe) => classe.title === defaultClass.title)) data.classes.push({ ...defaultClass, category: /^(5eme|4eme|3eme)/i.test(defaultClass.title) ? "Collège" : "Lycée" });
+        });
         data.resources = Array.isArray(data.resources) ? data.resources : [];
         data.studentClasses = Array.isArray(data.studentClasses) ? data.studentClasses : [];
         const hasDefaultStudentClass = data.studentClasses.some((classe) => slugify(classe.title) === "5emea");
@@ -1594,6 +1617,11 @@
           tutorial: ["Tutoriel", "Visite guidée de toutes les parties du site."],
           settings: ["Réglages", "Configuration locale du site HTML."]
         };
+        const selectedNavButton = document.querySelector(`.nav-button[data-view="${currentView}"]`);
+        document.querySelectorAll(".nav-button[data-view]").forEach((button) => {
+          button.classList.toggle("active", button.dataset.view === currentView);
+        });
+        document.title = selectedNavButton?.textContent.trim() || titles[currentView][0];
         document.querySelector("#pageTitle").textContent = titles[currentView][0];
         document.querySelector("#pageSubtitle").textContent = titles[currentView][1];
         document.querySelector("#openBoardBtn").hidden = currentView === "dashboard";
@@ -1628,14 +1656,15 @@
         return `<div class="card"><p class="muted">${label}</p><h2 style="font-size:42px">${value}</h2></div>`;
       }
 
-      function classCard(classe) {
+      function classCard(classe, number) {
         return `<article class="card entity-card">
           <div class="row">
-            <div><h3 style="font-size:28px">${escapeHtml(classe.title)}</h3><p class="muted small">${escapeHtml(classe.description)}</p></div>
+            <div><p class="small" style="font-weight:850;color:var(--wine-700)">N° ${number || classe.order || ""}</p><h3 style="font-size:28px">${escapeHtml(classe.title)}</h3><p class="muted small">${escapeHtml(classe.description)}</p></div>
             ${classe.isVisible ? "" : "<span class='pill'>Masque</span>"}
           </div>
           <div class="row wrap">
             <p class="pill">${classe.sequences.length} séquence(s)</p>
+            ${editOnly(moveButtons("class", classe.id))}
             <button class="btn primary" onclick="openClassPage('${classe.id}')">${isLoggedIn() ? "Modifier" : "Voir"}</button>
             ${editOnly(`<button class="btn danger" onclick="removeItem('class','${classe.id}')">Supprimer</button>`)}
           </div>
@@ -1777,11 +1806,49 @@
                 <h2 style="margin:0;color:var(--wine-900);font-size:34px">Toutes les classes</h2>
                 <p class="muted">Clique sur Modifier pour entrer dans une classe et gérer ses séquences sur une page dédiée.</p>
               </div>
-              ${editOnly(`<button class="btn primary" onclick="openEditor('class')">Ajouter une classe</button>`)}
+              ${editOnly(`<div class="row wrap"><button class="btn" onclick="manageCategories()">Catégorie</button><button class="btn primary" onclick="openEditor('class')">Ajouter une classe</button></div>`)}
             </div>
           </section>
-          <section class="page-grid">${state.classes.map(classCard).join("")}</section>
+          <section>${state.categories.map((category) => `<div class="category-group"><h3 class="category-title" draggable="true" data-category="${escapeAttr(category)}">— ${escapeHtml(category)} —</h3><div class="page-grid">${state.classes.filter((classe) => classe.category === category).map(classCard).join("") || empty("Aucune classe dans cette catégorie.")}</div></div>`).join("")}${state.classes.some((classe) => !classe.category || !state.categories.includes(classe.category)) ? `<div class="category-group"><h3 class="category-title">— Sans catégorie —</h3><div class="page-grid">${state.classes.filter((classe) => !classe.category || !state.categories.includes(classe.category)).map(classCard).join("")}</div></div>` : ""}</section>
         `;
+        document.querySelectorAll(".category-title").forEach((heading) => heading.addEventListener("dragstart", (event) => event.dataTransfer.setData("text/plain", heading.dataset.category)));
+        document.querySelectorAll(".category-title").forEach((heading) => heading.addEventListener("dragover", (event) => event.preventDefault()));
+        document.querySelectorAll(".category-title").forEach((heading) => heading.addEventListener("drop", (event) => reorderCategory(event, heading.dataset.category)));
+      }
+
+      function manageCategories() {
+        const modal = document.querySelector("#editorModal");
+        modal.hidden = false;
+        modal.innerHTML = `<div class="drawer"><div class="drawer-head"><strong>Catégories</strong><button class="btn" type="button" onclick="closeEditor()">Fermer</button></div><div class="drawer-body"><p class="muted small">Glissez une catégorie pour changer son ordre.</p><div id="categoryEditorList">${state.categories.map((category) => `<div class="row wrap category-editor-item" draggable="true" data-category="${escapeAttr(category)}"><input class="input" value="${escapeAttr(category)}"><button class="btn danger" type="button" onclick="removeCategory('${escapeAttr(category)}')">Supprimer</button></div>`).join("")}</div><button class="btn" type="button" onclick="addCategoryEditorRow()">Ajouter une catégorie</button><hr><p class="muted small">Items</p><div id="categoryItems">${state.classes.map((classe) => `<label class="label">${escapeHtml(classe.title)}<select data-class-category="${escapeAttr(classe.id)}"><option value="">Sans catégorie</option>${state.categories.map((category) => `<option value="${escapeAttr(category)}" ${classe.category === category ? "selected" : ""}>${escapeHtml(category)}</option>`).join("")}</select></label>`).join("")}</div><button class="btn primary" type="button" onclick="saveCategoriesFromDrawer()">Enregistrer</button></div></div>`;
+        document.querySelectorAll(".category-editor-item").forEach((item) => item.addEventListener("dragstart", (event) => event.dataTransfer.setData("text/plain", item.dataset.category)));
+        document.querySelectorAll(".category-editor-item").forEach((item) => item.addEventListener("dragover", (event) => event.preventDefault()));
+        document.querySelectorAll(".category-editor-item").forEach((item) => item.addEventListener("drop", (event) => { event.preventDefault(); const source = event.dataTransfer.getData("text/plain"); const node = [...document.querySelectorAll(".category-editor-item")].find((entry) => entry.dataset.category === source); if (node && node !== item) item.parentNode.insertBefore(node, item); }));
+        document.querySelectorAll("[data-class-category]").forEach((select) => select.closest(".label").setAttribute("draggable", "true"));
+        organizeCategoryDrawerItems();
+      }
+
+      function organizeCategoryDrawerItems() {
+        const list = document.querySelector("#categoryItems");
+        if (!list) return;
+        const labels = [...list.querySelectorAll(".label")];
+        const groups = new Map();
+        state.categories.forEach((category) => { const group = document.createElement("div"); group.className = "category-items-group"; group.innerHTML = `<h3>${escapeHtml(category)}</h3>`; list.appendChild(group); groups.set(category, group); });
+        const uncategorized = document.createElement("div"); uncategorized.className = "category-items-group"; uncategorized.innerHTML = "<h3>Sans catégorie</h3>"; list.appendChild(uncategorized);
+        labels.forEach((label) => { const select = label.querySelector("select"); const group = groups.get(select.value) || uncategorized; group.appendChild(label); });
+      }
+
+      function addCategoryEditorRow() { const list = document.querySelector("#categoryEditorList"); list.insertAdjacentHTML("beforeend", `<div class="row wrap category-editor-item"><input class="input" placeholder="Nouvelle catégorie"><button class="btn danger" type="button" onclick="this.parentElement.remove()">Supprimer</button></div>`); }
+      function renderCategoryGroups() { return state.categories.map((category) => `<div class="category-preview"><h3>${escapeHtml(category)}</h3>${state.classes.filter((classe) => classe.category === category).map((classe) => `<div class="category-preview-item">${escapeHtml(classe.title)}</div>`).join("") || `<p class="muted small">Aucun item</p>`}</div>`).join("") + `<div class="category-preview"><h3>Sans catégorie</h3>${state.classes.filter((classe) => !classe.category || !state.categories.includes(classe.category)).map((classe) => `<div class="category-preview-item">${escapeHtml(classe.title)}</div>`).join("")}</div>`; }
+      function removeCategory(category) { const item = [...document.querySelectorAll(".category-editor-item")].find((entry) => entry.dataset.category === category); if (item) item.remove(); }
+      function saveCategoriesFromDrawer() { const next = [...document.querySelectorAll("#categoryEditorList input")].map((input) => input.value.trim()).filter(Boolean); state.categories = [...new Set(next)]; document.querySelectorAll("[data-class-category]").forEach((select) => { const classe = state.classes.find((item) => item.id === select.dataset.classCategory); if (classe) classe.category = select.value || ""; }); saveData("Catégories mises à jour."); }
+
+      function reorderCategory(event, target) {
+        const source = event.dataTransfer.getData("text/plain");
+        if (!source || source === target) return;
+        const next = state.categories.filter((item) => item !== source);
+        next.splice(next.indexOf(target), 0, source);
+        state.categories = next;
+        saveData("Ordre des catégories mis à jour.");
       }
 
       function renderStudentClasses() {
@@ -2049,15 +2116,16 @@
         }
         document.querySelector("#content").innerHTML = `
           <section class="page-head">
-            <div class="breadcrumb"><button onclick="currentPage={type:'classes'};render()">Cours modifiables</button> / ${escapeHtml(classe.title)}</div>
+            <div class="breadcrumb"><button onclick="currentPage={type:'classes'};render()">Cours modifiables</button> / Classe</div>
             <div class="row wrap">
               <div>
                 <h2 style="margin:0;color:var(--wine-900);font-size:34px">${escapeHtml(classe.title)}</h2>
                 <p class="muted">${escapeHtml(classe.description)}</p>
               </div>
               ${editOnly(`<div class="row wrap">
-                ${moveButtons("class", classe.id)}
-                <button class="btn" onclick="openEditor('class','${classe.id}')">Paramètres classe</button>
+
+                <button class="btn" onclick="manageCategories()">Catégorie</button>
+                <button class="btn" onclick="openEditor('class','${classe.id}')">Modification</button>
                 <button class="btn primary" onclick="openEditor('sequence',null,{classId:'${classe.id}'})">Ajouter une séquence</button>
                 <button class="btn danger" onclick="removeItem('class','${classe.id}')">Supprimer la classe</button>
               </div>`)}
@@ -2077,7 +2145,9 @@
           </div>
           <div class="row wrap">
             <span class="pill">${sequence.lessons.length} séance(s)</span>
+            <span class="pill">Tâche finale${sequence.finalTask ? ` : ${escapeHtml(sequence.finalTask)}` : ""}</span>
             <span class="pill">${activityCount} activité(s)</span>
+            ${editOnly(moveButtons("sequence", sequence.id))}
             <button class="btn primary" onclick="openSequencePage('${classe.id}','${sequence.id}')">${isLoggedIn() ? "Modifier" : "Voir"}</button>
             ${editOnly(`<button class="btn danger" onclick="removeItem('sequence','${sequence.id}')">Supprimer</button>`)}
           </div>
@@ -2093,15 +2163,15 @@
         }
         document.querySelector("#content").innerHTML = `
           <section class="page-head">
-            <div class="breadcrumb"><button onclick="currentPage={type:'classes'};render()">Cours modifiables</button> / <button onclick="openClassPage('${classe.id}')">${escapeHtml(classe.title)}</button> / ${escapeHtml(sequence.title)}</div>
+            <div class="breadcrumb"><button onclick="currentPage={type:'classes'};render()">Cours modifiables</button> / Classe / Séquence</div>
             <div class="row wrap">
               <div>
                 <h2 style="margin:0;color:var(--wine-900);font-size:34px">${escapeHtml(sequence.title)}</h2>
                 <p class="muted">${escapeHtml(sequence.description)}</p>
               </div>
               ${editOnly(`<div class="row wrap">
-                ${moveButtons("sequence", sequence.id)}
-                <button class="btn" onclick="openEditor('sequence','${sequence.id}')">Paramètres séquence</button>
+                <button class="btn" onclick="manageCategories()">Catégorie</button>
+                <button class="btn" onclick="openEditor('sequence','${sequence.id}')">Modification</button>
                 <button class="btn primary" onclick="openEditor('lesson',null,{classId:'${classe.id}',sequenceId:'${sequence.id}'})">Ajouter une séance</button>
                 <button class="btn danger" onclick="removeItem('sequence','${sequence.id}')">Supprimer la séquence</button>
               </div>`)}
@@ -2120,6 +2190,7 @@
           </div>
           <div class="row wrap">
             <span class="pill">${lesson.activities.length} activité(s)</span>
+            ${editOnly(moveButtons("lesson", lesson.id))}
             <button class="btn primary" onclick="openLessonPage('${classe.id}','${sequence.id}','${lesson.id}')">${isLoggedIn() ? "Modifier" : "Voir"}</button>
             ${editOnly(`<button class="btn danger" onclick="removeItem('lesson','${lesson.id}')">Supprimer</button>`)}
           </div>
@@ -2136,15 +2207,16 @@
         }
         document.querySelector("#content").innerHTML = `
           <section class="page-head">
-            <div class="breadcrumb"><button onclick="currentPage={type:'classes'};render()">Cours modifiables</button> / <button onclick="openClassPage('${classe.id}')">${escapeHtml(classe.title)}</button> / <button onclick="openSequencePage('${classe.id}','${sequence.id}')">${escapeHtml(sequence.title)}</button> / ${escapeHtml(lesson.title)}</div>
+            <div class="breadcrumb"><button onclick="currentPage={type:'classes'};render()">Cours modifiables</button> / Classe / Séquence / Séance</div>
             <div class="row wrap">
               <div>
                 <h2 style="margin:0;color:var(--wine-900);font-size:34px">${escapeHtml(lesson.title)}</h2>
                 <p class="muted">${escapeHtml(lesson.description)}</p>
               </div>
               ${editOnly(`<div class="row wrap">
-                ${moveButtons("lesson", lesson.id)}
-                <button class="btn" onclick="openEditor('lesson','${lesson.id}')">Paramètres séance</button>
+
+                <button class="btn" onclick="manageCategories()">Catégorie</button>
+                <button class="btn" onclick="openEditor('lesson','${lesson.id}')">Modification</button>
                 <button class="btn primary" onclick="createActivityInLesson('${lesson.id}')">Ajouter une activité</button>
                 <button class="btn danger" onclick="removeItem('lesson','${lesson.id}')">Supprimer la séance</button>
               </div>`)}
@@ -2218,7 +2290,7 @@
       }
 
       function moveButtons(type, id) {
-        return `<button class="btn icon" title="Monter" onclick="moveItem('${type}','${id}',-1)">Up</button><button class="btn icon" title="Descendre" onclick="moveItem('${type}','${id}',1)">Dn</button>`;
+        return "";
       }
 
       function resourceRow(resource) {
@@ -2452,6 +2524,7 @@
       function createBlank(type, defaults) {
         const base = { id: "", title: "", slug: "", description: "", order: 0, isVisible: true, updatedAt: new Date().toISOString(), ...defaults };
         if (type === "activity") return { ...base, objective: "", instruction: "", estimatedDuration: "20 min", modality: "classe entière", level: "", privateNotes: "", resources: [], slides: [{ id: uid("slide"), elements: [] }] };
+        if (type === "sequence") return { ...base, finalTask: "", lessons: [] };
         if (type === "resource") return { ...base, type: "DOCUMENT", category: "Documents", url: "", activityId: defaults.activityId || "" };
         if (type === "studentClass") return { ...base, students: [] };
         return base;
@@ -2466,7 +2539,8 @@
             ${field("order", "Ordre", item.order, false, "number")}
             <label class="label">Visible <select name="isVisible"><option value="true" ${item.isVisible !== false ? "selected" : ""}>Oui</option><option value="false" ${item.isVisible === false ? "selected" : ""}>Non</option></select></label>
           </div>`;
-        if (type === "sequence") return base + selectField("classId", "Classe", item.classId || "", flat.classes);
+        if (type === "class") return base + `<label class="label">Catégorie <select name="category">${state.categories.map((category) => `<option ${((item.category || "Collège") === category) ? "selected" : ""}>${escapeHtml(category)}</option>`).join("")}</select></label>`;
+        if (type === "sequence") return base + textarea("finalTask", "Tâche finale", item.finalTask || "", "wide") + selectField("classId", "Classe", item.classId || "", flat.classes);
         if (type === "lesson") return base + selectField("sequenceId", "Séquence", item.sequenceId || "", flat.sequences);
         if (type === "studentClass") return base + textarea("students", "Élèves (un nom par ligne)", Array.isArray(item.students) ? item.students.join("\n") : "", "wide");
         if (type === "activity") return base + `
