@@ -382,9 +382,13 @@
           .then(() => window.ServerAPI.saveWorkspace(snapshot, true));
         pendingWorkspaceSave = operation.then(() => true, () => false);
         try {
-          await operation;
-          markStateConfirmed(snapshot);
-          localStorage.setItem(currentCacheKey(), JSON.stringify({ ...snapshot, cachedAt: new Date().toISOString() }));
+          const savedWorkspace = await operation;
+          const confirmedState = savedWorkspace?.content && typeof savedWorkspace.content === "object"
+            ? ensureDemoData(savedWorkspace.content)
+            : snapshot;
+          state = confirmedState;
+          markStateConfirmed(confirmedState);
+          localStorage.setItem(currentCacheKey(), JSON.stringify({ ...confirmedState, cachedAt: new Date().toISOString() }));
           render();
           toast(message || "Enregistrement terminé.");
           return true;
@@ -1773,15 +1777,16 @@
               <div>
                 <strong>${escapeHtml(activity.title)}</strong>
                 <div class="studio-note">Diapos horizontales. Les cadres pointilles indiquent ce qui sera visible au tableau.</div>
+                <div class="studio-save-status" id="studioSaveStatus" role="status" hidden></div>
               </div>
               <div class="studio-actions">
                 <button class="btn" onclick="renameActivity('${activity.id}')">Titre</button>
                 <button class="btn" onclick="addSlide('${activity.id}')">+ Diapo</button>
                 <button class="btn" onclick="addTextElement('${activity.id}')">+ Texte</button>
                 <button class="btn" onclick="addUrlElement('${activity.id}')">+ URL</button>
-                <label class="btn">+ Fichier <input type="file" hidden onchange="addFileElement('${activity.id}', this.files[0])"></label>
+                <label class="btn">+ Fichier <input type="file" hidden onchange="addFileElement('${activity.id}',this.files[0],this);this.value=''"></label>
                 <button class="btn danger" onclick="deleteSelectedElement()">Suppr. objet</button>
-                <button class="btn primary" onclick="saveStudio('${activity.id}')">Enregistrer</button>
+                <button class="btn primary" onclick="saveStudio('${activity.id}',false,this)">Enregistrer</button>
                 <button class="btn" onclick="showBoard('${activity.id}',0)">Presenter</button>
                 <button class="btn" onclick="closeEditor()">Fermer</button>
               </div>
@@ -1813,9 +1818,20 @@
         if (element.kind === "text") return `<div class="slide-text" contenteditable="${editable ? "true" : "false"}" style="font-size:${Number(element.fontSize || 34)}px">${escapeHtml(element.value || "Texte")}</div>`;
         if (element.kind === "youtube" || youtubeId(element.value)) return youtubeCard(element.value);
         if (element.kind === "image") return `<img src="${escapeAttr(element.value)}" alt="">`;
-        if (element.kind === "audio") return `<audio controls src="${escapeAttr(element.value)}"></audio>`;
-        if (element.kind === "video") return `<video controls src="${escapeAttr(element.value)}"></video>`;
+        if (element.kind === "audio") return `<audio controls preload="metadata" src="${escapeAttr(element.value)}" onerror="reportMediaError(this)"></audio>`;
+        if (element.kind === "video") return `<video controls preload="metadata" src="${escapeAttr(element.value)}" onerror="reportMediaError(this)"></video>`;
         return `<iframe src="${toEmbedUrl(element.value)}"></iframe>`;
+      }
+
+      function reportMediaError() {
+        const message = "Le navigateur ne peut pas lire ce format vidéo. Utilisez de préférence une vidéo MP4 encodée en H.264.";
+        const status = document.querySelector("#studioSaveStatus");
+        if (status) {
+          status.textContent = message;
+          status.className = "studio-save-status error";
+          status.hidden = false;
+        }
+        toast(message);
       }
 
       function selectedSlide() {
@@ -1828,7 +1844,7 @@
       }
 
       async function addSlide(activityId) {
-        if (!await saveStudio(activityId, false)) return;
+        if (!await saveStudio(activityId, false, null, false)) return;
         const activity = findItem("activity", activityId);
         activity.slides.push({ id: uid("slide"), elements: [] });
         openActivityStudio(activityId);
@@ -1852,16 +1868,28 @@
         initStudioDrag();
       }
 
-      function addFileElement(activityId, file) {
+      async function addFileElement(activityId, file) {
         if (!file) return;
-        const reader = new FileReader();
-        reader.onload = () => {
-          const kind = file.type.startsWith("image/") ? "image" : file.type.startsWith("audio/") ? "audio" : file.type.startsWith("video/") ? "video" : "embed";
+        const finishUploadLock = beginSaveLock(null);
+        try {
+          const uploaded = await window.ServerAPI.upload(file);
+          const mimeType = uploaded.mime_type || file.type || "";
+          const kind = mimeType.startsWith("image/") ? "image" : mimeType.startsWith("audio/") ? "audio" : mimeType.startsWith("video/") ? "video" : "embed";
           const slide = selectedSlide();
-          document.querySelector("#slideStrip").insertAdjacentHTML("beforeend", renderStudioElement({ id: uid("el"), kind, x: 100, y: 90, w: 520, h: 300, value: reader.result }, Number(slide.dataset.slideIndex || 0)));
+          document.querySelector("#slideStrip").insertAdjacentHTML("beforeend", renderStudioElement({ id: uid("el"), kind, x: 100, y: 90, w: 520, h: 300, value: uploaded.content_url }, Number(slide.dataset.slideIndex || 0)));
           initStudioDrag();
-        };
-        reader.readAsDataURL(file);
+          const status = document.querySelector("#studioSaveStatus");
+          if (status) {
+            status.textContent = "Fichier envoyé au NAS. Cliquez sur Enregistrer pour valider la présentation.";
+            status.className = "studio-save-status pending";
+            status.hidden = false;
+          }
+          toast("Fichier envoyé. Enregistrez maintenant la présentation.");
+        } catch (error) {
+          toast(`Envoi du fichier impossible : ${error.message || "erreur serveur"}.`);
+        } finally {
+          finishUploadLock();
+        }
       }
 
       async function renameActivity(activityId) {
@@ -1874,7 +1902,8 @@
         if (await saveData("Titre enregistré sur le serveur.")) openActivityStudio(activityId);
       }
 
-      async function saveStudio(activityId, close = false) {
+      async function saveStudio(activityId, close = false, triggerButton = null, refreshStudio = true) {
+        const selectedIndex = currentStudioSlideIndex;
         const activity = findItem("activity", activityId);
         activity.slides = Array.from(document.querySelectorAll(".slide-frame")).map((slide) => ({
           id: slide.dataset.slideId || uid("slide"),
@@ -1886,10 +1915,30 @@
           delete element.slideIndex;
         });
         activity.updatedAt = new Date().toISOString();
-        const saved = await saveData("Présentation enregistrée sur le serveur.");
+        const saved = await saveData("Présentation enregistrée sur le serveur.", triggerButton);
         if (saved && close) {
           closeEditor();
           render();
+        }
+        if (saved && !close && refreshStudio) {
+          openActivityStudio(activityId);
+          const refreshedActivity = findItem("activity", activityId);
+          currentStudioSlideIndex = Math.min(selectedIndex, Math.max(0, (refreshedActivity?.slides?.length || 1) - 1));
+          selectStudioSlide(currentStudioSlideIndex);
+          const status = document.querySelector("#studioSaveStatus");
+          if (status) {
+            status.textContent = "Présentation enregistrée sur le serveur.";
+            status.className = "studio-save-status success";
+            status.hidden = false;
+          }
+        }
+        if (!saved) {
+          const status = document.querySelector("#studioSaveStatus");
+          if (status) {
+            status.textContent = "Échec de l'enregistrement. Les modifications n'ont pas été appliquées.";
+            status.className = "studio-save-status error";
+            status.hidden = false;
+          }
         }
         return saved;
       }

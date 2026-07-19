@@ -77,7 +77,7 @@ async def request_context(request: Request, call_next):
     response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
     response.headers["Permissions-Policy"] = "camera=(), microphone=(self), geolocation=()"
     response.headers["Content-Security-Policy"] = (
-        "default-src 'self'; img-src 'self' data: blob: https:; media-src 'self' blob: https:; "
+        "default-src 'self'; img-src 'self' data: blob: https:; media-src 'self' data: blob: https:; "
         "style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; "
         "frame-src 'self' https:; connect-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'self'"
     )

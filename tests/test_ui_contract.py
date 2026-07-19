@@ -174,3 +174,14 @@ def test_import_accepte_les_exports_zip_et_attend_le_serveur() -> None:
     assert 'extractZipEntry(await file.arrayBuffer(), "donnees-completes.json")' in APP_JS
     assert 'await saveData("Sauvegarde importée et enregistrée sur le serveur.", triggerButton)' in APP_JS
     assert "Elle remplacera les données actuelles de ce compte" in APP_JS
+
+
+def test_studio_confirme_visiblement_la_sauvegarde_et_recharge_les_medias() -> None:
+    assert "saveStudio('${activity.id}',false,this)" in APP_JS
+    assert 'id="studioSaveStatus" role="status"' in APP_JS
+    assert "Présentation enregistrée sur le serveur." in APP_JS
+    assert "const savedWorkspace = await operation;" in APP_JS
+    assert "state = confirmedState;" in APP_JS
+    assert "const uploaded = await window.ServerAPI.upload(file);" in APP_JS
+    assert "value: uploaded.content_url" in APP_JS
+    assert "reportMediaError(this)" in APP_JS

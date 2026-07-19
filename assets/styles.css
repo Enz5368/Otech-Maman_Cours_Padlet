@@ -848,6 +848,17 @@
         font-size: 13px;
         font-weight: 700;
       }
+      .studio-save-status {
+        width: fit-content;
+        margin-top: 7px;
+        border-radius: 999px;
+        padding: 5px 10px;
+        font-size: 12px;
+        font-weight: 850;
+      }
+      .studio-save-status.pending { background: #fff3cd; color: #765b00; }
+      .studio-save-status.success { background: #e2f4e6; color: #245c31; }
+      .studio-save-status.error { background: #f9dfe4; color: #8b142c; }
 
       .notice {
         position: fixed;
