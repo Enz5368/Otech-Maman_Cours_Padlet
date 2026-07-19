@@ -51,7 +51,7 @@ def test_new_automatic_account_requires_strong_server_password(client: TestClien
     assert response.status_code == 422
 
 
-def test_initial_password_must_be_changed_before_accessing_data(client: TestClient) -> None:
+def test_password_change_remains_optional_even_for_legacy_flag(client: TestClient) -> None:
     username = f"initial-{uuid.uuid4().hex[:8]}"
     with SessionLocal() as db:
         create_user(
@@ -67,7 +67,7 @@ def test_initial_password_must_be_changed_before_accessing_data(client: TestClie
         json={"username": username, "password": "mot-de-passe-initial", "auto_register": False},
     )
     assert login.status_code == 200
-    assert client.get("/api/v1/workspace").status_code == 428
+    assert client.get("/api/v1/workspace").status_code == 200
     changed = client.post(
         "/api/v1/auth/change-password",
         json={

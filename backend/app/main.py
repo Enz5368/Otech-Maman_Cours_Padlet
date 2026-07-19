@@ -39,7 +39,7 @@ async def lifespan(_: FastAPI):
                     settings,
                     username="rose",
                     password=settings.initial_rose_password,
-                    must_change_password=True,
+                    must_change_password=False,
                 )
                 db.commit()
                 logger.info(json.dumps({"event": "bootstrap.rose_created"}))

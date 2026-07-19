@@ -19,7 +19,7 @@ def main() -> None:
     with SessionLocal() as db:
         if db.scalar(select(User.id).where(User.username_normalized == normalize_username("rose"))):
             raise SystemExit("Le compte rose existe déjà")
-        create_user(db, settings, username="rose", password=password, must_change_password=True)
+        create_user(db, settings, username="rose", password=password, must_change_password=False)
         db.commit()
     print("Compte rose créé avec Argon2id ; changement obligatoire à la première connexion.")
 

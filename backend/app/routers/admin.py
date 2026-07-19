@@ -60,7 +60,7 @@ def force_password_reset(
     if not user:
         raise HTTPException(status_code=404, detail="Utilisateur introuvable")
     user.password_hash = hash_password(payload.temporary_password)
-    user.must_change_password = True
+    user.must_change_password = False
     db.execute(
         update(ServerSession)
         .where(ServerSession.user_id == user.id, ServerSession.revoked_at.is_(None))
@@ -68,7 +68,7 @@ def force_password_reset(
     )
     record_audit(db, "admin.password_reset_forced", user_id=admin.id, resource_id=str(user.id))
     db.commit()
-    return {"must_change_password": True}
+    return {"must_change_password": False}
 
 
 @router.patch("/users/{user_id}/quota")

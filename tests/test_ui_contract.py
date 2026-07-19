@@ -135,3 +135,21 @@ def test_reglages_permettent_de_changer_et_reinitialiser_un_mot_de_passe() -> No
     assert "function resetAccountPassword" in APP_JS
     assert 'request("/admin/users")' in api_client
     assert "force-password-reset" in api_client
+
+
+def test_changement_de_mot_de_passe_n_est_jamais_impose_a_la_connexion() -> None:
+    login_function = re.search(
+        r"async function loginAccount\(.*?\n      }\n\n      function currentUsername",
+        APP_JS,
+        re.DOTALL,
+    )
+    bootstrap_function = re.search(
+        r"async function bootstrapApplication\(\).*?\n      }\n\n      bootstrapApplication",
+        APP_JS,
+        re.DOTALL,
+    )
+    assert login_function
+    assert bootstrap_function
+    assert "offerPasswordChange" not in login_function.group(0)
+    assert "offerPasswordChange" not in bootstrap_function.group(0)
+    assert '<button class="btn icon" type="button" onclick="closeEditor()">X</button>' in APP_JS

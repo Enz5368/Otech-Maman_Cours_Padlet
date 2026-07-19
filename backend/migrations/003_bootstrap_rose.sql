@@ -24,7 +24,7 @@ BEGIN
             '$argon2id$v=19$m=65536,t=3,p=2$YCpoKj6IMHjlFqEJtUiw/A$VJ0zSiNjcYZOURUiKzcWrNV07arKqH3tcNHPwn0yd78',
             'teacher',
             'active',
-            true,
+            false,
             10737418240,
             0
         );
@@ -32,7 +32,7 @@ BEGIN
         UPDATE users
         SET password_hash = '$argon2id$v=19$m=65536,t=3,p=2$YCpoKj6IMHjlFqEJtUiw/A$VJ0zSiNjcYZOURUiKzcWrNV07arKqH3tcNHPwn0yd78',
             status = 'active',
-            must_change_password = true,
+            must_change_password = false,
             failed_login_count = 0,
             locked_until = NULL
         WHERE id = rose_user_id;

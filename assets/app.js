@@ -61,20 +61,15 @@
           console.warn("Connexion serveur refusée", error);
           return false;
         }
-        if (authenticatedUser.must_change_password) {
-          state = ensureDemoData(seedData());
-        } else {
-          const workspace = await window.ServerAPI.loadWorkspace();
-          const recoveredWorkspace = await window.ServerAPI.replayOfflineDraft(workspace).catch(() => null);
-          const effectiveWorkspace = recoveredWorkspace || workspace;
-          state = Object.keys(effectiveWorkspace.content || {}).length ? ensureDemoData(effectiveWorkspace.content) : ensureDemoData(seedData());
-          storageInfo = await window.ServerAPI.storage().catch(() => null);
-        }
+        const workspace = await window.ServerAPI.loadWorkspace();
+        const recoveredWorkspace = await window.ServerAPI.replayOfflineDraft(workspace).catch(() => null);
+        const effectiveWorkspace = recoveredWorkspace || workspace;
+        state = Object.keys(effectiveWorkspace.content || {}).length ? ensureDemoData(effectiveWorkspace.content) : ensureDemoData(seedData());
+        storageInfo = await window.ServerAPI.storage().catch(() => null);
         markStateConfirmed();
         currentView = "dashboard";
         currentPage = { type: "classes" };
         currentTableauPage = { type: "classes" };
-        if (authenticatedUser.must_change_password) setTimeout(() => offerPasswordChange(), 120);
         return true;
       }
 
@@ -406,17 +401,16 @@
       }
 
       function offerPasswordChange() {
-        const passwordChangeRequired = Boolean(authenticatedUser?.must_change_password);
         const modal = document.querySelector("#editorModal");
         modal.hidden = false;
         modal.innerHTML = `
           <div class="drawer">
             <div class="drawer-head">
               <div><p class="small" style="font-weight:850;color:var(--wine-700)">Sécurité</p><h2 style="margin:0;color:var(--wine-900)">Changer le mot de passe</h2></div>
-              ${passwordChangeRequired ? "" : '<button class="btn icon" type="button" onclick="closeEditor()">X</button>'}
+              <button class="btn icon" type="button" onclick="closeEditor()">X</button>
             </div>
             <form class="drawer-body" id="passwordChangeForm">
-              <p class="small muted">${passwordChangeRequired ? "Le mot de passe initial doit être remplacé avant de continuer." : "Saisissez votre mot de passe actuel, puis choisissez un nouveau mot de passe d'au moins 10 caractères."}</p>
+              <p class="small muted">Saisissez votre mot de passe actuel, puis choisissez un nouveau mot de passe d'au moins 10 caractères.</p>
               <label class="label">Mot de passe actuel <input name="currentPassword" type="password" required></label>
               <label class="label">Nouveau mot de passe <input name="newPassword" type="password" minlength="10" required></label>
               <label class="label">Confirmer le nouveau mot de passe <input name="newPasswordConfirmation" type="password" minlength="10" required></label>
@@ -435,12 +429,6 @@
           try {
             await window.ServerAPI.changePassword(String(form.get("currentPassword") || ""), newPassword);
             authenticatedUser.must_change_password = false;
-            if (passwordChangeRequired) {
-              const workspace = await window.ServerAPI.loadWorkspace();
-              state = Object.keys(workspace.content || {}).length ? ensureDemoData(workspace.content) : ensureDemoData(seedData());
-              markStateConfirmed();
-              storageInfo = await window.ServerAPI.storage().catch(() => null);
-            }
             closeEditor();
             render();
             toast("Mot de passe mis à jour.");
@@ -472,18 +460,18 @@
 
       async function resetAccountPassword(userId, triggerButton) {
         const username = adminUsers.find((user) => user.id === userId)?.username || "ce compte";
-        const temporaryPassword = prompt(`Nouveau mot de passe temporaire pour ${username} (10 caractères minimum) :`);
-        if (temporaryPassword === null) return;
-        if (temporaryPassword.length < 10) {
-          toast("Le mot de passe temporaire doit contenir au moins 10 caractères.");
+        const newPassword = prompt(`Nouveau mot de passe pour ${username} (10 caractères minimum) :`);
+        if (newPassword === null) return;
+        if (newPassword.length < 10) {
+          toast("Le nouveau mot de passe doit contenir au moins 10 caractères.");
           return;
         }
-        if (!confirm(`${username} devra remplacer ce mot de passe à sa prochaine connexion. Continuer ?`)) return;
+        if (!confirm(`Remplacer maintenant le mot de passe de ${username} ?`)) return;
         const finishSaveLock = beginSaveLock(triggerButton);
         try {
-          await window.ServerAPI.adminResetPassword(userId, temporaryPassword);
+          await window.ServerAPI.adminResetPassword(userId, newPassword);
           adminUsersLoaded = false;
-          toast(`Mot de passe temporaire défini pour ${username}.`);
+          toast(`Nouveau mot de passe défini pour ${username}.`);
           await loadAdminUsers();
         } catch (error) {
           toast(`Réinitialisation impossible : ${error.message || "erreur serveur"}.`);
@@ -1575,11 +1563,11 @@
             </section>
             ${isAdmin ? `<section class="card" style="grid-column:1/-1">
               <h2>Gestion des comptes</h2>
-              <p class="small muted">Les mots de passe sont protégés et ne peuvent pas être affichés. En tant qu'administrateur, vous pouvez définir un mot de passe temporaire connu ; l'utilisateur devra ensuite le remplacer.</p>
+              <p class="small muted">Les mots de passe sont protégés et ne peuvent pas être affichés. En tant qu'administrateur, vous pouvez remplacer le mot de passe d'un compte par un nouveau mot de passe que vous connaissez.</p>
               <div class="list-table" style="margin-top:12px">
                 ${adminUsersError ? `<p class="muted">Chargement impossible : ${escapeHtml(adminUsersError)}. <button class="btn" onclick="retryAdminUsers()">Réessayer</button></p>` : adminUsersLoaded ? adminUsers.map((user) => `<article class="list-row">
-                  <div><strong>${escapeHtml(user.username)}</strong><p class="small muted">${escapeHtml(user.role)} · ${escapeHtml(user.status)}${user.must_change_password ? " · changement de mot de passe requis" : ""}</p></div>
-                  ${user.id === authenticatedUser.id ? '<span class="pill">Votre compte</span>' : `<button class="btn" onclick="resetAccountPassword('${user.id}',this)">Définir un mot de passe temporaire</button>`}
+                  <div><strong>${escapeHtml(user.username)}</strong><p class="small muted">${escapeHtml(user.role)} · ${escapeHtml(user.status)}</p></div>
+                  ${user.id === authenticatedUser.id ? '<span class="pill">Votre compte</span>' : `<button class="btn" onclick="resetAccountPassword('${user.id}',this)">Remplacer le mot de passe</button>`}
                 </article>`).join("") || empty("Aucun compte.") : '<p class="muted">Chargement des comptes…</p>'}
               </div>
             </section>` : ""}
@@ -2390,23 +2378,16 @@
         applyInitialRoute();
         try {
           authenticatedUser = await window.ServerAPI.me();
-          if (authenticatedUser.must_change_password) {
-            state = ensureDemoData(seedData());
-          } else {
-            const workspace = await window.ServerAPI.loadWorkspace();
-            const recoveredWorkspace = await window.ServerAPI.replayOfflineDraft(workspace).catch(() => null);
-            const effectiveWorkspace = recoveredWorkspace || workspace;
-            state = Object.keys(effectiveWorkspace.content || {}).length ? ensureDemoData(effectiveWorkspace.content) : ensureDemoData(seedData());
-            storageInfo = await window.ServerAPI.storage().catch(() => null);
-          }
+          const workspace = await window.ServerAPI.loadWorkspace();
+          const recoveredWorkspace = await window.ServerAPI.replayOfflineDraft(workspace).catch(() => null);
+          const effectiveWorkspace = recoveredWorkspace || workspace;
+          state = Object.keys(effectiveWorkspace.content || {}).length ? ensureDemoData(effectiveWorkspace.content) : ensureDemoData(seedData());
+          storageInfo = await window.ServerAPI.storage().catch(() => null);
           markStateConfirmed();
         } catch {
           authenticatedUser = null;
         }
         render();
-        if (authenticatedUser?.must_change_password) {
-          setTimeout(() => offerPasswordChange(), 120);
-        }
         const initialParams = new URLSearchParams(window.location.search);
         if (initialParams.get("board") && isLoggedIn()) {
           setTimeout(() => showBoard(initialParams.get("board"), Number(initialParams.get("slide") || 0)), 0);

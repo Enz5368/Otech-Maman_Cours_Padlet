@@ -45,13 +45,6 @@ def get_current_user(
     user = db.get(User, session.user_id)
     if not user or user.status != "active":
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Compte indisponible")
-    allowed_during_password_change = {
-        "/api/v1/auth/me",
-        "/api/v1/auth/change-password",
-        "/api/v1/auth/logout",
-    }
-    if user.must_change_password and request.url.path not in allowed_during_password_change:
-        raise HTTPException(status_code=428, detail="Changement de mot de passe obligatoire")
     return user
 
 
