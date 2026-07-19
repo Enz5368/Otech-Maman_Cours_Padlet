@@ -93,6 +93,9 @@ jobs:
             test -f docker-compose.yml && PREVIOUS_COMPOSE=1
 
             rollback() {
+              FAILURE_CODE=$?
+              trap - ERR
+              set +e
               echo "Échec du déploiement, retour au code $PREVIOUS_COMMIT"
               if test -f docker-compose.yml; then
                 docker compose down || true
@@ -104,6 +107,7 @@ jobs:
               else
                 echo "Ancienne version statique conservée ; redémarrer son service Nginx si le basculement initial l'avait arrêté."
               fi
+              exit "$FAILURE_CODE"
             }
             trap rollback ERR
 

@@ -16,6 +16,7 @@ def test_deployment_no_longer_uses_destructive_rsync() -> None:
     assert "rsync --delete" not in workflow
     assert "scripts/backup.sh" in workflow
     assert "rollback" in workflow
+    assert 'exit "$FAILURE_CODE"' in workflow
     assert "docker compose up -d --remove-orphans --force-recreate" in workflow
 
 
