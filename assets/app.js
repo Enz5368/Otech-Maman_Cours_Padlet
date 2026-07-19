@@ -18,6 +18,10 @@
       const slideSize = { width: 960, height: 540, gap: 36 };
       let authenticatedUser = null;
       let storageInfo = null;
+      let adminUsers = [];
+      let adminUsersLoaded = false;
+      let adminUsersLoading = false;
+      let adminUsersError = "";
       let state = ensureDemoData(seedData());
       let lastConfirmedState = JSON.parse(JSON.stringify(state));
       let currentView = "dashboard";
@@ -50,6 +54,9 @@
         if (!cleanUsername || !password) return false;
         try {
           authenticatedUser = await window.ServerAPI.login(cleanUsername, password);
+          adminUsers = [];
+          adminUsersLoaded = false;
+          adminUsersError = "";
         } catch (error) {
           console.warn("Connexion serveur refusée", error);
           return false;
@@ -399,34 +406,96 @@
       }
 
       function offerPasswordChange() {
+        const passwordChangeRequired = Boolean(authenticatedUser?.must_change_password);
         const modal = document.querySelector("#editorModal");
         modal.hidden = false;
         modal.innerHTML = `
           <div class="drawer">
-            <div class="drawer-head"><div><p class="small" style="font-weight:850;color:var(--wine-700)">Sécurité</p><h2 style="margin:0;color:var(--wine-900)">Changer le mot de passe</h2></div></div>
+            <div class="drawer-head">
+              <div><p class="small" style="font-weight:850;color:var(--wine-700)">Sécurité</p><h2 style="margin:0;color:var(--wine-900)">Changer le mot de passe</h2></div>
+              ${passwordChangeRequired ? "" : '<button class="btn icon" type="button" onclick="closeEditor()">X</button>'}
+            </div>
             <form class="drawer-body" id="passwordChangeForm">
-              <p class="small muted">Le mot de passe initial doit être remplacé avant de continuer.</p>
+              <p class="small muted">${passwordChangeRequired ? "Le mot de passe initial doit être remplacé avant de continuer." : "Saisissez votre mot de passe actuel, puis choisissez un nouveau mot de passe d'au moins 10 caractères."}</p>
               <label class="label">Mot de passe actuel <input name="currentPassword" type="password" required></label>
               <label class="label">Nouveau mot de passe <input name="newPassword" type="password" minlength="10" required></label>
+              <label class="label">Confirmer le nouveau mot de passe <input name="newPasswordConfirmation" type="password" minlength="10" required></label>
               <div class="row"><button class="btn primary" type="submit">Enregistrer</button></div>
             </form>
           </div>`;
         document.querySelector("#passwordChangeForm").addEventListener("submit", async (event) => {
           event.preventDefault();
           const form = new FormData(event.currentTarget);
+          const newPassword = String(form.get("newPassword") || "");
+          if (newPassword !== String(form.get("newPasswordConfirmation") || "")) {
+            toast("Les deux nouveaux mots de passe ne correspondent pas.");
+            return;
+          }
+          const finishSaveLock = beginSaveLock(event.submitter);
           try {
-            await window.ServerAPI.changePassword(String(form.get("currentPassword") || ""), String(form.get("newPassword") || ""));
+            await window.ServerAPI.changePassword(String(form.get("currentPassword") || ""), newPassword);
             authenticatedUser.must_change_password = false;
-            const workspace = await window.ServerAPI.loadWorkspace();
-            state = Object.keys(workspace.content || {}).length ? ensureDemoData(workspace.content) : ensureDemoData(seedData());
-            markStateConfirmed();
-            storageInfo = await window.ServerAPI.storage().catch(() => null);
+            if (passwordChangeRequired) {
+              const workspace = await window.ServerAPI.loadWorkspace();
+              state = Object.keys(workspace.content || {}).length ? ensureDemoData(workspace.content) : ensureDemoData(seedData());
+              markStateConfirmed();
+              storageInfo = await window.ServerAPI.storage().catch(() => null);
+            }
             closeEditor();
+            render();
             toast("Mot de passe mis à jour.");
           } catch (error) {
-            toast("Le mot de passe n'a pas pu être modifié.");
+            toast(`Le mot de passe n'a pas pu être modifié : ${error.message || "erreur serveur"}.`);
+          } finally {
+            finishSaveLock();
           }
         });
+      }
+
+      async function loadAdminUsers() {
+        if (authenticatedUser?.role !== "admin" || adminUsersLoading) return;
+        adminUsersLoading = true;
+        try {
+          adminUsers = await window.ServerAPI.adminUsers();
+          adminUsersLoaded = true;
+          adminUsersError = "";
+        } catch (error) {
+          console.error("Impossible de charger les comptes", error);
+          adminUsersLoaded = true;
+          adminUsersError = error.message || "erreur serveur";
+          toast("Impossible de charger la liste des comptes.");
+        } finally {
+          adminUsersLoading = false;
+          if (currentView === "settings") renderSettings();
+        }
+      }
+
+      async function resetAccountPassword(userId, triggerButton) {
+        const username = adminUsers.find((user) => user.id === userId)?.username || "ce compte";
+        const temporaryPassword = prompt(`Nouveau mot de passe temporaire pour ${username} (10 caractères minimum) :`);
+        if (temporaryPassword === null) return;
+        if (temporaryPassword.length < 10) {
+          toast("Le mot de passe temporaire doit contenir au moins 10 caractères.");
+          return;
+        }
+        if (!confirm(`${username} devra remplacer ce mot de passe à sa prochaine connexion. Continuer ?`)) return;
+        const finishSaveLock = beginSaveLock(triggerButton);
+        try {
+          await window.ServerAPI.adminResetPassword(userId, temporaryPassword);
+          adminUsersLoaded = false;
+          toast(`Mot de passe temporaire défini pour ${username}.`);
+          await loadAdminUsers();
+        } catch (error) {
+          toast(`Réinitialisation impossible : ${error.message || "erreur serveur"}.`);
+        } finally {
+          finishSaveLock();
+        }
+      }
+
+      function retryAdminUsers() {
+        adminUsersLoaded = false;
+        adminUsersError = "";
+        renderSettings();
       }
 
       function toast(message) {
@@ -1483,16 +1552,18 @@
 
       function renderSettings() {
         const formatBytes = (value) => `${(Number(value || 0) / (1024 * 1024)).toLocaleString("fr-FR", { maximumFractionDigits: 1 })} Mo`;
+        const isAdmin = authenticatedUser?.role === "admin";
         document.querySelector("#content").innerHTML = `
           <div class="grid two">
             <section class="card">
-              <h2>Connexion locale</h2>
+              <h2>Compte et sécurité</h2>
               <p class="muted">Compte connecté : <strong>${isLoggedIn() ? escapeHtml(currentUsername()) : "visiteur public"}</strong></p>
-              <p class="small muted">${isLoggedIn() ? "Chaque identifiant a ses propres données locales sur ce PC. En attendant le NAS, les comptes et les sauvegardes restent stockés dans ce navigateur." : "Vous pouvez consulter les exemples sans identifiant. Connectez-vous pour modifier, exporter ou importer des données."}</p>
+              <p class="small muted">${isLoggedIn() ? "Votre mot de passe protège vos cours et vos données enregistrées sur le serveur." : "Vous pouvez consulter les exemples sans identifiant. Connectez-vous pour modifier, exporter ou importer des données."}</p>
+              ${isLoggedIn() ? '<button class="btn primary" onclick="offerPasswordChange()">Changer mon mot de passe</button>' : ""}
             </section>
             <section class="card">
               <h2>Données</h2>
-              <p class="muted">${isLoggedIn() ? "Mode local activé : les données sont stockées dans ce navigateur avec localStorage. Utilisez Exporter ZIP ou Exporter pour faire une copie de sauvegarde." : "Mode consultation uniquement."}</p>
+              <p class="muted">${isLoggedIn() ? "Mode serveur activé : vos données sont enregistrées sur le NAS et disponibles depuis tous vos appareils. Utilisez Exporter ZIP ou Exporter pour conserver une copie supplémentaire." : "Mode consultation uniquement."}</p>
               ${isLoggedIn() && storageInfo ? `<p class="small muted">Espace serveur : ${formatBytes(storageInfo.used_bytes)} utilisés sur ${formatBytes(storageInfo.quota_bytes)}. Images : ${formatBytes(storageInfo.categories?.images)} · Vidéos : ${formatBytes(storageInfo.categories?.videos)} · Documents : ${formatBytes(storageInfo.categories?.documents)} · Sauvegardes : ${formatBytes(storageInfo.categories?.backups)}</p>` : ""}
               ${isLoggedIn() ? `<div class="row wrap" style="margin-top:12px">
                 <button class="btn" onclick="exportData()">Exporter</button>
@@ -1502,8 +1573,19 @@
               </div>
               <p class="small muted">Le ZIP contient toutes les classes, séquences, séances, présentations et données complètes.</p>` : `<button class="btn primary" onclick="showLogin()">Se connecter</button>`}
             </section>
+            ${isAdmin ? `<section class="card" style="grid-column:1/-1">
+              <h2>Gestion des comptes</h2>
+              <p class="small muted">Les mots de passe sont protégés et ne peuvent pas être affichés. En tant qu'administrateur, vous pouvez définir un mot de passe temporaire connu ; l'utilisateur devra ensuite le remplacer.</p>
+              <div class="list-table" style="margin-top:12px">
+                ${adminUsersError ? `<p class="muted">Chargement impossible : ${escapeHtml(adminUsersError)}. <button class="btn" onclick="retryAdminUsers()">Réessayer</button></p>` : adminUsersLoaded ? adminUsers.map((user) => `<article class="list-row">
+                  <div><strong>${escapeHtml(user.username)}</strong><p class="small muted">${escapeHtml(user.role)} · ${escapeHtml(user.status)}${user.must_change_password ? " · changement de mot de passe requis" : ""}</p></div>
+                  ${user.id === authenticatedUser.id ? '<span class="pill">Votre compte</span>' : `<button class="btn" onclick="resetAccountPassword('${user.id}',this)">Définir un mot de passe temporaire</button>`}
+                </article>`).join("") || empty("Aucun compte.") : '<p class="muted">Chargement des comptes…</p>'}
+              </div>
+            </section>` : ""}
           </div>
         `;
+        if (isAdmin && !adminUsersLoaded && !adminUsersLoading) setTimeout(loadAdminUsers, 0);
       }
 
       function openEditor(type, id, defaults = {}) {
@@ -2280,6 +2362,9 @@
         await window.ServerAPI.logout().catch(() => {});
         authenticatedUser = null;
         storageInfo = null;
+        adminUsers = [];
+        adminUsersLoaded = false;
+        adminUsersError = "";
         state = ensureDemoData(seedData());
         markStateConfirmed();
         currentView = "dashboard";

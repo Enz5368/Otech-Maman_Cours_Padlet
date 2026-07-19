@@ -63,6 +63,17 @@
       });
     },
 
+    adminUsers() {
+      return request("/admin/users");
+    },
+
+    adminResetPassword(userId, temporaryPassword) {
+      return request(`/admin/users/${encodeURIComponent(userId)}/force-password-reset`, {
+        method: "POST",
+        body: JSON.stringify({ temporary_password: temporaryPassword })
+      });
+    },
+
     async loadWorkspace() {
       const workspace = await request("/workspace");
       workspaceRevision = workspace.revision;

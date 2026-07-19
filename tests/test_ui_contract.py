@@ -127,3 +127,11 @@ def test_conflit_et_brouillon_local_sont_recuperes() -> None:
     assert 'const latest = await request("/workspace");' in api_client
     assert "async replayOfflineDraft(currentWorkspace)" in api_client
     assert "const recoveredWorkspace = await window.ServerAPI.replayOfflineDraft(workspace)" in APP_JS
+
+
+def test_reglages_permettent_de_changer_et_reinitialiser_un_mot_de_passe() -> None:
+    api_client = (ROOT / "assets" / "api-client.js").read_text(encoding="utf-8")
+    assert "Changer mon mot de passe" in APP_JS
+    assert "function resetAccountPassword" in APP_JS
+    assert 'request("/admin/users")' in api_client
+    assert "force-password-reset" in api_client
