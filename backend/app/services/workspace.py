@@ -298,7 +298,10 @@ def save_workspace(
     workspace.content = normalized_content
     workspace.schema_version = schema_version
     workspace.revision += 1
-    _replace_normalized_data(db, user.id, normalized_content)
+    # Le document JSON est la source de vérité utilisée par le frontend.
+    # La recopie complète dans les anciennes tables relationnelles rendait une
+    # sauvegarde atomique impossible : une contrainte PostgreSQL secondaire
+    # pouvait annuler l'enregistrement du document entier.
     db.flush()
     workspace.content.setdefault("serverMetadata", {})["migratedFiles"] = files_count
     return workspace

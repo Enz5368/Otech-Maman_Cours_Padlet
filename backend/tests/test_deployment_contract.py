@@ -43,3 +43,10 @@ def test_javascript_and_css_are_revalidated_after_deployment() -> None:
     nginx = (ROOT / "docker" / "frontend.nginx.conf").read_text(encoding="utf-8")
     assert "location ~* \\.(?:css|js)$" in nginx
     assert 'add_header Cache-Control "no-cache";' in nginx
+
+
+def test_workspace_json_is_the_only_critical_save_path() -> None:
+    service = (ROOT / "backend" / "app" / "services" / "workspace.py").read_text(encoding="utf-8")
+    save_function = service.split("def save_workspace(", 1)[1]
+    assert "workspace.content = normalized_content" in save_function
+    assert "_replace_normalized_data(" not in save_function
