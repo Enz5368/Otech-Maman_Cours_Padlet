@@ -627,7 +627,7 @@
       function applyInitialRoute() {
         const params = new URLSearchParams(window.location.search);
         const view = params.get("view");
-        if (view && ["dashboard", "classes", "studentClasses", "tools", "search", "tutorial", "settings"].includes(view)) {
+        if (view && ["dashboard", "classes", "tree", "studentClasses", "tools", "search", "tutorial", "settings"].includes(view)) {
           currentView = view;
         }
       }
@@ -679,6 +679,7 @@
         const titles = {
           dashboard: ["Cours par niveau à projeter", "Naviguer jusqu'à la présentation à afficher."],
           classes: ["Cours par niveau modifiable", "Classe > Séquence > Séance > Activité."],
+          tree: ["Arbre", "Vue complète des classes et de toutes leurs branches."],
           studentClasses: ["Groupes Classes", "Groupes réels et listes d'élèves."],
           tools: ["Roue de la fortune et chrono", "Tirages et minuteur de classe."],
           search: ["Recherche ressource ou activité", "Retrouver rapidement une activité ou une ressource."],
@@ -699,6 +700,7 @@
         document.querySelector(".sidebar-mail").hidden = freeExampleOpen && !isLoggedIn();
         if (currentView === "dashboard") renderDashboard();
         if (currentView === "classes") renderClasses();
+        if (currentView === "tree") renderTree();
         if (currentView === "studentClasses") renderStudentClasses();
         if (currentView === "tools") renderTools();
         if (currentView === "search") renderSearch();
@@ -882,6 +884,66 @@
         document.querySelectorAll(".category-title").forEach((heading) => heading.addEventListener("dragstart", (event) => event.dataTransfer.setData("text/plain", heading.dataset.category)));
         document.querySelectorAll(".category-title").forEach((heading) => heading.addEventListener("dragover", (event) => event.preventDefault()));
         document.querySelectorAll(".category-title").forEach((heading) => heading.addEventListener("drop", (event) => reorderCategory(event, heading.dataset.category)));
+      }
+
+      function renderTree() {
+        document.querySelector("#content").innerHTML = `
+          <section class="page-head">
+            <div class="breadcrumb">Arbre / Tous les cours</div>
+            <h2 style="margin:0;color:var(--wine-900);font-size:34px">Arbre des cours</h2>
+            <p class="muted">Classes → séquences → séances → activités → ressources. Cliquez sur un intitulé pour ouvrir l'élément.</p>
+          </section>
+          <section class="course-tree-scroll" aria-label="Arbre hiérarchique des cours">
+            ${state.classes.length ? `<div class="course-tree">
+              <div class="tree-node tree-heading"><span>Tout en haut</span><strong>Classes</strong></div>
+              <ul class="tree-level tree-classes">${state.classes.map(treeClassNode).join("")}</ul>
+            </div>` : empty("Aucune classe à afficher dans l'arbre.")}
+          </section>
+        `;
+      }
+
+      function treeClassNode(classe) {
+        return `<li>
+          <button class="tree-node tree-class" onclick="openClassPage('${classe.id}')">
+            <span>Classe</span><strong>${escapeHtml(classe.title)}</strong>${classe.isVisible === false ? "<em>Masquée</em>" : ""}
+          </button>
+          ${treeChildren((classe.sequences || []).map((sequence) => treeSequenceNode(classe, sequence)))}
+        </li>`;
+      }
+
+      function treeSequenceNode(classe, sequence) {
+        return `<li>
+          <button class="tree-node tree-sequence" onclick="openSequencePage('${classe.id}','${sequence.id}')">
+            <span>Séquence</span><strong>${escapeHtml(sequence.title)}</strong>${sequence.isVisible === false ? "<em>Masquée</em>" : ""}
+          </button>
+          ${treeChildren((sequence.lessons || []).map((lesson) => treeLessonNode(classe, sequence, lesson)))}
+        </li>`;
+      }
+
+      function treeLessonNode(classe, sequence, lesson) {
+        return `<li>
+          <button class="tree-node tree-lesson" onclick="openLessonPage('${classe.id}','${sequence.id}','${lesson.id}')">
+            <span>Séance</span><strong>${escapeHtml(lesson.title)}</strong>${lesson.isVisible === false ? "<em>Masquée</em>" : ""}
+          </button>
+          ${treeChildren((lesson.activities || []).map(treeActivityNode))}
+        </li>`;
+      }
+
+      function treeActivityNode(activity) {
+        return `<li>
+          <button class="tree-node tree-activity" onclick="openActivityStudio('${activity.id}')">
+            <span>Activité</span><strong>${escapeHtml(activity.title)}</strong>${activity.isVisible === false ? "<em>Masquée</em>" : ""}
+          </button>
+          ${treeChildren((activity.resources || []).map(treeResourceNode))}
+        </li>`;
+      }
+
+      function treeResourceNode(resource) {
+        return `<li><button class="tree-node tree-resource" onclick="openEditor('resource','${resource.id}')"><span>Ressource</span><strong>${escapeHtml(resource.title)}</strong></button></li>`;
+      }
+
+      function treeChildren(children) {
+        return children.length ? `<ul class="tree-level">${children.join("")}</ul>` : "";
       }
 
       function manageCategories() {

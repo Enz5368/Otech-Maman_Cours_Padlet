@@ -153,3 +153,16 @@ def test_changement_de_mot_de_passe_n_est_jamais_impose_a_la_connexion() -> None
     assert "offerPasswordChange" not in login_function.group(0)
     assert "offerPasswordChange" not in bootstrap_function.group(0)
     assert '<button class="btn icon" type="button" onclick="closeEditor()">X</button>' in APP_JS
+
+
+def test_vue_arbre_affiche_toute_la_hierarchie_des_cours() -> None:
+    styles = (ROOT / "assets" / "styles.css").read_text(encoding="utf-8")
+    assert 'data-view="tree"' in INDEX
+    assert 'tree: ["Arbre"' in APP_JS
+    assert 'if (currentView === "tree") renderTree();' in APP_JS
+    assert "state.classes.map(treeClassNode)" in APP_JS
+    assert "treeSequenceNode" in APP_JS
+    assert "treeLessonNode" in APP_JS
+    assert "treeActivityNode" in APP_JS
+    assert "treeResourceNode" in APP_JS
+    assert ".course-tree li::before" in styles
