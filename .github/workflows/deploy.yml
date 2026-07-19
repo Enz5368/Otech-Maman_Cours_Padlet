@@ -113,21 +113,26 @@ jobs:
             trap rollback ERR
 
             test -f .env
+            echo "[1/5] Sauvegarde de la base"
             if [ "$PREVIOUS_COMPOSE" -eq 1 ] && docker compose ps --status running --services | grep -q postgres; then
               sh scripts/backup.sh
             else
               echo "Premier déploiement : aucune base existante à sauvegarder."
             fi
 
-            git fetch origin main
-            git reset --hard origin/main
+            echo "[2/5] Récupération du commit $EXPECTED_COMMIT"
+            git fetch --no-tags origin "$EXPECTED_COMMIT"
+            git reset --hard "$EXPECTED_COMMIT"
             test "$(git rev-parse HEAD)" = "$EXPECTED_COMMIT"
             EXPECTED_INDEX_HASH="$(sha256sum index.html | awk '{print $1}')"
+            echo "[3/5] Construction des images"
             docker compose config --quiet
             docker compose build backend scheduler
             docker compose build --no-cache frontend
+            echo "[4/5] Redémarrage des services"
             docker compose up -d --remove-orphans --force-recreate
 
+            echo "[5/5] Vérification du site réellement servi"
             for attempt in $(seq 1 30); do
               if curl -fsS http://127.0.0.1:30080/health >/dev/null; then
                 DEPLOYED_INDEX_HASH="$(curl -fsS http://127.0.0.1:30080/ | sha256sum | awk '{print $1}')"

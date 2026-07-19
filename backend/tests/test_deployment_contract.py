@@ -20,6 +20,8 @@ def test_deployment_no_longer_uses_destructive_rsync() -> None:
     assert "docker compose up -d --remove-orphans --force-recreate" in workflow
     assert "docker compose build --no-cache frontend" in workflow
     assert 'test "$(git rev-parse HEAD)" = "$EXPECTED_COMMIT"' in workflow
+    assert 'git fetch --no-tags origin "$EXPECTED_COMMIT"' in workflow
+    assert 'git reset --hard "$EXPECTED_COMMIT"' in workflow
     assert 'DEPLOYED_INDEX_HASH="$(curl -fsS http://127.0.0.1:30080/' in workflow
     assert '"$DEPLOYED_INDEX_HASH" != "$EXPECTED_INDEX_HASH"' in workflow
 
