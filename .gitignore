@@ -1,3 +1,14 @@
 .DS_Store
 Thumbs.db
 *.log
+.env
+*.db
+*.egg-info/
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+htmlcov/
+.coverage
+var/
+tests/visual/current-*.png
+tests/visual/diff-*.png

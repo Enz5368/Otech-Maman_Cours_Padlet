@@ -1,0 +1,17 @@
+{
+  "root_ids": ["loginPage", "appPage", "boardPage", "content", "editorModal", "tourOverlay", "notice"],
+  "views": ["dashboard", "classes", "studentClasses", "tools", "search", "tutorial", "settings"],
+  "slide_size": {"width": 960, "height": 540, "gap": 36},
+  "required_texts": [
+    "Cours par niveau à projeter",
+    "Cours par niveau modifiable",
+    "Groupes Classes",
+    "Outils",
+    "Recherche ressource ou activité",
+    "Tutoriel",
+    "Réglages",
+    "Precedent",
+    "Suivant",
+    "Plein ecran"
+  ]
+}

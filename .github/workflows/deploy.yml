@@ -1,33 +1,62 @@
-name: Déployer sur TrueNAS
+name: Tester et déployer sur TrueNAS
 
 on:
   push:
-    branches:
-      - main
-
-  # Permet aussi de lancer le déploiement manuellement.
+    branches: [main, feature/server-multi-user]
+  pull_request:
+    branches: [main]
   workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: production-deploy
+  group: monespaceprof-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
+  tests:
+    name: Tests et validation
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: backend/pyproject.toml
+
+      - name: Installer les dépendances
+        run: python -m pip install -e "./backend[test]"
+
+      - name: Vérifier le backend et le contrat UI
+        run: |
+          ruff check backend/app backend/tests tests scripts
+          pytest backend/tests tests
+
+      - name: Valider la syntaxe YAML et Compose
+        run: |
+          ruby -e "require 'yaml'; YAML.load_file('.github/workflows/deploy.yml', aliases: true)"
+          POSTGRES_PASSWORD=ci-secret docker compose config --quiet
+
+      - name: Construire les images
+        env:
+          POSTGRES_PASSWORD: ci-secret
+        run: docker compose build frontend backend scheduler
+
   deploy:
     name: Mise à jour de monespaceprof.com
+    needs: tests
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
     runs-on: ubuntu-latest
-    timeout-minutes: 10
-
+    timeout-minutes: 30
+    environment: production
     steps:
       - name: Installer cloudflared
         run: |
-          curl -L \
-            --output cloudflared.deb \
-            https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb
-
+          curl -fsSL --output cloudflared.deb https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb
           sudo dpkg -i cloudflared.deb
           cloudflared --version
 
@@ -39,12 +68,9 @@ jobs:
           CF_ACCESS_CLIENT_ID: ${{ secrets.CF_ACCESS_CLIENT_ID }}
           CF_ACCESS_CLIENT_SECRET: ${{ secrets.CF_ACCESS_CLIENT_SECRET }}
         run: |
-          mkdir -p ~/.ssh
-          chmod 700 ~/.ssh
-
+          install -d -m 700 ~/.ssh
           printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
-
           cat > ~/.ssh/config <<EOF
           Host truenas-deploy
               HostName $SSH_HOST
@@ -54,30 +80,55 @@ jobs:
               StrictHostKeyChecking accept-new
               ProxyCommand cloudflared access ssh --hostname %h --service-token-id "$CF_ACCESS_CLIENT_ID" --service-token-secret "$CF_ACCESS_CLIENT_SECRET"
           EOF
-
           chmod 600 ~/.ssh/config
 
-      - name: Déployer le site
+      - name: Sauvegarder, déployer et vérifier
         run: |
           ssh truenas-deploy <<'REMOTE'
-            set -e
-
+            set -eu
             REPO="/mnt/DriveMaison/Database/deploy/apps/Otech-Maman_Cours_Padlet"
-            SITE="/mnt/DriveMaison/Sites/monespaceprof"
-
             cd "$REPO"
+            PREVIOUS_COMMIT="$(git rev-parse HEAD)"
+            PREVIOUS_COMPOSE=0
+            test -f docker-compose.yml && PREVIOUS_COMPOSE=1
+
+            rollback() {
+              echo "Échec du déploiement, retour au code $PREVIOUS_COMMIT"
+              if test -f docker-compose.yml; then
+                docker compose down || true
+              fi
+              git reset --hard "$PREVIOUS_COMMIT"
+              if [ "$PREVIOUS_COMPOSE" -eq 1 ]; then
+                docker compose build frontend backend scheduler
+                docker compose up -d
+              else
+                echo "Ancienne version statique conservée ; redémarrer son service Nginx si le basculement initial l'avait arrêté."
+              fi
+            }
+            trap rollback ERR
+
+            test -f .env
+            if [ "$PREVIOUS_COMPOSE" -eq 1 ] && docker compose ps --status running --services | grep -q postgres; then
+              sh scripts/backup.sh
+            else
+              echo "Premier déploiement : aucune base existante à sauvegarder."
+            fi
 
             git fetch origin main
             git reset --hard origin/main
+            docker compose config --quiet
+            docker compose build frontend backend scheduler
+            docker compose up -d --remove-orphans
 
-            mkdir -p "$SITE"
-
-            rsync -a --delete \
-              --exclude=".git/" \
-              --exclude=".github/" \
-              --exclude="README.md" \
-              --exclude="netlify.toml" \
-              "$REPO/" "$SITE/"
-
-            echo "Déploiement terminé : $(date)"
+            for attempt in $(seq 1 30); do
+              if curl -fsS http://127.0.0.1:30080/health >/dev/null; then
+                trap - ERR
+                docker image prune -f --filter "until=168h" >/dev/null
+                echo "Déploiement validé : $(date -u +%FT%TZ)"
+                exit 0
+              fi
+              sleep 5
+            done
+            echo "La vérification de santé a expiré" >&2
+            exit 1
           REMOTE

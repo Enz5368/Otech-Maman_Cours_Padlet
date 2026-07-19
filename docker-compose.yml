@@ -1,0 +1,147 @@
+name: monespaceprof
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-monespaceprof}
+      POSTGRES_USER: ${POSTGRES_USER:-monespaceprof}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD est obligatoire}
+    volumes:
+      - ${POSTGRES_DATA_PATH:-/mnt/DriveMaison/Database/postgres}:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks: [private]
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - ${REDIS_DATA_PATH:-/mnt/DriveMaison/Database/redis}:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks: [private]
+
+  backend:
+    build:
+      context: .
+      dockerfile: docker/backend.Dockerfile
+    restart: unless-stopped
+    environment:
+      MEP_ENVIRONMENT: production
+      MEP_DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-monespaceprof}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-monespaceprof}
+      MEP_USERS_ROOT: /data/users
+      MEP_BACKUPS_ROOT: /data/backups
+      MEP_LOGS_ROOT: /data/logs
+      MEP_COOKIE_SECURE: "true"
+      MEP_ALLOWED_ORIGINS: '["https://monespaceprof.com"]'
+      MEP_INITIAL_ROSE_PASSWORD: ${INITIAL_ROSE_PASSWORD:-}
+      MEP_DEFAULT_QUOTA_BYTES: ${DEFAULT_QUOTA_BYTES:-10737418240}
+      MEP_MAX_UPLOAD_BYTES: ${MAX_UPLOAD_BYTES:-536870912}
+      MEP_TRUSTED_PROXY_IPS: ${TRUSTED_PROXY_IPS:-*}
+      MEP_PUBLIC_BASE_URL: https://monespaceprof.com
+      MEP_SMTP_HOST: ${MEP_SMTP_HOST:-}
+      MEP_SMTP_PORT: ${MEP_SMTP_PORT:-587}
+      MEP_SMTP_USERNAME: ${MEP_SMTP_USERNAME:-}
+      MEP_SMTP_PASSWORD: ${MEP_SMTP_PASSWORD:-}
+      MEP_SMTP_FROM: ${MEP_SMTP_FROM:-}
+      MEP_SMTP_STARTTLS: ${MEP_SMTP_STARTTLS:-true}
+      REDIS_URL: redis://redis:6379/0
+    volumes:
+      - ${USERS_DATA_PATH:-/mnt/DriveMaison/Users}:/data/users
+      - ${BACKUPS_DATA_PATH:-/mnt/DriveMaison/Backups}:/data/backups
+      - ${LOGS_DATA_PATH:-/mnt/DriveMaison/Logs}:/data/logs
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/ready', timeout=5)"]
+      interval: 15s
+      timeout: 6s
+      retries: 10
+    networks: [private]
+
+  scheduler:
+    build:
+      context: .
+      dockerfile: docker/backend.Dockerfile
+    restart: unless-stopped
+    entrypoint: ["/bin/sh", "-c"]
+    command: ["while true; do python scripts/scheduled_backups.py; sleep 86400; done"]
+    environment:
+      MEP_ENVIRONMENT: production
+      MEP_DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-monespaceprof}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-monespaceprof}
+      MEP_USERS_ROOT: /data/users
+      MEP_BACKUPS_ROOT: /data/backups
+      MEP_LOGS_ROOT: /data/logs
+    volumes:
+      - ${USERS_DATA_PATH:-/mnt/DriveMaison/Users}:/data/users
+      - ${BACKUPS_DATA_PATH:-/mnt/DriveMaison/Backups}:/data/backups
+      - ${LOGS_DATA_PATH:-/mnt/DriveMaison/Logs}:/data/logs
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks: [private]
+
+  postgres-backup:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    entrypoint: ["/bin/sh", "/scripts/postgres_backup_loop.sh"]
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-monespaceprof}
+      POSTGRES_USER: ${POSTGRES_USER:-monespaceprof}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      BACKUPS_CONTAINER_PATH: /backups
+    volumes:
+      - ./scripts:/scripts:ro
+      - ${BACKUPS_DATA_PATH:-/mnt/DriveMaison/Backups}:/backups
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks: [private]
+
+  frontend:
+    build:
+      context: .
+      dockerfile: docker/frontend.Dockerfile
+    restart: unless-stopped
+    read_only: true
+    tmpfs:
+      - /var/cache/nginx
+      - /var/run
+    networks: [private]
+
+  nginx:
+    image: nginx:1.27-alpine
+    restart: unless-stopped
+    ports:
+      - "${LOCAL_HTTP_PORT:-30080}:8080"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ${LOGS_DATA_PATH:-/mnt/DriveMaison/Logs}/nginx:/var/log/nginx
+    depends_on:
+      backend:
+        condition: service_healthy
+      frontend:
+        condition: service_started
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /var/cache/nginx
+      - /var/run
+    networks:
+      - private
+
+networks:
+  private:
+    driver: bridge

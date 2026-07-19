@@ -1,66 +1,49 @@
-# In viaggio per l'Italia
+# MonEspaceProf
 
-Site HTML autonome pour une professeure d'italien.
+Portail pédagogique multi-utilisateur pour préparer, organiser et projeter des cours tout en conservant l'interface historique « In viaggio per l'Italia ».
 
-Il sert de portail prive local pour organiser les classes, sequences, seances, activites et ressources, puis afficher une activite en mode tableau.
+## Architecture
 
-## Ouvrir en local
+- Frontend HTML/CSS/JavaScript historique, rendu inchangé.
+- API FastAPI versionnée sous `/api/v1`.
+- PostgreSQL comme source principale.
+- Sessions serveur opaques, mots de passe Argon2id et cookies HTTP-only.
+- Fichiers privés sous `/mnt/DriveMaison/Users/<uuid>`.
+- Nginx local en HTTP sur le port `30080`.
+- HTTPS public exclusivement fourni par Cloudflare.
+- Sauvegardes utilisateur et PostgreSQL automatiques.
 
-Double-cliquer sur `index.html`, ou lancer depuis PowerShell :
+La documentation complète se trouve dans :
+
+- [audit initial](docs/AUDIT_INITIAL.md) ;
+- [architecture](docs/ARCHITECTURE.md) ;
+- [plan de migration](docs/PLAN_MIGRATION.md) ;
+- [API](docs/API.md) ;
+- [mise en production et restauration](docs/OPERATIONS.md) ;
+- [sécurité](docs/SECURITY.md).
+
+## Développement local
+
+Python 3.12 ou supérieur est requis.
 
 ```powershell
-start .\index.html
+python -m pip install -e ".\backend[test]"
+$env:MEP_ENVIRONMENT="development"
+$env:MEP_DATABASE_URL="sqlite:///./monespaceprof-dev.db"
+uvicorn app.main:app --app-dir backend --reload
 ```
 
-## Connexion
+Le frontend doit être servi par un serveur HTTP afin que `/api/v1` soit accessible. L'environnement Docker Compose reproduit le routage de production.
 
-- Identifiant : `rose`
-- Mot de passe : `it`
+## Tests
 
-Un nouvel identifiant peut aussi etre saisi : au premier login, son espace local est cree avec le mot de passe choisi. Ensuite, ce meme identifiant retrouvera uniquement ses propres donnees.
+```powershell
+ruff check backend\app backend\tests tests scripts
+pytest backend\tests tests
+```
 
-## Fonctionnement
+Les tests vérifient notamment l'isolation des professeurs, les fichiers privés, Argon2id, la migration idempotente et les invariants DOM. La capture de référence de la page de connexion se trouve dans `tests/visual/baseline-login.png`.
 
-- Tout est dans un seul fichier HTML.
-- Les donnees sont stockees par identifiant dans le navigateur avec `localStorage`.
-- La session locale utilise `sessionStorage`.
-- Il n'y a pas de mode eleve public.
-- Le mode tableau affiche uniquement les informations utiles en classe.
-- Les notes privees de la prof ne sont jamais affichees en mode tableau.
+## Production
 
-## Contenu inclus
-
-- Tableau de navigation pour retrouver et presenter une activite
-- Gestion des classes
-- Gestion de `Mes Classes` avec les noms des eleves
-- Outils de classe, dont une roue par classe avec historique des tirages
-- Gestion des sequences
-- Gestion des seances
-- Activites sous forme de presentations en diapos
-- Studio de creation avec une grande zone horizontale et des cadres pointilles
-- Ajout libre de texte, fichiers et URL dans les diapos
-- Ressources attachees aux activites
-- Depot de ressources general
-- Recherche globale
-- Reglages
-- Export/import JSON des donnees
-- Export ZIP local avec toutes les classes, sequences, seances et presentations, dont un fichier PPTX par activite
-
-## Donnees de demonstration
-
-Contenu cree au depart :
-
-- Classe exemple
-- Sequence exemple
-- Seance exemple
-- Presentation exemple
-
-## Note importante
-
-Comme c'est un site HTML autonome, il n'y a pas de vrai serveur. Les comptes separent les donnees dans ce navigateur, mais pour une securite serveur reelle il faudrait une application avec backend.
-
-## Activites
-
-La page `Tableau` sert a choisir une classe, une sequence, une seance puis une activite a presenter. Elle ne contient pas de boutons de modification.
-
-Une activite se modifie dans le studio de diapos : les cadres pointilles sont empiles verticalement et chaque cadre correspond a ce qui sera visible au tableau. Les elements peuvent etre deplaces et redimensionnes. Un element peut depasser d'une diapo vers la suivante, ce qui permet par exemple d'afficher une longue page web sur plusieurs diapos consecutives. Les fichiers sont ouverts directement dans la diapo quand le navigateur le permet. Les liens web et videos sont integres dans une zone d'affichage.
+Consulter [docs/OPERATIONS.md](docs/OPERATIONS.md). Ne jamais pointer Cloudflare vers `https://192.168.1.30:30080` : l'origine locale reste `http://192.168.1.30:30080`.
