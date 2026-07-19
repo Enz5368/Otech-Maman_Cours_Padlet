@@ -19,6 +19,7 @@
       let authenticatedUser = null;
       let storageInfo = null;
       let state = ensureDemoData(seedData());
+      let lastConfirmedState = JSON.parse(JSON.stringify(state));
       let currentView = "dashboard";
       let currentPage = { type: "classes" };
       let currentTableauPage = { type: "classes" };
@@ -30,6 +31,7 @@
       let activeTutorialSteps = null;
       let freeExampleOpen = false;
       let pendingWorkspaceSave = Promise.resolve(true);
+      let activeSaveLocks = 0;
 
       function uid(prefix) {
         return `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`;
@@ -37,6 +39,10 @@
 
       function slugify(text) {
         return String(text || "sans-titre").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 80);
+      }
+
+      function markStateConfirmed(value = state) {
+        lastConfirmedState = JSON.parse(JSON.stringify(value));
       }
 
       async function loginAccount(username, password) {
@@ -52,9 +58,12 @@
           state = ensureDemoData(seedData());
         } else {
           const workspace = await window.ServerAPI.loadWorkspace();
-          state = Object.keys(workspace.content || {}).length ? ensureDemoData(workspace.content) : ensureDemoData(seedData());
+          const recoveredWorkspace = await window.ServerAPI.replayOfflineDraft(workspace).catch(() => null);
+          const effectiveWorkspace = recoveredWorkspace || workspace;
+          state = Object.keys(effectiveWorkspace.content || {}).length ? ensureDemoData(effectiveWorkspace.content) : ensureDemoData(seedData());
           storageInfo = await window.ServerAPI.storage().catch(() => null);
         }
+        markStateConfirmed();
         currentView = "dashboard";
         currentPage = { type: "classes" };
         currentTableauPage = { type: "classes" };
@@ -95,6 +104,7 @@
         storageInfo = null;
         freeExampleOpen = true;
         state = ensureDemoData(seedData());
+        markStateConfirmed();
         currentView = "dashboard";
         currentPage = { type: "classes" };
         currentTableauPage = { type: "classes" };
@@ -314,21 +324,78 @@
         }
       }
 
-      function saveData(message) {
-        localStorage.setItem(currentCacheKey(), JSON.stringify({ ...state, cachedAt: new Date().toISOString() }));
-        if (isLoggedIn()) {
-          const snapshot = JSON.parse(JSON.stringify(state));
-          pendingWorkspaceSave = pendingWorkspaceSave
-            .then(() => window.ServerAPI.saveWorkspace(snapshot, true))
-            .then(() => true)
-            .catch((error) => {
-              console.warn("Sauvegarde serveur différée", error);
-              toast("Sauvegarde en attente de connexion.");
-              return false;
-            });
+      function beginSaveLock(triggerButton) {
+        const button = triggerButton instanceof HTMLElement
+          ? triggerButton.closest("button")
+          : document.activeElement?.closest?.("button");
+        if (button && !button.dataset.savingLabel) {
+          button.dataset.savingLabel = button.innerHTML;
+          button.innerHTML = `<span class="button-spinner" aria-hidden="true"></span> Enregistrement…`;
+          button.disabled = true;
+          button.setAttribute("aria-busy", "true");
         }
-        if (message) toast(message);
-        render();
+        let blocker = document.querySelector("#saveBlocker");
+        if (!blocker) {
+          blocker = document.createElement("div");
+          blocker.id = "saveBlocker";
+          blocker.className = "save-blocker";
+          blocker.innerHTML = `<div class="save-blocker-card"><span class="save-spinner" aria-hidden="true"></span><strong>Enregistrement sur le serveur…</strong><span>Veuillez patienter.</span></div>`;
+          document.body.appendChild(blocker);
+        }
+        activeSaveLocks += 1;
+        blocker.hidden = false;
+        document.body.classList.add("saving-workspace");
+        ["appPage", "editorModal", "boardPage"].forEach((id) => {
+          const element = document.getElementById(id);
+          if (element) element.inert = true;
+        });
+        return () => {
+          if (button?.dataset.savingLabel) {
+            button.innerHTML = button.dataset.savingLabel;
+            delete button.dataset.savingLabel;
+            button.disabled = false;
+            button.removeAttribute("aria-busy");
+          }
+          activeSaveLocks = Math.max(0, activeSaveLocks - 1);
+          if (activeSaveLocks > 0) return;
+          blocker.hidden = true;
+          document.body.classList.remove("saving-workspace");
+          ["appPage", "editorModal", "boardPage"].forEach((id) => {
+            const element = document.getElementById(id);
+            if (element) element.inert = false;
+          });
+        };
+      }
+
+      async function saveData(message, triggerButton) {
+        localStorage.setItem(currentCacheKey(), JSON.stringify({ ...state, cachedAt: new Date().toISOString() }));
+        if (!isLoggedIn()) {
+          if (message) toast(message);
+          render();
+          return true;
+        }
+        const finishSaveLock = beginSaveLock(triggerButton);
+        const snapshot = JSON.parse(JSON.stringify(state));
+        const operation = pendingWorkspaceSave
+          .then(() => window.ServerAPI.saveWorkspace(snapshot, true));
+        pendingWorkspaceSave = operation.then(() => true, () => false);
+        try {
+          await operation;
+          markStateConfirmed(snapshot);
+          localStorage.setItem(currentCacheKey(), JSON.stringify({ ...snapshot, cachedAt: new Date().toISOString() }));
+          render();
+          toast(message || "Enregistrement terminé.");
+          return true;
+        } catch (error) {
+          console.error("Échec de la sauvegarde serveur", error);
+          state = JSON.parse(JSON.stringify(lastConfirmedState));
+          localStorage.setItem(currentCacheKey(), JSON.stringify({ ...state, cachedAt: new Date().toISOString() }));
+          render();
+          toast(`Enregistrement impossible : ${error.message || "erreur serveur"}. La modification n'a pas été appliquée.`);
+          return false;
+        } finally {
+          finishSaveLock();
+        }
       }
 
       function offerPasswordChange() {
@@ -352,6 +419,7 @@
             authenticatedUser.must_change_password = false;
             const workspace = await window.ServerAPI.loadWorkspace();
             state = Object.keys(workspace.content || {}).length ? ensureDemoData(workspace.content) : ensureDemoData(seedData());
+            markStateConfirmed();
             storageInfo = await window.ServerAPI.storage().catch(() => null);
             closeEditor();
             toast("Mot de passe mis à jour.");
@@ -1538,7 +1606,7 @@
         }
       }
 
-      function createActivityInLesson(lessonId) {
+      async function createActivityInLesson(lessonId) {
         if (!requireLogin()) return;
         const lesson = findItem("lesson", lessonId);
         if (!lesson) return;
@@ -1555,8 +1623,7 @@
           slides: [{ id: uid("slide"), elements: [] }]
         };
         lesson.activities.push(activity);
-        saveData("Activite creee.");
-        openActivityStudio(activity.id);
+        if (await saveData("Activité créée sur le serveur.")) openActivityStudio(activity.id);
       }
 
       function openActivityStudio(id) {
@@ -1627,8 +1694,8 @@
         document.querySelectorAll(".slide-frame").forEach((frame) => frame.classList.toggle("current", Number(frame.dataset.slideIndex) === currentStudioSlideIndex));
       }
 
-      function addSlide(activityId) {
-        saveStudio(activityId, false);
+      async function addSlide(activityId) {
+        if (!await saveStudio(activityId, false)) return;
         const activity = findItem("activity", activityId);
         activity.slides.push({ id: uid("slide"), elements: [] });
         openActivityStudio(activityId);
@@ -1664,18 +1731,17 @@
         reader.readAsDataURL(file);
       }
 
-      function renameActivity(activityId) {
+      async function renameActivity(activityId) {
         const activity = findItem("activity", activityId);
         const title = prompt("Titre de l'activite", activity.title);
         if (!title) return;
         activity.title = title.trim();
         activity.slug = slugify(activity.title);
         activity.updatedAt = new Date().toISOString();
-        saveData("Titre mis à jour.");
-        openActivityStudio(activityId);
+        if (await saveData("Titre enregistré sur le serveur.")) openActivityStudio(activityId);
       }
 
-      function saveStudio(activityId, close = false) {
+      async function saveStudio(activityId, close = false) {
         const activity = findItem("activity", activityId);
         activity.slides = Array.from(document.querySelectorAll(".slide-frame")).map((slide) => ({
           id: slide.dataset.slideId || uid("slide"),
@@ -1687,12 +1753,12 @@
           delete element.slideIndex;
         });
         activity.updatedAt = new Date().toISOString();
-        saveData();
-        toast("Presentation enregistree.");
-        if (close) {
+        const saved = await saveData("Présentation enregistrée sur le serveur.");
+        if (saved && close) {
           closeEditor();
           render();
         }
+        return saved;
       }
 
       function readSlideElement(node) {
@@ -1743,7 +1809,7 @@
         if (selected) selected.remove();
       }
 
-      function saveEditor(event, type, id) {
+      async function saveEditor(event, type, id) {
         event.preventDefault();
         const form = new FormData(event.currentTarget);
         const item = {};
@@ -1757,8 +1823,11 @@
           item.students = String(item.students || "").split(/\r?\n/).map((name) => name.trim()).filter(Boolean);
         }
         upsertItem(type, id, item);
-        closeEditor();
-        saveData("Enregistre.");
+        const saved = await saveData("Enregistré sur le serveur.", event.submitter);
+        if (saved) {
+          closeEditor();
+          render();
+        }
       }
 
       function upsertItem(type, id, item) {
@@ -2212,6 +2281,7 @@
         authenticatedUser = null;
         storageInfo = null;
         state = ensureDemoData(seedData());
+        markStateConfirmed();
         currentView = "dashboard";
         currentPage = { type: "classes" };
         currentTableauPage = { type: "classes" };
@@ -2225,6 +2295,11 @@
         fitBoardSlide();
         if (tourRunning) renderTutorialOverlay(tutorialSteps[tourIndex]);
       });
+      window.addEventListener("beforeunload", (event) => {
+        if (activeSaveLocks === 0) return;
+        event.preventDefault();
+        event.returnValue = "";
+      });
 
       async function bootstrapApplication() {
         applyInitialRoute();
@@ -2234,10 +2309,12 @@
             state = ensureDemoData(seedData());
           } else {
             const workspace = await window.ServerAPI.loadWorkspace();
-            state = Object.keys(workspace.content || {}).length ? ensureDemoData(workspace.content) : ensureDemoData(seedData());
+            const recoveredWorkspace = await window.ServerAPI.replayOfflineDraft(workspace).catch(() => null);
+            const effectiveWorkspace = recoveredWorkspace || workspace;
+            state = Object.keys(effectiveWorkspace.content || {}).length ? ensureDemoData(effectiveWorkspace.content) : ensureDemoData(seedData());
             storageInfo = await window.ServerAPI.storage().catch(() => null);
-            window.ServerAPI.replayOfflineDraft().catch(() => {});
           }
+          markStateConfirmed();
         } catch {
           authenticatedUser = null;
         }

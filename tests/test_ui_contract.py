@@ -99,3 +99,31 @@ def test_un_nouvel_onglet_attend_la_sauvegarde_serveur() -> None:
     assert "window.ServerAPI.saveWorkspace(snapshot, true)" in APP_JS
     assert "function openUrlInNewTabAfterSave(url)" in APP_JS
     assert "Promise.resolve(pendingWorkspaceSave).then" in APP_JS
+
+
+def test_enregistrement_bloque_interface_jusqu_a_confirmation() -> None:
+    assert "async function saveData(message, triggerButton)" in APP_JS
+    assert "function beginSaveLock(triggerButton)" in APP_JS
+    assert "Enregistrement sur le serveur…" in APP_JS
+    assert 'button.setAttribute("aria-busy", "true")' in APP_JS
+    assert "if (activeSaveLocks === 0) return;" in APP_JS
+
+
+def test_editeur_ne_se_ferme_qu_apres_sauvegarde() -> None:
+    editor = re.search(
+        r"async function saveEditor\(event, type, id\).*?\n      }\n\n      function upsertItem",
+        APP_JS,
+        re.DOTALL,
+    )
+    assert editor
+    source = editor.group(0)
+    assert 'await saveData("Enregistré sur le serveur.", event.submitter)' in source
+    assert source.index("if (saved)") < source.index("closeEditor()")
+
+
+def test_conflit_et_brouillon_local_sont_recuperes() -> None:
+    api_client = (ROOT / "assets" / "api-client.js").read_text(encoding="utf-8")
+    assert "if (error.status !== 409) throw error;" in api_client
+    assert 'const latest = await request("/workspace");' in api_client
+    assert "async replayOfflineDraft(currentWorkspace)" in api_client
+    assert "const recoveredWorkspace = await window.ServerAPI.replayOfflineDraft(workspace)" in APP_JS

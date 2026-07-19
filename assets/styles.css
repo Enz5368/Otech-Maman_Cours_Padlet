@@ -533,6 +533,44 @@
 
       .btn.soft { background: var(--paper); }
       .btn.icon { width: 40px; height: 40px; padding: 0; }
+      .btn[aria-busy="true"] { cursor: wait; opacity: .88; }
+      .button-spinner,
+      .save-spinner {
+        display: inline-block;
+        width: 1em;
+        height: 1em;
+        border: 2px solid currentColor;
+        border-right-color: transparent;
+        border-radius: 50%;
+        animation: save-spin .7s linear infinite;
+        vertical-align: -.14em;
+      }
+      .save-blocker {
+        position: fixed;
+        inset: 0;
+        z-index: 10000;
+        display: grid;
+        place-items: center;
+        cursor: wait;
+        background: rgba(45, 10, 18, .34);
+        backdrop-filter: blur(2px);
+      }
+      .save-blocker[hidden] { display: none; }
+      .save-blocker-card {
+        display: grid;
+        justify-items: center;
+        gap: 10px;
+        min-width: min(340px, calc(100vw - 32px));
+        padding: 26px;
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        color: var(--wine-900);
+        background: var(--paper);
+        box-shadow: 0 24px 70px rgba(35, 4, 12, .28);
+      }
+      .save-blocker-card .save-spinner { width: 28px; height: 28px; border-width: 3px; }
+      .save-blocker-card span:last-child { color: var(--muted); font-size: 14px; }
+      @keyframes save-spin { to { transform: rotate(360deg); } }
       .activity-actions .btn.icon {
         width: 100%;
         height: auto;

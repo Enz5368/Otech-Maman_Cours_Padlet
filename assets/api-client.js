@@ -70,12 +70,21 @@
     },
 
     async saveWorkspace(content, immediate = false) {
+      const putWorkspace = () => request("/workspace", {
+        method: "PUT",
+        body: JSON.stringify({ schema_version: 2, expected_revision: workspaceRevision, content })
+      });
       const save = async () => {
         try {
-          const workspace = await request("/workspace", {
-            method: "PUT",
-            body: JSON.stringify({ schema_version: 2, expected_revision: workspaceRevision, content })
-          });
+          let workspace;
+          try {
+            workspace = await putWorkspace();
+          } catch (error) {
+            if (error.status !== 409) throw error;
+            const latest = await request("/workspace");
+            workspaceRevision = latest.revision;
+            workspace = await putWorkspace();
+          }
           workspaceRevision = workspace.revision;
           localStorage.removeItem(OFFLINE_QUEUE_KEY);
           return workspace;
@@ -101,11 +110,14 @@
       });
     },
 
-    async replayOfflineDraft() {
+    async replayOfflineDraft(currentWorkspace) {
       const draft = JSON.parse(localStorage.getItem(OFFLINE_QUEUE_KEY) || "null");
       if (!draft?.content) return null;
-      if (draft.baseRevision !== workspaceRevision) {
-        throw new Error("Le brouillon local est basé sur une ancienne version.");
+      const serverUpdatedAt = Date.parse(currentWorkspace?.updated_at || "");
+      const draftSavedAt = Date.parse(draft.savedAt || "");
+      if (Number.isFinite(serverUpdatedAt) && Number.isFinite(draftSavedAt) && draftSavedAt <= serverUpdatedAt) {
+        localStorage.removeItem(OFFLINE_QUEUE_KEY);
+        return null;
       }
       return this.saveWorkspace(draft.content, true);
     },
