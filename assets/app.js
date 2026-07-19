@@ -19,8 +19,6 @@
       let authenticatedUser = null;
       let storageInfo = null;
       let state = ensureDemoData(seedData());
-      state.categories = Array.isArray(state.categories) ? state.categories : ["Collège", "Lycée"];
-      state.categories = state.categories.filter((category) => !/séquence\(s\)|ModifierSupprimer|Analyser l'artiste/i.test(category));
       let currentView = "dashboard";
       let currentPage = { type: "classes" };
       let currentTableauPage = { type: "classes" };
@@ -283,6 +281,8 @@
           data = seedData();
         }
         data.demoVersion = 2;
+        data.categories = Array.isArray(data.categories) ? data.categories : ["Collège", "Lycée"];
+        data.categories = data.categories.filter((category) => !/séquence\(s\)|ModifierSupprimer|Analyser l'artiste/i.test(category));
         const defaultClasses = seedData().classes || [];
         defaultClasses.forEach((defaultClass) => {
           if (!data.classes.some((classe) => classe.title === defaultClass.title)) data.classes.push({ ...defaultClass, category: /^(5eme|4eme|3eme)/i.test(defaultClass.title) ? "Collège" : "Lycée" });

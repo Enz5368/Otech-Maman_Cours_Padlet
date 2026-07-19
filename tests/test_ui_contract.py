@@ -71,3 +71,10 @@ def test_assistant_de_migration_locale_est_absent() -> None:
         "mep-migration-complete",
     ):
         assert obsolete_symbol not in APP_JS + api_client
+
+
+def test_categories_sont_initialisees_apres_chargement_du_workspace() -> None:
+    assert (
+        'data.categories = Array.isArray(data.categories) ? data.categories : ["Collège", "Lycée"];'
+        in APP_JS
+    )
