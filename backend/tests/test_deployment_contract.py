@@ -45,6 +45,11 @@ def test_javascript_and_css_are_revalidated_after_deployment() -> None:
     assert 'add_header Cache-Control "no-cache";' in nginx
 
 
+def test_le_proxy_autorise_les_medias_locaux_et_serveur() -> None:
+    nginx = (ROOT / "nginx" / "nginx.conf").read_text(encoding="utf-8")
+    assert "media-src 'self' data: blob: https:" in nginx
+
+
 def test_workspace_json_is_the_only_critical_save_path() -> None:
     service = (ROOT / "backend" / "app" / "services" / "workspace.py").read_text(encoding="utf-8")
     save_function = service.split("def save_workspace(", 1)[1]
