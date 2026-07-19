@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import base64
 import uuid
 
 from fastapi.testclient import TestClient
@@ -173,3 +174,32 @@ def test_embedded_local_file_is_extracted_to_private_storage(client: TestClient)
     content_url = workspace["resources"][0]["url"]
     assert content_url.startswith("/api/v1/files/")
     assert client.get(content_url).content == b"bonjour"
+
+
+def test_embedded_docx_uses_safe_extension_on_minimal_linux_mime_registry(
+    client: TestClient, monkeypatch
+) -> None:
+    register(client, f"docx-{uuid.uuid4().hex[:8]}")
+    monkeypatch.setattr("app.services.storage.mimetypes.guess_extension", lambda _mime: ".bin")
+    document = b"PK\x03\x04document-word-de-test"
+    content = legacy_workspace()
+    content["resources"] = [
+        {
+            "id": "resource-docx",
+            "title": "Document Word local",
+            "type": "DOCUMENT",
+            "url": (
+                "data:application/vnd.openxmlformats-officedocument.wordprocessingml.document;base64,"
+                + base64.b64encode(document).decode("ascii")
+            ),
+        }
+    ]
+    initial = client.get("/api/v1/workspace").json()
+    response = client.put(
+        "/api/v1/workspace",
+        json={"schema_version": 2, "expected_revision": initial["revision"], "content": content},
+        headers=csrf_headers(client),
+    )
+    assert response.status_code == 200, response.text
+    content_url = response.json()["content"]["resources"][0]["url"]
+    assert client.get(content_url).content == document

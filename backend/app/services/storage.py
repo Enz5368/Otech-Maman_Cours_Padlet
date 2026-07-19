@@ -55,6 +55,11 @@ ALLOWED_EXTENSIONS = {
     ".csv",
     ".md",
 }
+MIME_EXTENSION_OVERRIDES = {
+    "application/vnd.openxmlformats-officedocument.presentationml.presentation": ".pptx",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document": ".docx",
+    "application/vnd.oasis.opendocument.text": ".odt",
+}
 DATA_URL_RE = re.compile(r"^data:([^;,]+)?(?:;[^,]*)?;base64,(.*)$", re.DOTALL)
 
 
@@ -253,7 +258,9 @@ def store_data_url(db: Session, settings: Settings, user: User, value: str) -> S
     if not match:
         return None
     mime_type = (match.group(1) or "application/octet-stream").lower()
-    extension = mimetypes.guess_extension(mime_type) or ".bin"
+    # Le registre MIME minimal des images Linux ne connaît pas toujours les
+    # formats Office et renvoie alors .bin, bien que leur type soit autorisé.
+    extension = MIME_EXTENSION_OVERRIDES.get(mime_type) or mimetypes.guess_extension(mime_type) or ".bin"
     if extension == ".jpe":
         extension = ".jpg"
     try:
