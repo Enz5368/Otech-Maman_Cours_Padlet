@@ -78,3 +78,24 @@ def test_categories_sont_initialisees_apres_chargement_du_workspace() -> None:
         'data.categories = Array.isArray(data.categories) ? data.categories : ["Collège", "Lycée"];'
         in APP_JS
     )
+
+
+def test_les_classes_utilisateur_ne_sont_pas_recreees_depuis_la_demo() -> None:
+    ensure_data = re.search(
+        r"function ensureDemoData\(data\).*?\n      }\n\n      function ensureActivitySlides",
+        APP_JS,
+        re.DOTALL,
+    )
+    assert ensure_data
+    source = ensure_data.group(0)
+    assert "data.classes.length === 0" not in source
+    assert "defaultClasses" not in source
+    assert "looksLikeOldDemo" not in source
+    assert "hasDefaultStudentClass" not in source
+
+
+def test_un_nouvel_onglet_attend_la_sauvegarde_serveur() -> None:
+    assert "let pendingWorkspaceSave = Promise.resolve(true);" in APP_JS
+    assert "window.ServerAPI.saveWorkspace(snapshot, true)" in APP_JS
+    assert "function openUrlInNewTabAfterSave(url)" in APP_JS
+    assert "Promise.resolve(pendingWorkspaceSave).then" in APP_JS

@@ -29,6 +29,7 @@
       let tourRunning = false;
       let activeTutorialSteps = null;
       let freeExampleOpen = false;
+      let pendingWorkspaceSave = Promise.resolve(true);
 
       function uid(prefix) {
         return `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`;
@@ -274,25 +275,15 @@
       }
 
       function ensureDemoData(data) {
-        const oldDemoTitles = ["5eme", "4eme", "3eme", "2nde", "1ere / Tle", "BTS MHR", "BTS Tourisme"];
-        const looksLikeOldDemo = Array.isArray(data.classes) && oldDemoTitles.every((title) => data.classes.some((classe) => classe.title === title));
-        const looksLikeOldPublicExample = !isLoggedIn() && Array.isArray(data.classes) && data.classes.length === 1 && data.classes[0]?.title === "Classe exemple";
-        if (!data || data.demoVersion !== 2 || !Array.isArray(data.classes) || data.classes.length === 0 || looksLikeOldDemo || looksLikeOldPublicExample) {
+        const looksLikeOldPublicExample = !isLoggedIn() && Array.isArray(data?.classes) && data.classes.length === 1 && data.classes[0]?.title === "Classe exemple";
+        if (!data || typeof data !== "object" || !Array.isArray(data.classes) || looksLikeOldPublicExample) {
           data = seedData();
         }
         data.demoVersion = 2;
         data.categories = Array.isArray(data.categories) ? data.categories : ["Collège", "Lycée"];
         data.categories = data.categories.filter((category) => !/séquence\(s\)|ModifierSupprimer|Analyser l'artiste/i.test(category));
-        const defaultClasses = seedData().classes || [];
-        defaultClasses.forEach((defaultClass) => {
-          if (!data.classes.some((classe) => classe.title === defaultClass.title)) data.classes.push({ ...defaultClass, category: /^(5eme|4eme|3eme)/i.test(defaultClass.title) ? "Collège" : "Lycée" });
-        });
         data.resources = Array.isArray(data.resources) ? data.resources : [];
         data.studentClasses = Array.isArray(data.studentClasses) ? data.studentClasses : [];
-        const hasDefaultStudentClass = data.studentClasses.some((classe) => slugify(classe.title) === "5emea");
-        if (!hasDefaultStudentClass) {
-          data.studentClasses.unshift(defaultStudentClass());
-        }
         data.tools = data.tools && typeof data.tools === "object" ? data.tools : {};
         data.tools.wheelHistory = data.tools.wheelHistory && typeof data.tools.wheelHistory === "object" ? data.tools.wheelHistory : {};
         data.tools.wheelCounts = data.tools.wheelCounts && typeof data.tools.wheelCounts === "object" ? data.tools.wheelCounts : {};
@@ -326,10 +317,15 @@
       function saveData(message) {
         localStorage.setItem(currentCacheKey(), JSON.stringify({ ...state, cachedAt: new Date().toISOString() }));
         if (isLoggedIn()) {
-          window.ServerAPI.saveWorkspace(state).catch((error) => {
-            console.warn("Sauvegarde serveur différée", error);
-            toast("Sauvegarde en attente de connexion.");
-          });
+          const snapshot = JSON.parse(JSON.stringify(state));
+          pendingWorkspaceSave = pendingWorkspaceSave
+            .then(() => window.ServerAPI.saveWorkspace(snapshot, true))
+            .then(() => true)
+            .catch((error) => {
+              console.warn("Sauvegarde serveur différée", error);
+              toast("Sauvegarde en attente de connexion.");
+              return false;
+            });
         }
         if (message) toast(message);
         render();
@@ -478,12 +474,29 @@
         return url.toString();
       }
 
+      function openUrlInNewTabAfterSave(url) {
+        const target = window.open("about:blank", "_blank");
+        if (!target) {
+          toast("Autorisez les fenêtres contextuelles pour ouvrir cette vue.");
+          return;
+        }
+        target.opener = null;
+        Promise.resolve(pendingWorkspaceSave).then((saved) => {
+          if (saved || !isLoggedIn()) {
+            target.location.replace(url);
+            return;
+          }
+          target.close();
+          toast("La vue n'a pas été ouverte car l'enregistrement serveur a échoué.");
+        });
+      }
+
       function openViewInNewTab(view) {
-        window.open(appUrl({ view }), "_blank", "noopener");
+        openUrlInNewTabAfterSave(appUrl({ view }));
       }
 
       function openBoardInNewTab(activityId, slideIndex = 0) {
-        window.open(appUrl({ board: activityId, slide: slideIndex }), "_blank", "noopener");
+        openUrlInNewTabAfterSave(appUrl({ board: activityId, slide: slideIndex }));
       }
 
       function applyInitialRoute() {
