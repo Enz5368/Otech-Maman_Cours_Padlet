@@ -56,6 +56,11 @@ def test_assets_extraits_sont_charges_dans_le_bon_ordre() -> None:
     )
 
 
+def test_assets_frontend_sont_versionnes_contre_le_cache() -> None:
+    for asset in ("styles.css", "api-client.js", "app.js"):
+        assert f"assets/{asset}?v=" in INDEX
+
+
 def test_assistant_de_migration_locale_est_absent() -> None:
     api_client = (ROOT / "assets" / "api-client.js").read_text(encoding="utf-8")
     for obsolete_symbol in (
