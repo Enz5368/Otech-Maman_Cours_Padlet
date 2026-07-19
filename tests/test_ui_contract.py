@@ -166,3 +166,11 @@ def test_vue_arbre_affiche_toute_la_hierarchie_des_cours() -> None:
     assert "treeActivityNode" in APP_JS
     assert "treeResourceNode" in APP_JS
     assert ".course-tree li::before" in styles
+
+
+def test_import_accepte_les_exports_zip_et_attend_le_serveur() -> None:
+    assert "Importer ZIP ou JSON" in APP_JS
+    assert 'accept=".zip,.json,application/zip,application/json"' in APP_JS
+    assert 'extractZipEntry(await file.arrayBuffer(), "donnees-completes.json")' in APP_JS
+    assert 'await saveData("Sauvegarde importée et enregistrée sur le serveur.", triggerButton)' in APP_JS
+    assert "Elle remplacera les données actuelles de ce compte" in APP_JS

@@ -1618,7 +1618,8 @@
               ${isLoggedIn() ? `<div class="row wrap" style="margin-top:12px">
                 <button class="btn" onclick="exportData()">Exporter</button>
                 <button class="btn primary" onclick="exportZip()">Exporter ZIP</button>
-                <label class="btn">Importer <input type="file" accept="application/json" hidden onchange="importData(this.files[0])"></label>
+                <button class="btn" id="importDataBtn" type="button" onclick="document.querySelector('#importDataInput').click()">Importer ZIP ou JSON</button>
+                <input id="importDataInput" type="file" accept=".zip,.json,application/zip,application/json" hidden onchange="importData(this.files[0],document.querySelector('#importDataBtn'));this.value=''">
                 <button class="btn danger" onclick="resetData()">Réinitialiser</button>
               </div>
               <p class="small muted">Le ZIP contient toutes les classes, séquences, séances, présentations et données complètes.</p>` : `<button class="btn primary" onclick="showLogin()">Se connecter</button>`}
@@ -2373,15 +2374,98 @@
         return table;
       })();
 
-      function importData(file) {
+      async function importData(file, triggerButton) {
         if (!requireLogin()) return;
         if (!file) return;
-        const reader = new FileReader();
-        reader.onload = () => {
-          state = JSON.parse(reader.result);
-          saveData("Données importées.");
-        };
-        reader.readAsText(file);
+        const originalLabel = triggerButton?.textContent;
+        if (triggerButton) {
+          triggerButton.disabled = true;
+          triggerButton.innerHTML = '<span class="button-spinner" aria-hidden="true"></span> Lecture du fichier…';
+        }
+        try {
+          const payload = await readImportFile(file);
+          const importedState = payload?.content && typeof payload.content === "object" ? payload.content : payload;
+          if (!importedState || typeof importedState !== "object" || !Array.isArray(importedState.classes)) {
+            throw new Error("la sauvegarde ne contient pas de liste de classes valide");
+          }
+          const classCount = importedState.classes.length;
+          const sequenceCount = importedState.classes.reduce((total, classe) => total + (Array.isArray(classe.sequences) ? classe.sequences.length : 0), 0);
+          const lessonCount = importedState.classes.reduce((total, classe) => total + (classe.sequences || []).reduce((sum, sequence) => sum + (Array.isArray(sequence.lessons) ? sequence.lessons.length : 0), 0), 0);
+          if (!confirm(`Cette sauvegarde contient ${classCount} classe(s), ${sequenceCount} séquence(s) et ${lessonCount} séance(s). Elle remplacera les données actuelles de ce compte. Continuer ?`)) return;
+          state = ensureDemoData(importedState);
+          await saveData("Sauvegarde importée et enregistrée sur le serveur.", triggerButton);
+        } catch (error) {
+          console.error("Import impossible", error);
+          toast(`Import impossible : ${error.message || "fichier invalide"}.`);
+        } finally {
+          if (triggerButton) {
+            triggerButton.disabled = false;
+            triggerButton.textContent = originalLabel || "Importer ZIP ou JSON";
+          }
+        }
+      }
+
+      async function readImportFile(file) {
+        const fileName = String(file.name || "").toLowerCase();
+        if (fileName.endsWith(".json") || file.type === "application/json") {
+          return JSON.parse(await file.text());
+        }
+        if (fileName.endsWith(".zip") || file.type === "application/zip" || file.type === "application/x-zip-compressed") {
+          const jsonBytes = await extractZipEntry(await file.arrayBuffer(), "donnees-completes.json");
+          return JSON.parse(new TextDecoder("utf-8").decode(jsonBytes));
+        }
+        throw new Error("choisissez un fichier ZIP ou JSON");
+      }
+
+      async function extractZipEntry(arrayBuffer, expectedName) {
+        const bytes = new Uint8Array(arrayBuffer);
+        const view = new DataView(arrayBuffer);
+        const minimumEocdOffset = Math.max(0, bytes.length - 65_557);
+        let eocdOffset = -1;
+        for (let offset = bytes.length - 22; offset >= minimumEocdOffset; offset--) {
+          if (view.getUint32(offset, true) === 0x06054b50) {
+            eocdOffset = offset;
+            break;
+          }
+        }
+        if (eocdOffset < 0) throw new Error("archive ZIP invalide");
+        const entryCount = view.getUint16(eocdOffset + 10, true);
+        let cursor = view.getUint32(eocdOffset + 16, true);
+        const decoder = new TextDecoder("utf-8");
+        for (let index = 0; index < entryCount; index++) {
+          if (cursor + 46 > bytes.length || view.getUint32(cursor, true) !== 0x02014b50) {
+            throw new Error("table des fichiers ZIP invalide");
+          }
+          const method = view.getUint16(cursor + 10, true);
+          const compressedSize = view.getUint32(cursor + 20, true);
+          const uncompressedSize = view.getUint32(cursor + 24, true);
+          const nameLength = view.getUint16(cursor + 28, true);
+          const extraLength = view.getUint16(cursor + 30, true);
+          const commentLength = view.getUint16(cursor + 32, true);
+          const localOffset = view.getUint32(cursor + 42, true);
+          const entryName = decoder.decode(bytes.slice(cursor + 46, cursor + 46 + nameLength)).replace(/\\/g, "/");
+          if (entryName === expectedName || entryName.endsWith(`/${expectedName}`)) {
+            if (uncompressedSize > 100 * 1024 * 1024) throw new Error("sauvegarde trop volumineuse");
+            if (localOffset + 30 > bytes.length || view.getUint32(localOffset, true) !== 0x04034b50) {
+              throw new Error("fichier ZIP interne invalide");
+            }
+            const localNameLength = view.getUint16(localOffset + 26, true);
+            const localExtraLength = view.getUint16(localOffset + 28, true);
+            const dataStart = localOffset + 30 + localNameLength + localExtraLength;
+            if (dataStart + compressedSize > bytes.length) throw new Error("fichier ZIP tronqué");
+            const compressed = bytes.slice(dataStart, dataStart + compressedSize);
+            if (method === 0) return compressed;
+            if (method === 8 && typeof DecompressionStream !== "undefined") {
+              const stream = new Blob([compressed]).stream().pipeThrough(new DecompressionStream("deflate-raw"));
+              const inflated = new Uint8Array(await new Response(stream).arrayBuffer());
+              if (inflated.length !== uncompressedSize) throw new Error("contenu ZIP incomplet");
+              return inflated;
+            }
+            throw new Error("compression ZIP non prise en charge par ce navigateur");
+          }
+          cursor += 46 + nameLength + extraLength + commentLength;
+        }
+        throw new Error(`le fichier ${expectedName} est absent du ZIP`);
       }
 
       function resetData() {
