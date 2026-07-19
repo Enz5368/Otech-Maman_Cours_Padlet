@@ -18,6 +18,10 @@ def test_deployment_no_longer_uses_destructive_rsync() -> None:
     assert "rollback" in workflow
     assert 'exit "$FAILURE_CODE"' in workflow
     assert "docker compose up -d --remove-orphans --force-recreate" in workflow
+    assert "docker compose build --no-cache frontend" in workflow
+    assert 'test "$(git rev-parse HEAD)" = "$EXPECTED_COMMIT"' in workflow
+    assert 'DEPLOYED_INDEX_HASH="$(curl -fsS http://127.0.0.1:30080/' in workflow
+    assert '"$DEPLOYED_INDEX_HASH" != "$EXPECTED_INDEX_HASH"' in workflow
 
 
 def test_required_persistent_mounts_exist() -> None:

@@ -84,7 +84,7 @@ jobs:
 
       - name: Sauvegarder, déployer et vérifier
         run: |
-          ssh truenas-deploy <<'REMOTE'
+          ssh truenas-deploy "EXPECTED_COMMIT='${{ github.sha }}' sh -s" <<'REMOTE'
             set -eu
             REPO="/mnt/DriveMaison/Database/deploy/apps/Otech-Maman_Cours_Padlet"
             cd "$REPO"
@@ -102,7 +102,8 @@ jobs:
               fi
               git reset --hard "$PREVIOUS_COMMIT"
               if [ "$PREVIOUS_COMPOSE" -eq 1 ]; then
-                docker compose build frontend backend scheduler
+                docker compose build backend scheduler
+                docker compose build --no-cache frontend
                 docker compose up -d --force-recreate
               else
                 echo "Ancienne version statique conservée ; redémarrer son service Nginx si le basculement initial l'avait arrêté."
@@ -120,12 +121,20 @@ jobs:
 
             git fetch origin main
             git reset --hard origin/main
+            test "$(git rev-parse HEAD)" = "$EXPECTED_COMMIT"
+            EXPECTED_INDEX_HASH="$(sha256sum index.html | awk '{print $1}')"
             docker compose config --quiet
-            docker compose build frontend backend scheduler
+            docker compose build backend scheduler
+            docker compose build --no-cache frontend
             docker compose up -d --remove-orphans --force-recreate
 
             for attempt in $(seq 1 30); do
               if curl -fsS http://127.0.0.1:30080/health >/dev/null; then
+                DEPLOYED_INDEX_HASH="$(curl -fsS http://127.0.0.1:30080/ | sha256sum | awk '{print $1}')"
+                if [ "$DEPLOYED_INDEX_HASH" != "$EXPECTED_INDEX_HASH" ]; then
+                  echo "Le frontend servi ne correspond pas au commit $EXPECTED_COMMIT" >&2
+                  exit 1
+                fi
                 trap - ERR
                 docker image prune -f --filter "until=168h" >/dev/null
                 echo "Déploiement validé : $(date -u +%FT%TZ)"
