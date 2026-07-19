@@ -54,3 +54,15 @@ def test_assets_extraits_sont_charges_dans_le_bon_ordre() -> None:
         < INDEX.index("assets/api-client.js")
         < INDEX.index("assets/app.js")
     )
+
+
+def test_assistant_de_migration_locale_est_absent() -> None:
+    api_client = (ROOT / "assets" / "api-client.js").read_text(encoding="utf-8")
+    for obsolete_symbol in (
+        "offerLegacyMigration",
+        "startLegacyMigration",
+        "confirmLegacyDeletion",
+        "importLocalStorage",
+        "mep-migration-complete",
+    ):
+        assert obsolete_symbol not in APP_JS + api_client

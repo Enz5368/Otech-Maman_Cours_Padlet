@@ -1,7 +1,3 @@
-      const accountsKey = "italia-html-accounts-v1";
-      const userKey = "italia-html-current-user";
-      const storagePrefix = "italia-html-data-v2";
-      const publicStorageKey = "italia-html-public-demo-v1";
       const cachePrefix = "mep-local-draft-v1";
       const resourceTypes = {
         TEXT: "Texte",
@@ -44,14 +40,6 @@
         return String(text || "sans-titre").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 80);
       }
 
-      function getAccounts() {
-        try {
-          return JSON.parse(localStorage.getItem(accountsKey)) || {};
-        } catch {
-          return {};
-        }
-      }
-
       async function loginAccount(username, password) {
         const cleanUsername = slugify(username);
         if (!cleanUsername || !password) return false;
@@ -71,7 +59,7 @@
         currentView = "dashboard";
         currentPage = { type: "classes" };
         currentTableauPage = { type: "classes" };
-        setTimeout(() => authenticatedUser.must_change_password ? offerPasswordChange(cleanUsername) : offerLegacyMigration(cleanUsername), 120);
+        if (authenticatedUser.must_change_password) setTimeout(() => offerPasswordChange(), 120);
         return true;
       }
 
@@ -113,10 +101,6 @@
         currentTableauPage = { type: "classes" };
         render();
         setTimeout(startFreeExampleTutorial, 180);
-      }
-
-      function currentStorageKey() {
-        return currentUsername() ? `${storagePrefix}-${currentUsername()}` : publicStorageKey;
       }
 
       function currentCacheKey() {
@@ -351,52 +335,7 @@
         render();
       }
 
-      function legacyCounts(data) {
-        const counts = { levels: 0, sequences: 0, lessons: 0, activities: 0, slides: 0, resources: 0, students: 0 };
-        counts.levels = (data.classes || []).length;
-        (data.classes || []).forEach((classe) => (classe.sequences || []).forEach((sequence) => {
-          counts.sequences += 1;
-          (sequence.lessons || []).forEach((lesson) => {
-            counts.lessons += 1;
-            (lesson.activities || []).forEach((activity) => {
-              counts.activities += 1;
-              counts.slides += (activity.slides || []).length;
-              counts.resources += (activity.resources || []).length;
-            });
-          });
-        }));
-        counts.resources += (data.resources || []).length;
-        (data.studentClasses || []).forEach((classe) => counts.students += (classe.students || []).length);
-        return counts;
-      }
-
-      function legacyDataFor(username) {
-        const key = `${storagePrefix}-${slugify(username)}`;
-        try {
-          const content = JSON.parse(localStorage.getItem(key));
-          return content && Array.isArray(content.classes) ? { key, content } : null;
-        } catch {
-          return null;
-        }
-      }
-
-      function offerLegacyMigration(username) {
-        const legacy = legacyDataFor(username);
-        if (!legacy || localStorage.getItem(`mep-migration-complete-${username}`)) return;
-        const modal = document.querySelector("#editorModal");
-        modal.hidden = false;
-        modal.innerHTML = `
-          <div class="drawer">
-            <div class="drawer-head"><div><p class="small" style="font-weight:850;color:var(--wine-700)">Migration</p><h2 style="margin:0;color:var(--wine-900)">Transférer les données locales</h2></div><button class="btn icon" onclick="closeEditor()">X</button></div>
-            <div class="drawer-body">
-              <p>Des données enregistrées sur cet appareil ont été détectées. Elles peuvent être transférées vers votre espace serveur.</p>
-              <p class="small muted">Une copie locale sera créée avant le transfert. Rien ne sera supprimé sans votre confirmation.</p>
-              <div class="row"><button class="btn primary" onclick="startLegacyMigration('${escapeAttr(username)}')">Transférer</button><button class="btn" onclick="closeEditor()">Plus tard</button></div>
-            </div>
-          </div>`;
-      }
-
-      function offerPasswordChange(username) {
+      function offerPasswordChange() {
         const modal = document.querySelector("#editorModal");
         modal.hidden = false;
         modal.innerHTML = `
@@ -420,41 +359,10 @@
             storageInfo = await window.ServerAPI.storage().catch(() => null);
             closeEditor();
             toast("Mot de passe mis à jour.");
-            setTimeout(() => offerLegacyMigration(username), 120);
           } catch (error) {
             toast("Le mot de passe n'a pas pu être modifié.");
           }
         });
-      }
-
-      async function startLegacyMigration(username) {
-        const legacy = legacyDataFor(username);
-        if (!legacy) return toast("Aucune donnée locale trouvée.");
-        const backupKey = `italia-html-migration-backup-${new Date().toISOString()}-${slugify(username)}`;
-        localStorage.setItem(backupKey, JSON.stringify(legacy.content));
-        const modal = document.querySelector("#editorModal");
-        try {
-          const result = await window.ServerAPI.importLocalStorage(legacy.key, legacy.content, legacyCounts(legacy.content));
-          const workspace = await window.ServerAPI.loadWorkspace();
-          state = ensureDemoData(workspace.content);
-          localStorage.setItem(`mep-migration-complete-${username}`, result.id);
-          modal.innerHTML = `<div class="drawer"><div class="drawer-head"><div><p class="small" style="font-weight:850;color:var(--wine-700)">Migration terminée</p><h2 style="margin:0;color:var(--wine-900)">Données transférées</h2></div></div><div class="drawer-body"><p>Le contrôle des éléments est terminé. La copie locale reste disponible.</p><p class="small muted">Sauvegarde locale : ${escapeHtml(backupKey)}</p><div class="row"><button class="btn primary" onclick="confirmLegacyDeletion('${escapeAttr(username)}')">Supprimer les anciennes données</button><button class="btn" onclick="closeEditor();render()">Les conserver</button></div></div></div>`;
-        } catch (error) {
-          modal.innerHTML = `<div class="drawer"><div class="drawer-head"><h2 style="margin:0;color:var(--wine-900)">Migration interrompue</h2></div><div class="drawer-body"><p>Le transfert n'a pas été validé. Les données locales sont intactes.</p><button class="btn" onclick="closeEditor()">Fermer</button></div></div>`;
-        }
-      }
-
-      function confirmLegacyDeletion(username) {
-        const legacy = legacyDataFor(username);
-        if (legacy) localStorage.removeItem(legacy.key);
-        const accounts = getAccounts();
-        if (accounts[slugify(username)]) {
-          delete accounts[slugify(username)];
-          localStorage.setItem(accountsKey, JSON.stringify(accounts));
-        }
-        closeEditor();
-        render();
-        toast("Anciennes données locales supprimées.");
       }
 
       function toast(message) {
@@ -2322,9 +2230,7 @@
         }
         render();
         if (authenticatedUser?.must_change_password) {
-          setTimeout(() => offerPasswordChange(currentUsername()), 120);
-        } else if (authenticatedUser) {
-          setTimeout(() => offerLegacyMigration(currentUsername()), 120);
+          setTimeout(() => offerPasswordChange(), 120);
         }
         const initialParams = new URLSearchParams(window.location.search);
         if (initialParams.get("board") && isLoggedIn()) {

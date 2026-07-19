@@ -110,22 +110,6 @@
       return this.saveWorkspace(draft.content, true);
     },
 
-    importLocalStorage(storageKey, content, clientCounts) {
-      const identity = `${storageKey}:${JSON.stringify(clientCounts)}`;
-      let hash = 0;
-      for (let index = 0; index < identity.length; index += 1) hash = ((hash << 5) - hash + identity.charCodeAt(index)) | 0;
-      return request("/imports", {
-        method: "POST",
-        body: JSON.stringify({
-          idempotency_key: `local-${Math.abs(hash)}-${content.demoVersion || 0}`,
-          source: "localStorage",
-          storage_key: storageKey,
-          content,
-          client_counts: clientCounts
-        })
-      });
-    },
-
     upload(file) {
       const body = new FormData();
       body.append("upload", file);
