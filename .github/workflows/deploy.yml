@@ -100,7 +100,7 @@ jobs:
               git reset --hard "$PREVIOUS_COMMIT"
               if [ "$PREVIOUS_COMPOSE" -eq 1 ]; then
                 docker compose build frontend backend scheduler
-                docker compose up -d
+                docker compose up -d --force-recreate
               else
                 echo "Ancienne version statique conservée ; redémarrer son service Nginx si le basculement initial l'avait arrêté."
               fi
@@ -118,7 +118,7 @@ jobs:
             git reset --hard origin/main
             docker compose config --quiet
             docker compose build frontend backend scheduler
-            docker compose up -d --remove-orphans
+            docker compose up -d --remove-orphans --force-recreate
 
             for attempt in $(seq 1 30); do
               if curl -fsS http://127.0.0.1:30080/health >/dev/null; then

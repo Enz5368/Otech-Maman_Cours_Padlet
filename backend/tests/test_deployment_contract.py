@@ -16,6 +16,7 @@ def test_deployment_no_longer_uses_destructive_rsync() -> None:
     assert "rsync --delete" not in workflow
     assert "scripts/backup.sh" in workflow
     assert "rollback" in workflow
+    assert "docker compose up -d --remove-orphans --force-recreate" in workflow
 
 
 def test_required_persistent_mounts_exist() -> None:
@@ -27,3 +28,9 @@ def test_required_persistent_mounts_exist() -> None:
         "/mnt/DriveMaison/Logs",
     ):
         assert path in compose
+
+
+def test_javascript_and_css_are_revalidated_after_deployment() -> None:
+    nginx = (ROOT / "docker" / "frontend.nginx.conf").read_text(encoding="utf-8")
+    assert "location ~* \\.(?:css|js)$" in nginx
+    assert 'add_header Cache-Control "no-cache";' in nginx
