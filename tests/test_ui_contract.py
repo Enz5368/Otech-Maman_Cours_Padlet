@@ -260,9 +260,9 @@ def test_studio_confirme_visiblement_la_sauvegarde_et_recharge_les_medias() -> N
 
 
 def test_identite_mon_espace_pro_est_affichee() -> None:
-    assert "<title>MON ESPACE PRO · Cartable numérique</title>" in INDEX
-    assert "<h1>MON ESPACE PRO</h1>" in INDEX
-    assert "MON ESPACE PRO · Cartable numérique" in INDEX
+    assert "<title>MON ESPACE PROF · Cartable numérique</title>" in INDEX
+    assert "<h1>MON ESPACE PROF</h1>" in INDEX
+    assert "MON ESPACE PROF · Cartable numérique" in INDEX
 
 
 def test_liens_professeur_sont_accessibles_depuis_outils_et_accueil() -> None:
@@ -295,8 +295,10 @@ def test_chrono_est_analogique_numerique_et_colore_par_tiers() -> None:
     assert "Chrono analogique / numérique" in APP_JS
     assert 'class="timer-face"' in APP_JS
     assert "timerTotal" in APP_JS
-    assert "#41945f 0 66.666%" in styles
-    assert "#ca4545 66.666% 100%" in styles
+    assert 'face.style.setProperty("--timer-green-angle"' in APP_JS
+    assert "#41945f 0 var(--timer-green-angle)" in styles
+    assert "#ca4545 var(--timer-green-angle) var(--timer-angle)" in styles
+    assert "#fff var(--timer-angle) 360deg" in styles
 
 
 def test_roue_explique_son_fonctionnement_dans_la_roue() -> None:

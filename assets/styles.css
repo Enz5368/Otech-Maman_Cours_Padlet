@@ -1436,6 +1436,7 @@
 
       .timer-face {
         --timer-angle: 0deg;
+        --timer-green-angle: 0deg;
         position: relative;
         display: grid;
         place-items: center;
@@ -1443,9 +1444,10 @@
         aspect-ratio: 1;
         margin: 18px auto 10px;
         border-radius: 50%;
+        border: 1px solid var(--line);
         background:
-          repeating-conic-gradient(from -90deg, rgba(255,255,255,.92) 0 1deg, transparent 1deg 15deg),
-          conic-gradient(from -90deg, #41945f 0 66.666%, #ca4545 66.666% 100%);
+          repeating-conic-gradient(from -90deg, rgba(59,13,22,.12) 0 1deg, transparent 1deg 15deg),
+          conic-gradient(from -90deg, #41945f 0 var(--timer-green-angle), #ca4545 var(--timer-green-angle) var(--timer-angle), #fff var(--timer-angle) 360deg);
         box-shadow: 0 14px 30px rgba(59,13,22,.14);
       }
       .timer-face-inner {
@@ -1476,7 +1478,6 @@
         transform-origin: 50% 100%;
         transition: transform .35s linear, background .2s ease;
       }
-      .timer-face[data-phase="urgent"] .timer-hand { background: #a51f2b; }
       .timer-display {
         color: var(--wine-900);
         font-size: clamp(42px, 6vw, 68px);

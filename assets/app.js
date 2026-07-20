@@ -765,7 +765,7 @@
         document.querySelectorAll(".nav-button[data-view]").forEach((button) => {
           button.classList.toggle("active", button.dataset.view === currentView);
         });
-        document.title = `${selectedNavButton?.textContent.trim() || titles[currentView][0]} · MON ESPACE PRO`;
+        document.title = `${selectedNavButton?.textContent.trim() || titles[currentView][0]} · MON ESPACE PROF`;
         document.querySelector("#pageTitle").textContent = titles[currentView][0];
         document.querySelector("#pageSubtitle").textContent = titles[currentView][1];
         document.querySelector("#openBoardBtn").hidden = currentView === "dashboard";
@@ -1514,6 +1514,7 @@
         });
         document.querySelectorAll(".timer-face").forEach((face) => {
           face.style.setProperty("--timer-angle", `${progress * 360}deg`);
+          face.style.setProperty("--timer-green-angle", `${Math.min(progress, 2 / 3) * 360}deg`);
           face.dataset.phase = progress >= 2 / 3 ? "urgent" : "normal";
           face.setAttribute("aria-label", `Temps restant : ${formatTimer(timerRemaining)}`);
         });
