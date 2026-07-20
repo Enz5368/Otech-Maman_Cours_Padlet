@@ -156,13 +156,21 @@ def test_le_champ_description_d_une_seance_est_libelle_objectif() -> None:
 def test_le_gestionnaire_de_categories_est_guide_et_explicite() -> None:
     assert "Ranger les niveaux par catégorie" in APP_JS
     assert "1</span><div><h3>Créer et ordonner les catégories" in APP_JS
-    assert "2</span><div><h3>Choisir la catégorie de chaque niveau" in APP_JS
+    assert "2</span><div><h3>Choisir la catégorie et l'ordre de chaque niveau" in APP_JS
     assert "Enregistrer les changements" in APP_JS
     assert "function moveCategoryEditorRow" in APP_JS
     assert "function updateCategoryMoveButtons" in APP_JS
     assert "function refreshCategoryAssignmentOptions" in APP_JS
     assert "function updateCategoryCounts" in APP_JS
     assert "Organiser les catégories" in APP_JS
+
+
+def test_les_niveaux_sont_ordonnables_dans_chaque_categorie() -> None:
+    assert "function categoryClassGroups" in APP_JS
+    assert "function moveCategoryClassRow" in APP_JS
+    assert "function updateClassMoveButtons" in APP_JS
+    assert "Place dans la catégorie" in APP_JS
+    assert "classDrafts.map" in APP_JS
 
 
 def test_enregistrement_bloque_interface_jusqu_a_confirmation() -> None:

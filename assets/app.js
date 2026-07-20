@@ -1104,8 +1104,8 @@
               </div>
             </section>
             <section class="category-step">
-              <div class="category-step-title"><span>2</span><div><h3>Choisir la catégorie de chaque niveau</h3><p>Pour chaque niveau, choisissez simplement où le ranger.</p></div></div>
-              <div id="categoryItems" class="category-class-list">${state.classes.map((classe, index) => categoryClassRow(classe, index, categoryRows)).join("") || empty("Aucun niveau à classer.")}</div>
+              <div class="category-step-title"><span>2</span><div><h3>Choisir la catégorie et l'ordre de chaque niveau</h3><p>Rangez chaque niveau, puis utilisez Monter ou Descendre pour choisir sa place dans la catégorie.</p></div></div>
+              <div id="categoryItems" class="category-class-groups">${categoryClassGroups(categoryRows)}</div>
             </section>
           </div>
           <div class="category-manager-footer">
@@ -1118,6 +1118,7 @@
         });
         updateCategoryMoveButtons();
         updateCategoryCounts();
+        updateClassMoveButtons();
       }
 
       function categoryEditorRow(category) {
@@ -1132,18 +1133,94 @@
         </article>`;
       }
 
-      function categoryClassRow(classe, index, categories) {
-        const selectedKey = categories.find((category) => category.name === classe.category)?.key || "";
-        return `<article class="category-class-row">
+      function categoryClassGroups(categories, drafts) {
+        const validKeys = new Set(categories.map((category) => category.key));
+        const rows = drafts || state.classes.map((classe) => ({
+          id: classe.id,
+          categoryKey: categories.find((category) => category.name === classe.category)?.key || ""
+        }));
+        const groups = [...categories, { key: "", name: "Sans catégorie" }];
+        return groups.map((group) => {
+          const groupRows = rows.filter((row) => (validKeys.has(row.categoryKey) ? row.categoryKey : "") === group.key);
+          return `<section class="category-class-group" data-class-group="${escapeAttr(group.key)}">
+            <div class="category-class-group-head"><h4>${escapeHtml(group.name || "Sans catégorie")}</h4><span>${groupRows.length} niveau${groupRows.length > 1 ? "x" : ""}</span></div>
+            <div class="category-class-list">${groupRows.map((row, index) => {
+              const classe = state.classes.find((item) => item.id === row.id);
+              return classe ? categoryClassRow(classe, index, categories, group.key) : "";
+            }).join("") || `<p class="category-class-empty">Aucun niveau dans cette catégorie.</p>`}</div>
+          </section>`;
+        }).join("");
+      }
+
+      function categoryClassRow(classe, index, categories, selectedKey) {
+        return `<article class="category-class-row" data-class-row="${escapeAttr(classe.id)}">
           <span class="category-class-number">${index + 1}</span>
           <div class="category-class-name"><strong>${escapeHtml(classe.title)}</strong><small>Niveau à ranger</small></div>
           <label class="label">Ranger dans
-            <select data-class-category="${escapeAttr(classe.id)}" onchange="updateCategoryCounts()">
+            <select data-class-category="${escapeAttr(classe.id)}" onchange="changeClassCategory(this)">
               <option value="">Sans catégorie</option>
               ${categories.map((category) => `<option value="${escapeAttr(category.key)}" ${selectedKey === category.key ? "selected" : ""}>${escapeHtml(category.name)}</option>`).join("")}
             </select>
           </label>
+          <div class="category-class-order" aria-label="Changer la place de ${escapeAttr(classe.title)}">
+            <span>Place dans la catégorie</span>
+            <div>
+              <button class="btn" type="button" data-class-move="up" onclick="moveCategoryClassRow('${escapeAttr(classe.id)}',-1)">↑ Monter</button>
+              <button class="btn" type="button" data-class-move="down" onclick="moveCategoryClassRow('${escapeAttr(classe.id)}',1)">↓ Descendre</button>
+            </div>
+          </div>
         </article>`;
+      }
+
+      function categoryClassDraftRows() {
+        return [...document.querySelectorAll(".category-class-row")].map((row) => ({
+          id: row.dataset.classRow,
+          categoryKey: row.querySelector("[data-class-category]")?.value || ""
+        }));
+      }
+
+      function renderCategoryClassGroups(drafts = categoryClassDraftRows()) {
+        const container = document.querySelector("#categoryItems");
+        if (!container) return;
+        container.innerHTML = state.classes.length ? categoryClassGroups(categoryDraftRows(), drafts) : empty("Aucun niveau à classer.");
+        updateCategoryCounts();
+        updateClassMoveButtons();
+      }
+
+      function changeClassCategory(select) {
+        const classId = select.dataset.classCategory;
+        const categoryKey = select.value;
+        const drafts = categoryClassDraftRows();
+        const moved = drafts.find((draft) => draft.id === classId);
+        if (!moved) return renderCategoryClassGroups(drafts);
+        const reordered = drafts.filter((draft) => draft.id !== classId);
+        const lastPeerIndex = reordered.reduce((last, draft, index) => draft.categoryKey === categoryKey ? index : last, -1);
+        reordered.splice(lastPeerIndex + 1, 0, moved);
+        renderCategoryClassGroups(reordered);
+      }
+
+      function moveCategoryClassRow(classId, direction) {
+        const row = [...document.querySelectorAll(".category-class-row")].find((item) => item.dataset.classRow === classId);
+        if (!row) return;
+        const target = direction < 0 ? row.previousElementSibling : row.nextElementSibling;
+        if (!target?.classList.contains("category-class-row")) return;
+        if (direction < 0) row.parentElement.insertBefore(row, target);
+        else row.parentElement.insertBefore(row, target.nextElementSibling);
+        updateClassMoveButtons();
+      }
+
+      function updateClassMoveButtons() {
+        document.querySelectorAll(".category-class-list").forEach((list) => {
+          const rows = [...list.querySelectorAll(".category-class-row")];
+          rows.forEach((row, index) => {
+            const number = row.querySelector(".category-class-number");
+            const up = row.querySelector('[data-class-move="up"]');
+            const down = row.querySelector('[data-class-move="down"]');
+            if (number) number.textContent = index + 1;
+            if (up) up.disabled = index === 0;
+            if (down) down.disabled = index === rows.length - 1;
+          });
+        });
       }
 
       function categoryDraftRows() {
@@ -1177,6 +1254,7 @@
         if (direction < 0 && row.previousElementSibling) row.parentElement.insertBefore(row, row.previousElementSibling);
         if (direction > 0 && row.nextElementSibling) row.parentElement.insertBefore(row.nextElementSibling, row);
         updateCategoryMoveButtons();
+        refreshCategoryAssignmentOptions();
       }
 
       function updateCategoryMoveButtons() {
@@ -1203,12 +1281,9 @@
 
       function refreshCategoryAssignmentOptions() {
         const categories = categoryDraftRows();
-        document.querySelectorAll("[data-class-category]").forEach((select) => {
-          const selected = select.value;
-          select.innerHTML = `<option value="">Sans catégorie</option>${categories.map((category) => `<option value="${escapeAttr(category.key)}">${escapeHtml(category.name || "Catégorie sans nom")}</option>`).join("")}`;
-          select.value = categories.some((category) => category.key === selected) ? selected : "";
-        });
-        updateCategoryCounts();
+        const validKeys = new Set(categories.map((category) => category.key));
+        const drafts = categoryClassDraftRows().map((row) => ({ ...row, categoryKey: validKeys.has(row.categoryKey) ? row.categoryKey : "" }));
+        renderCategoryClassGroups(drafts);
       }
 
       function updateCategoryCounts() {
@@ -1226,11 +1301,15 @@
         const normalized = categories.map((category) => category.name.toLowerCase());
         if (new Set(normalized).size !== normalized.length) return toast("Deux catégories portent le même nom.");
         const namesByKey = Object.fromEntries(categories.map((category) => [category.key, category.name]));
-        state.categories = categories.map((category) => category.name);
-        document.querySelectorAll("[data-class-category]").forEach((select) => {
-          const classe = state.classes.find((item) => item.id === select.dataset.classCategory);
-          if (classe) classe.category = namesByKey[select.value] || "";
+        const classDrafts = categoryClassDraftRows();
+        const classesById = new Map(state.classes.map((classe) => [classe.id, classe]));
+        classDrafts.forEach((draft) => {
+          const classe = classesById.get(draft.id);
+          if (classe) classe.category = namesByKey[draft.categoryKey] || "";
         });
+        const orderedIds = new Set(classDrafts.map((draft) => draft.id));
+        state.classes = [...classDrafts.map((draft) => classesById.get(draft.id)).filter(Boolean), ...state.classes.filter((classe) => !orderedIds.has(classe.id))];
+        state.categories = categories.map((category) => category.name);
         const saved = await saveData("Catégories mises à jour.", triggerButton);
         if (saved) closeEditor();
       }
