@@ -257,3 +257,68 @@ def test_studio_confirme_visiblement_la_sauvegarde_et_recharge_les_medias() -> N
     assert "const uploaded = await window.ServerAPI.upload(file);" in APP_JS
     assert "value: uploaded.content_url" in APP_JS
     assert "reportMediaError(this)" in APP_JS
+
+
+def test_identite_mon_espace_pro_est_affichee() -> None:
+    assert "<title>MON ESPACE PRO · Cartable numérique</title>" in INDEX
+    assert "<h1>MON ESPACE PRO</h1>" in INDEX
+    assert "MON ESPACE PRO · Cartable numérique" in INDEX
+
+
+def test_liens_professeur_sont_accessibles_depuis_outils_et_accueil() -> None:
+    for url in (
+        "https://turboscribe.ai/fr/downloader/youtube/video",
+        "https://www.freemake.com/fr/free_video_downloader_choicest/",
+        "https://app.getquizwizard.com/create-content/source",
+        "https://digistorm.app/",
+        "https://www.pictofacile.com/fr",
+        "https://ladigitale.dev/digiview/#/",
+        "https://falc.unapei.org/",
+        "https://mydys.app/fr/index.php",
+        "https://dysfacile-ordinateur.lovable.app/",
+        "https://digipad.app/p/1739669/e48690b8789e3",
+    ):
+        assert url in APP_JS
+    assert "Cahier de texte" in INDEX
+    assert "Messagerie" in INDEX
+    assert "dashboard-shortcuts" in APP_JS
+
+
+def test_sequences_sont_numerotees_sans_doubler_numero_niveau() -> None:
+    assert "function sequenceNumber(classe, sequence)" in APP_JS
+    assert "Séquence n° ${sequenceNumber(classe, sequence)}" in APP_JS
+    assert "N° ${number || classe.order" not in APP_JS
+
+
+def test_chrono_est_analogique_numerique_et_colore_par_tiers() -> None:
+    styles = (ROOT / "assets" / "styles.css").read_text(encoding="utf-8")
+    assert "Chrono analogique / numérique" in APP_JS
+    assert 'class="timer-face"' in APP_JS
+    assert "timerTotal" in APP_JS
+    assert "#41945f 0 66.666%" in styles
+    assert "#ca4545 66.666% 100%" in styles
+
+
+def test_roue_explique_son_fonctionnement_dans_la_roue() -> None:
+    assert "La roue choisit au hasard un élève présent" in APP_JS
+    assert 'class="wheel-help"' in APP_JS
+
+
+def test_ordre_dans_les_categories_est_persiste() -> None:
+    save_categories = re.search(
+        r"async function saveCategoriesFromDrawer.*?\n      }\n\n      function reorderCategory",
+        APP_JS,
+        re.DOTALL,
+    )
+    assert save_categories
+    source = save_categories.group(0)
+    assert "classDrafts.forEach((draft, index)" in source
+    assert "classe.order = index + 1;" in source
+    assert source.index("classe.order = index + 1;") < source.index("await saveData")
+
+
+def test_arbre_permet_d_imprimer_une_seance_complete() -> None:
+    assert "function openLessonPrintPreview(lessonId)" in APP_JS
+    assert "Imprimer la séance" in APP_JS
+    assert "Imprimer toute la séance" in APP_JS
+    assert "Toutes les activités et leurs diapositives" in APP_JS

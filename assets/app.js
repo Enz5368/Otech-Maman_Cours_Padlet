@@ -19,6 +19,22 @@
         wheel: { title: "Roue de la fortune", description: "Tirer un élève au hasard dans un groupe classe." },
         timer: { title: "Chronomètre", description: "Afficher et piloter le minuteur de classe." }
       };
+      const teacherToolLinks = [
+        { group: "Télécharger des vidéos YouTube", title: "TurboScribe", description: "Télécharger une vidéo depuis son adresse YouTube.", url: "https://turboscribe.ai/fr/downloader/youtube/video" },
+        { group: "Télécharger des vidéos YouTube", title: "Freemake", description: "Téléchargeur de vidéos en ligne.", url: "https://www.freemake.com/fr/free_video_downloader_choicest/" },
+        { group: "Créer des contenus", title: "QuizWizard", description: "Créer des contenus et des questionnaires à partir d'une source.", url: "https://app.getquizwizard.com/create-content/source" },
+        { group: "Créer des contenus", title: "Digistorm", description: "Créer des remue-méninges, nuages de mots, questionnaires et quiz.", url: "https://digistorm.app/" },
+        { group: "Adapter et différencier", title: "Pictofacile", description: "Transformer une phrase en pictogrammes.", url: "https://www.pictofacile.com/fr" },
+        { group: "Adapter et différencier", title: "DigiView", description: "Épurer une vidéo et retirer les distractions.", url: "https://ladigitale.dev/digiview/#/" },
+        { group: "Adapter et différencier", title: "Cap'FALC", description: "Aider à transformer un texte en Facile à lire et à comprendre.", url: "https://falc.unapei.org/" },
+        { group: "Adapter et différencier", title: "MyDys", description: "Adapter les contenus pour les élèves à besoins particuliers.", url: "https://mydys.app/fr/index.php" },
+        { group: "Adapter et différencier", title: "DysFacile", description: "Faciliter la lecture sur ordinateur.", url: "https://dysfacile-ordinateur.lovable.app/" },
+        { group: "Adapter et différencier", title: "DigiPad – différenciation", description: "Accéder au mur de ressources de différenciation.", url: "https://digipad.app/p/1739669/e48690b8789e3" }
+      ];
+      const workspaceShortcuts = [
+        { title: "Cahier de texte", description: "Ouvrir Pronote professeur.", url: "https://0380035g.index-education.net/pronote/professeur.html" },
+        { title: "Messagerie", description: "Ouvrir la messagerie de l'académie de Grenoble.", url: "https://extranet.ac-grenoble.fr/iwc_static/layout/main.html?lang=fr&3.0.1.3.0_16070513" }
+      ];
       const localAccounts = {
         root: { password: "root", role: "admin" },
         rose: { password: "it", role: "teacher" }
@@ -38,6 +54,7 @@
       let currentTableauPage = { type: "classes" };
       let currentStudioSlideIndex = 0;
       let timerRemaining = 5 * 60;
+      let timerTotal = 5 * 60;
       let timerInterval = null;
       let tourIndex = 0;
       let tourRunning = false;
@@ -748,7 +765,7 @@
         document.querySelectorAll(".nav-button[data-view]").forEach((button) => {
           button.classList.toggle("active", button.dataset.view === currentView);
         });
-        document.title = selectedNavButton?.textContent.trim() || titles[currentView][0];
+        document.title = `${selectedNavButton?.textContent.trim() || titles[currentView][0]} · MON ESPACE PRO`;
         document.querySelector("#pageTitle").textContent = titles[currentView][0];
         document.querySelector("#pageSubtitle").textContent = titles[currentView][1];
         document.querySelector("#openBoardBtn").hidden = currentView === "dashboard";
@@ -776,6 +793,9 @@
             <h2 style="margin:0;color:var(--wine-900);font-size:34px">Choisir une classe</h2>
             <p class="muted">Cette vue sert uniquement à trouver et afficher une présentation.</p>
           </section>
+          <nav class="dashboard-shortcuts" aria-label="Accès rapides">
+            ${workspaceShortcuts.map((shortcut) => `<a class="shortcut-card" href="${escapeAttr(shortcut.url)}" target="_blank" rel="noopener noreferrer"><span>Accès rapide</span><strong>${escapeHtml(shortcut.title)}</strong><small>${escapeHtml(shortcut.description)}</small></a>`).join("")}
+          </nav>
           <section class="page-grid">${state.classes.filter((classe) => classe.isVisible !== false).map(tableauClassCard).join("")}</section>
         `;
       }
@@ -784,10 +804,15 @@
         return `<div class="card"><p class="muted">${label}</p><h2 style="font-size:42px">${value}</h2></div>`;
       }
 
-      function classCard(classe, number) {
+      function sequenceNumber(classe, sequence) {
+        const index = (classe?.sequences || []).findIndex((item) => item.id === sequence?.id);
+        return index >= 0 ? index + 1 : Math.max(1, Number(sequence?.order) || 1);
+      }
+
+      function classCard(classe) {
         return `<article class="card entity-card">
           <div class="row">
-            <div><p class="small" style="font-weight:850;color:var(--wine-700)">N° ${number || classe.order || ""}</p><h3 style="font-size:28px">${escapeHtml(classe.title)}</h3><p class="muted small">${escapeHtml(classe.description)}</p></div>
+            <div><h3 style="font-size:28px">${escapeHtml(classe.title)}</h3><p class="muted small">${escapeHtml(classe.description)}</p></div>
             ${classe.isVisible ? "" : "<span class='pill'>Masque</span>"}
           </div>
           <div class="row wrap">
@@ -844,7 +869,7 @@
       function tableauSequenceCard(classe, sequence) {
         return `<article class="card entity-card">
           <div>
-            <p class="small" style="font-weight:850;color:var(--wine-700)">Séquence</p>
+            <p class="small" style="font-weight:850;color:var(--wine-700)">Séquence n° ${sequenceNumber(classe, sequence)}</p>
             <h3 style="font-size:24px">${escapeHtml(sequence.title)}</h3>
             <p class="muted small">${sequence.lessons.length} séance(s)</p>
           </div>
@@ -927,14 +952,17 @@
 
       function projectTreeSequenceNode(classe, sequence) {
         return `<li>
-          <button class="tree-node tree-sequence" onclick="closeEditor();openTableauSequence('${classe.id}','${sequence.id}')"><span>Séquence</span><strong>${escapeHtml(sequence.title)}</strong></button>
+          <button class="tree-node tree-sequence" onclick="closeEditor();openTableauSequence('${classe.id}','${sequence.id}')"><span>Séquence n° ${sequenceNumber(classe, sequence)}</span><strong>${escapeHtml(sequence.title)}</strong></button>
           ${treeChildren((sequence.lessons || []).filter((lesson) => lesson.isVisible !== false).map((lesson) => projectTreeLessonNode(classe, sequence, lesson)))}
         </li>`;
       }
 
       function projectTreeLessonNode(classe, sequence, lesson) {
         return `<li>
-          <button class="tree-node tree-lesson" onclick="closeEditor();openTableauLesson('${classe.id}','${sequence.id}','${lesson.id}')"><span>Séance</span><strong>${escapeHtml(lesson.title)}</strong></button>
+          <div class="tree-node-stack">
+            <button class="tree-node tree-lesson" onclick="closeEditor();openTableauLesson('${classe.id}','${sequence.id}','${lesson.id}')"><span>Séance</span><strong>${escapeHtml(lesson.title)}</strong></button>
+            <button class="tree-node-action" onclick="openLessonPrintPreview('${lesson.id}')">Imprimer la séance</button>
+          </div>
           ${treeChildren((lesson.activities || []).filter((activity) => activity.isVisible !== false).map(projectTreeActivityNode))}
         </li>`;
       }
@@ -1049,7 +1077,7 @@
       function treeSequenceNode(classe, sequence) {
         return `<li>
           <button class="tree-node tree-sequence" onclick="openSequencePage('${classe.id}','${sequence.id}')">
-            <span>Séquence</span><strong>${escapeHtml(sequence.title)}</strong>${sequence.isVisible === false ? "<em>Masquée</em>" : ""}
+            <span>Séquence n° ${sequenceNumber(classe, sequence)}</span><strong>${escapeHtml(sequence.title)}</strong>${sequence.isVisible === false ? "<em>Masquée</em>" : ""}
           </button>
           ${treeChildren((sequence.lessons || []).map((lesson) => treeLessonNode(classe, sequence, lesson)))}
         </li>`;
@@ -1057,9 +1085,12 @@
 
       function treeLessonNode(classe, sequence, lesson) {
         return `<li>
-          <button class="tree-node tree-lesson" onclick="openLessonPage('${classe.id}','${sequence.id}','${lesson.id}')">
-            <span>Séance</span><strong>${escapeHtml(lesson.title)}</strong>${lesson.isVisible === false ? "<em>Masquée</em>" : ""}
-          </button>
+          <div class="tree-node-stack">
+            <button class="tree-node tree-lesson" onclick="openLessonPage('${classe.id}','${sequence.id}','${lesson.id}')">
+              <span>Séance</span><strong>${escapeHtml(lesson.title)}</strong>${lesson.isVisible === false ? "<em>Masquée</em>" : ""}
+            </button>
+            <button class="tree-node-action" onclick="openLessonPrintPreview('${lesson.id}')">Imprimer la séance</button>
+          </div>
           ${treeChildren((lesson.activities || []).map(treeActivityNode))}
         </li>`;
       }
@@ -1303,9 +1334,12 @@
         const namesByKey = Object.fromEntries(categories.map((category) => [category.key, category.name]));
         const classDrafts = categoryClassDraftRows();
         const classesById = new Map(state.classes.map((classe) => [classe.id, classe]));
-        classDrafts.forEach((draft) => {
+        classDrafts.forEach((draft, index) => {
           const classe = classesById.get(draft.id);
-          if (classe) classe.category = namesByKey[draft.categoryKey] || "";
+          if (classe) {
+            classe.category = namesByKey[draft.categoryKey] || "";
+            classe.order = index + 1;
+          }
         });
         const orderedIds = new Set(classDrafts.map((draft) => draft.id));
         state.classes = [...classDrafts.map((draft) => classesById.get(draft.id)).filter(Boolean), ...state.classes.filter((classe) => !orderedIds.has(classe.id))];
@@ -1381,8 +1415,20 @@
             ${selectedClass ? renderWheelTool(selectedClass, history) : empty("Ajoutez d'abord un groupe dans Groupes Classes.")}
             ${renderTimerTool()}
           </div>
+          ${renderTeacherToolLinks()}
         `;
         updateTimerDisplay();
+      }
+
+      function renderTeacherToolLinks() {
+        const groups = [...new Set(teacherToolLinks.map((link) => link.group))];
+        return `<section class="tool-directory" aria-labelledby="toolDirectoryTitle">
+          <div class="tool-directory-head">
+            <div><p class="small">Boîte à outils du professeur</p><h2 id="toolDirectoryTitle">Liens utiles</h2></div>
+            <p class="muted small">Chaque service s'ouvre dans un nouvel onglet.</p>
+          </div>
+          ${groups.map((group) => `<section class="tool-link-group"><h3>${escapeHtml(group)}</h3><div class="tool-link-grid">${teacherToolLinks.filter((link) => link.group === group).map((link) => `<a class="tool-link-card" href="${escapeAttr(link.url)}" target="_blank" rel="noopener noreferrer"><strong>${escapeHtml(link.title)}</strong><span>${escapeHtml(link.description)}</span><small>Ouvrir l'outil ↗</small></a>`).join("")}</div></section>`).join("")}
+        </section>`;
       }
 
       function renderWheelTool(classe, history) {
@@ -1395,7 +1441,9 @@
         const presentCount = students.length - absences.length;
         return `
             <section class="card">
-              <div class="wheel" id="studentWheel"><div class="wheel-result">${escapeHtml(last)}</div></div>
+              <div class="wheel" id="studentWheel">
+                <div class="wheel-result"><span class="wheel-help">La roue choisit au hasard un élève présent qui n'a pas atteint sa limite.</span><strong>${escapeHtml(last)}</strong></div>
+              </div>
               <label class="label" style="margin:18px auto 0;max-width:330px">Nombre maximum de tirages par élève
                 <input type="number" min="1" max="20" value="${limit}" ${isLoggedIn() ? "" : "disabled"} onchange="setWheelLimit('${classe.id}', this.value)">
               </label>
@@ -1433,8 +1481,12 @@
 
       function renderTimerTool() {
         return `<section class="card">
-          <h2>Chrono</h2>
-          <div class="timer-display" id="timerDisplay">05:00</div>
+          <h2>Chrono analogique / numérique</h2>
+          <div class="timer-face" id="timerFace" role="timer" aria-label="Temps restant : 5 minutes">
+            <span class="timer-hand" aria-hidden="true"></span>
+            <div class="timer-face-inner"><div class="timer-display" id="timerDisplay">05:00</div><span>Temps restant</span></div>
+          </div>
+          <p class="timer-legend"><span>Les deux premiers tiers</span><strong>verts</strong><span>· le dernier tiers</span><strong>rouge</strong></p>
           <div class="form-grid" style="margin-top:12px">
             <label class="label">Minutes
               <input id="timerMinutes" type="number" min="1" max="120" value="${Math.max(1, Math.ceil(timerRemaining / 60))}" onchange="setTimerMinutes(this.value)">
@@ -1456,13 +1508,20 @@
       }
 
       function updateTimerDisplay() {
+        const progress = timerTotal > 0 ? Math.max(0, Math.min(1, (timerTotal - timerRemaining) / timerTotal)) : 0;
         document.querySelectorAll("#timerDisplay, .embedded-timer-display").forEach((display) => {
           display.textContent = formatTimer(timerRemaining);
+        });
+        document.querySelectorAll(".timer-face").forEach((face) => {
+          face.style.setProperty("--timer-angle", `${progress * 360}deg`);
+          face.dataset.phase = progress >= 2 / 3 ? "urgent" : "normal";
+          face.setAttribute("aria-label", `Temps restant : ${formatTimer(timerRemaining)}`);
         });
       }
 
       function setTimerMinutes(value) {
-        timerRemaining = Math.max(1, Math.min(120, Number(value) || 5)) * 60;
+        timerTotal = Math.max(1, Math.min(120, Number(value) || 5)) * 60;
+        timerRemaining = timerTotal;
         pauseClassTimer();
         updateTimerDisplay();
       }
@@ -1483,7 +1542,8 @@
 
       function resetClassTimer() {
         const input = document.querySelector("#timerMinutes");
-        timerRemaining = Math.max(1, Math.min(120, Number(input?.value) || 5)) * 60;
+        timerTotal = Math.max(1, Math.min(120, Number(input?.value) || 5)) * 60;
+        timerRemaining = timerTotal;
         pauseClassTimer();
         updateTimerDisplay();
       }
@@ -1612,7 +1672,7 @@
         const activityCount = sequence.lessons.reduce((total, lesson) => total + lesson.activities.length, 0);
         return `<article class="card entity-card">
           <div>
-            <p class="small" style="font-weight:850;color:var(--wine-700)">Séquence</p>
+            <p class="small" style="font-weight:850;color:var(--wine-700)">Séquence n° ${sequenceNumber(classe, sequence)}</p>
             <h3 style="font-size:24px">${escapeHtml(sequence.title)} ${sequence.isVisible ? "" : "<span class='pill'>Masque</span>"}</h3>
             <p class="muted small">${escapeHtml(sequence.description)}</p>
           </div>
@@ -1639,6 +1699,7 @@
             <div class="breadcrumb"><button onclick="currentPage={type:'classes'};render()">Cours modifiables</button> / Classe / Séquence</div>
             <div class="row wrap">
               <div>
+                <p class="small" style="margin:0 0 4px;font-weight:850;color:var(--wine-700)">Séquence n° ${sequenceNumber(classe, sequence)}</p>
                 <h2 style="margin:0;color:var(--wine-900);font-size:34px">${escapeHtml(sequence.title)}</h2>
                 <p class="muted">${escapeHtml(sequence.description)}</p>
               </div>
@@ -2219,8 +2280,8 @@
         }
         const minutes = Math.max(1, Math.min(120, Number(configuredValue) || 5));
         return `<div class="slide-tool slide-timer" onclick="event.stopPropagation()">
-          <div class="slide-tool-head"><span class="slide-tool-kicker">Chronomètre</span></div>
-          <div class="slide-timer-face"><strong class="embedded-timer-display">${formatTimer(minutes * 60)}</strong></div>
+          <div class="slide-tool-head"><span class="slide-tool-kicker">Chronomètre analogique / numérique</span></div>
+          <div class="timer-face timer-face-small" role="timer" aria-label="Temps restant : ${minutes} minutes"><span class="timer-hand" aria-hidden="true"></span><div class="timer-face-inner"><strong class="embedded-timer-display">${formatTimer(minutes * 60)}</strong></div></div>
           <label class="slide-timer-setting">Minutes <input class="slide-timer-minutes" type="number" min="1" max="120" value="${minutes}" onchange="setSlideTimerMinutes(this.value,event)"></label>
           <div class="slide-tool-buttons">
             <button class="btn primary" onclick="startSlideTimer(this,event)">Démarrer</button>
@@ -2300,7 +2361,8 @@
         const minutes = Math.max(1, Math.min(120, Number(value) || 5));
         const node = event?.target?.closest(".slide-el");
         if (node) node.dataset.value = `timer|${minutes}`;
-        timerRemaining = minutes * 60;
+        timerTotal = minutes * 60;
+        timerRemaining = timerTotal;
         pauseClassTimer();
         updateTimerDisplay();
       }
@@ -2703,6 +2765,7 @@
           </div>
         `;
         fitBoardSlide();
+        updateTimerDisplay();
       }
 
       function elementsForBoardSlide(activity, slideIndex) {
@@ -2739,6 +2802,54 @@
       function hideBoard() {
         document.querySelector("#boardPage").hidden = true;
         document.querySelector("#appPage").hidden = false;
+      }
+
+      function findLessonContext(lessonId) {
+        for (const classe of state.classes) {
+          for (const sequence of classe.sequences || []) {
+            const lesson = (sequence.lessons || []).find((item) => item.id === lessonId);
+            if (lesson) return { lesson, sequence, classe };
+          }
+        }
+        return null;
+      }
+
+      function openLessonPrintPreview(lessonId) {
+        const result = findLessonContext(lessonId);
+        if (!result) return;
+        const { lesson, sequence, classe } = result;
+        const activities = lesson.activities || [];
+        activities.forEach(ensureActivitySlides);
+        const modal = document.querySelector("#editorModal");
+        modal.hidden = false;
+        modal.innerHTML = `<section class="print-preview-shell">
+          <header class="print-preview-toolbar">
+            <div><strong>Aperçu de la séance complète</strong><p class="small muted">Toutes les activités et leurs diapositives seront imprimées dans l'ordre.</p></div>
+            <div class="row wrap"><button class="btn primary" onclick="printActivity()">Imprimer toute la séance</button><button class="btn" onclick="closeEditor()">Fermer</button></div>
+          </header>
+          <div class="print-preview-scroll">
+            <article class="printable-lesson" id="lessonPrintPreview">
+              <header class="print-lesson-head">
+                <p class="print-breadcrumb">${escapeHtml(classe.title)} · Séquence n° ${sequenceNumber(classe, sequence)} · ${escapeHtml(sequence.title)}</p>
+                <h1>${escapeHtml(lesson.title)}</h1>
+                ${lesson.description ? `<p>${escapeHtml(lesson.description)}</p>` : ""}
+                <p class="pill">${activities.length} activité(s)</p>
+              </header>
+              ${activities.map((activity, activityIndex) => `<section class="print-lesson-activity">
+                <header class="print-activity-head">
+                  <p class="print-breadcrumb">Activité ${activityIndex + 1} sur ${activities.length}</p>
+                  <h1>${escapeHtml(activity.title)}</h1>
+                  ${activity.description ? `<p>${escapeHtml(activity.description)}</p>` : ""}
+                  <dl class="print-activity-meta">
+                    ${printMeta("Objectif", activity.objective)}${printMeta("Consigne", activity.instruction)}${printMeta("Durée", activity.estimatedDuration)}${printMeta("Modalité", activity.modality)}${printMeta("Niveau", activity.level)}
+                  </dl>
+                </header>
+                ${(activity.slides || []).map((slide, index) => renderPrintableSlide(activity, slide, index)).join("")}
+                ${(activity.resources || []).length ? `<section class="print-resources"><h2>Ressources</h2><ul>${activity.resources.map((resource) => `<li><strong>${escapeHtml(resource.title)}</strong>${resource.url ? ` — ${escapeHtml(resource.url)}` : ""}</li>`).join("")}</ul></section>` : ""}
+              </section>`).join("") || empty("Cette séance ne contient aucune activité.")}
+            </article>
+          </div>
+        </section>`;
       }
 
       function openActivityPrintPreview(activityId) {
