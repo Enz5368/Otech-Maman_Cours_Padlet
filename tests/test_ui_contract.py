@@ -296,9 +296,12 @@ def test_chrono_est_analogique_numerique_et_colore_par_tiers() -> None:
     assert 'class="timer-face"' in APP_JS
     assert "timerTotal" in APP_JS
     assert 'face.style.setProperty("--timer-green-angle"' in APP_JS
-    assert "#41945f 0 var(--timer-green-angle)" in styles
+    assert "conic-gradient(#41945f 0 var(--timer-green-angle)" in styles
     assert "#ca4545 var(--timer-green-angle) var(--timer-angle)" in styles
     assert "#fff var(--timer-angle) 360deg" in styles
+    timer_face = re.search(r"\.timer-face \{.*?\n      }", styles, re.DOTALL)
+    assert timer_face
+    assert "from -90deg" not in timer_face.group(0)
 
 
 def test_roue_explique_son_fonctionnement_dans_la_roue() -> None:

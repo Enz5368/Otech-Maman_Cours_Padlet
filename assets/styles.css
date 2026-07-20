@@ -1446,8 +1446,8 @@
         border-radius: 50%;
         border: 1px solid var(--line);
         background:
-          repeating-conic-gradient(from -90deg, rgba(59,13,22,.12) 0 1deg, transparent 1deg 15deg),
-          conic-gradient(from -90deg, #41945f 0 var(--timer-green-angle), #ca4545 var(--timer-green-angle) var(--timer-angle), #fff var(--timer-angle) 360deg);
+          repeating-conic-gradient(rgba(59,13,22,.12) 0 1deg, transparent 1deg 15deg),
+          conic-gradient(#41945f 0 var(--timer-green-angle), #ca4545 var(--timer-green-angle) var(--timer-angle), #fff var(--timer-angle) 360deg);
         box-shadow: 0 14px 30px rgba(59,13,22,.14);
       }
       .timer-face-inner {
