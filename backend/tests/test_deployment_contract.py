@@ -15,6 +15,7 @@ def test_deployment_no_longer_uses_destructive_rsync() -> None:
     workflow = (ROOT / ".github" / "workflows" / "deploy.yml").read_text(encoding="utf-8")
     assert "rsync --delete" not in workflow
     assert "scripts/backup.sh" in workflow
+    assert 'git show "$EXPECTED_COMMIT:scripts/backup.sh" | sh' in workflow
     assert "rollback" in workflow
     assert "trap rollback 0" in workflow
     assert "trap rollback ERR" not in workflow
@@ -27,6 +28,13 @@ def test_deployment_no_longer_uses_destructive_rsync() -> None:
     assert 'git reset --hard "$EXPECTED_COMMIT"' in workflow
     assert 'DEPLOYED_INDEX_HASH="$(curl -fsS http://127.0.0.1:30080/' in workflow
     assert '"$DEPLOYED_INDEX_HASH" != "$EXPECTED_INDEX_HASH"' in workflow
+
+
+def test_backup_writes_through_docker_on_truenas() -> None:
+    backup = (ROOT / "scripts" / "backup.sh").read_text(encoding="utf-8")
+    assert 'docker_cmd run --rm -v "$ROOT:/backups"' in backup
+    assert 'mkdir -p "$TARGET"' not in backup
+    assert '> "$TARGET/postgres.dump"' not in backup
 
 
 def test_required_persistent_mounts_exist() -> None:

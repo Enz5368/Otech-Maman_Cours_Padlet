@@ -124,15 +124,15 @@ jobs:
             trap rollback 0
 
             test -f .env
+            git fetch --no-tags origin "$EXPECTED_COMMIT"
             echo "[1/5] Sauvegarde de la base"
             if [ "$PREVIOUS_COMPOSE" -eq 1 ] && docker_cmd compose ps --status running --services | grep -q postgres; then
-              sh scripts/backup.sh
+              git show "$EXPECTED_COMMIT:scripts/backup.sh" | sh
             else
               echo "Premier déploiement : aucune base existante à sauvegarder."
             fi
 
             echo "[2/5] Récupération du commit $EXPECTED_COMMIT"
-            git fetch --no-tags origin "$EXPECTED_COMMIT"
             git reset --hard "$EXPECTED_COMMIT"
             test "$(git rev-parse HEAD)" = "$EXPECTED_COMMIT"
             EXPECTED_INDEX_HASH="$(sha256sum index.html | awk '{print $1}')"
