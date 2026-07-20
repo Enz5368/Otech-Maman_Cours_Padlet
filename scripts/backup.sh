@@ -1,6 +1,15 @@
 #!/bin/sh
 set -eu
 
+if docker info >/dev/null 2>&1; then
+    docker_cmd() { docker "$@"; }
+elif sudo -n /usr/bin/docker info >/dev/null 2>&1; then
+    docker_cmd() { sudo -n /usr/bin/docker "$@"; }
+else
+    echo "Accès Docker refusé : autorisez /usr/bin/docker via sudo sans mot de passe." >&2
+    exit 1
+fi
+
 ROOT="${BACKUPS_DATA_PATH:-/mnt/DriveMaison/Backups}"
 USERS="${USERS_DATA_PATH:-/mnt/DriveMaison/Users}"
 STAMP="$(date -u +%Y%m%dT%H%M%SZ)"
@@ -13,7 +22,7 @@ case "$ROOT" in /mnt/DriveMaison/Backups|/mnt/DriveMaison/Backups/*) ;; *) echo 
 case "$USERS" in /mnt/DriveMaison/Users|/mnt/DriveMaison/Users/*) ;; *) echo "Racine utilisateurs refusée" >&2; exit 2 ;; esac
 TARGET="$ROOT/global/$STAMP"
 mkdir -p "$TARGET"
-docker compose exec -T postgres pg_dump -U "${POSTGRES_USER:-monespaceprof}" -d "${POSTGRES_DB:-monespaceprof}" -Fc > "$TARGET/postgres.dump"
+docker_cmd compose exec -T postgres pg_dump -U "${POSTGRES_USER:-monespaceprof}" -d "${POSTGRES_DB:-monespaceprof}" -Fc > "$TARGET/postgres.dump"
 tar -C "$USERS" -czf "$TARGET/users.tar.gz" .
 sha256sum "$TARGET/postgres.dump" "$TARGET/users.tar.gz" > "$TARGET/SHA256SUMS"
 cat > "$TARGET/manifest.txt" <<EOF

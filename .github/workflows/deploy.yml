@@ -88,6 +88,14 @@ jobs:
             set -eu
             REPO="/mnt/DriveMaison/Database/deploy/apps/Otech-Maman_Cours_Padlet"
             cd "$REPO"
+            if docker info >/dev/null 2>&1; then
+              docker_cmd() { docker "$@"; }
+            elif sudo -n /usr/bin/docker info >/dev/null 2>&1; then
+              docker_cmd() { sudo -n /usr/bin/docker "$@"; }
+            else
+              echo "Le compte de déploiement doit accéder à Docker directement ou via sudo sans mot de passe (/usr/bin/docker)." >&2
+              exit 1
+            fi
             PREVIOUS_COMMIT="$(git rev-parse HEAD)"
             PREVIOUS_COMPOSE=0
             test -f docker-compose.yml && PREVIOUS_COMPOSE=1
@@ -101,13 +109,13 @@ jobs:
               set +e
               echo "Échec du déploiement, retour au code $PREVIOUS_COMMIT"
               if test -f docker-compose.yml; then
-                docker compose down || true
+                docker_cmd compose down || true
               fi
               git reset --hard "$PREVIOUS_COMMIT"
               if [ "$PREVIOUS_COMPOSE" -eq 1 ]; then
-                docker compose build backend scheduler
-                docker compose build --no-cache frontend
-                docker compose up -d --force-recreate
+                docker_cmd compose build backend scheduler
+                docker_cmd compose build --no-cache frontend
+                docker_cmd compose up -d --force-recreate
               else
                 echo "Ancienne version statique conservée ; redémarrer son service Nginx si le basculement initial l'avait arrêté."
               fi
@@ -117,7 +125,7 @@ jobs:
 
             test -f .env
             echo "[1/5] Sauvegarde de la base"
-            if [ "$PREVIOUS_COMPOSE" -eq 1 ] && docker compose ps --status running --services | grep -q postgres; then
+            if [ "$PREVIOUS_COMPOSE" -eq 1 ] && docker_cmd compose ps --status running --services | grep -q postgres; then
               sh scripts/backup.sh
             else
               echo "Premier déploiement : aucune base existante à sauvegarder."
@@ -129,11 +137,11 @@ jobs:
             test "$(git rev-parse HEAD)" = "$EXPECTED_COMMIT"
             EXPECTED_INDEX_HASH="$(sha256sum index.html | awk '{print $1}')"
             echo "[3/5] Construction des images"
-            docker compose config --quiet
-            docker compose build backend scheduler
-            docker compose build --no-cache frontend
+            docker_cmd compose config --quiet
+            docker_cmd compose build backend scheduler
+            docker_cmd compose build --no-cache frontend
             echo "[4/5] Redémarrage des services"
-            docker compose up -d --remove-orphans --force-recreate
+            docker_cmd compose up -d --remove-orphans --force-recreate
 
             echo "[5/5] Vérification du site réellement servi"
             for attempt in $(seq 1 30); do
@@ -144,7 +152,7 @@ jobs:
                   exit 1
                 fi
                 trap - 0
-                docker image prune -f --filter "until=168h" >/dev/null
+                docker_cmd image prune -f --filter "until=168h" >/dev/null
                 echo "Déploiement validé : $(date -u +%FT%TZ)"
                 exit 0
               fi

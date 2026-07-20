@@ -19,8 +19,9 @@ def test_deployment_no_longer_uses_destructive_rsync() -> None:
     assert "trap rollback 0" in workflow
     assert "trap rollback ERR" not in workflow
     assert 'exit "$FAILURE_CODE"' in workflow
-    assert "docker compose up -d --remove-orphans --force-recreate" in workflow
-    assert "docker compose build --no-cache frontend" in workflow
+    assert "docker_cmd compose up -d --remove-orphans --force-recreate" in workflow
+    assert "sudo -n /usr/bin/docker" in workflow
+    assert "docker_cmd compose build --no-cache frontend" in workflow
     assert 'test "$(git rev-parse HEAD)" = "$EXPECTED_COMMIT"' in workflow
     assert 'git fetch --no-tags origin "$EXPECTED_COMMIT"' in workflow
     assert 'git reset --hard "$EXPECTED_COMMIT"' in workflow
