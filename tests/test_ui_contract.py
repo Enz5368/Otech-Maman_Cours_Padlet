@@ -101,6 +101,70 @@ def test_un_nouvel_onglet_attend_la_sauvegarde_serveur() -> None:
     assert "Promise.resolve(pendingWorkspaceSave).then" in APP_JS
 
 
+def test_les_entrees_de_gauche_reutilisent_leur_onglet_existant() -> None:
+    assert 'openUrlInNewTabAfterSave(appUrl({ view }), `in-viaggio-view-${slugify(view)}`)' in APP_JS
+    assert 'const target = window.open("", targetName);' in APP_JS
+    assert "target.focus();" in APP_JS
+
+
+def test_les_activites_ont_un_apercu_impression_et_un_export_word() -> None:
+    assert "Aperçu / imprimer" in APP_JS
+    assert "function openActivityPrintPreview(activityId)" in APP_JS
+    assert "function exportActivityWord(activityId)" in APP_JS
+    assert "function makeActivityDocx" in APP_JS
+    assert "application/vnd.openxmlformats-officedocument.wordprocessingml.document" in APP_JS
+
+
+def test_les_outils_existants_peuvent_etre_inseres_dans_une_diapo() -> None:
+    assert "const slideTools =" in APP_JS
+    assert "function addToolElement(activityId)" in APP_JS
+    assert 'kind: "tool"' in APP_JS
+    assert "function renderSlideTool" in APP_JS
+    assert "function spinSlideWheel" in APP_JS
+    assert "function configureSlideWheel" in APP_JS
+    assert "function toggleSlideWheelAbsence" in APP_JS
+    assert "function startSlideTimer" in APP_JS
+    assert 'class="slide-wheel-visual"' in APP_JS
+    assert 'class="slide-tool-settings"' in APP_JS
+
+
+def test_le_fichier_html_possede_un_mode_local_autonome() -> None:
+    assert "function isLocalFileMode()" in APP_JS
+    assert 'window.location.protocol === "file:"' in APP_JS
+    assert 'root: { password: "root", role: "admin" }' in APP_JS
+    assert 'rose: { password: "it", role: "teacher" }' in APP_JS
+    assert "state = ensureDemoData(loadData());" in APP_JS
+    assert "if (!usesServerStorage())" in APP_JS
+    assert 'id="localLoginHint"' in INDEX
+
+
+def test_la_vue_a_projeter_propose_l_arbre_de_chaque_item() -> None:
+    assert "function openTableauSubtree" in APP_JS
+    assert "projectTreeClassNode" in APP_JS
+    assert "projectTreeSequenceNode" in APP_JS
+    assert "projectTreeLessonNode" in APP_JS
+    assert "projectTreeActivityNode" in APP_JS
+    assert "openTableauSubtree('class'" in APP_JS
+    assert "openTableauSubtree('sequence'" in APP_JS
+    assert "openTableauSubtree('lesson'" in APP_JS
+
+
+def test_le_champ_description_d_une_seance_est_libelle_objectif() -> None:
+    assert 'const descriptionLabel = type === "lesson" ? "Objectif" : "Description";' in APP_JS
+
+
+def test_le_gestionnaire_de_categories_est_guide_et_explicite() -> None:
+    assert "Ranger les niveaux par catégorie" in APP_JS
+    assert "1</span><div><h3>Créer et ordonner les catégories" in APP_JS
+    assert "2</span><div><h3>Choisir la catégorie de chaque niveau" in APP_JS
+    assert "Enregistrer les changements" in APP_JS
+    assert "function moveCategoryEditorRow" in APP_JS
+    assert "function updateCategoryMoveButtons" in APP_JS
+    assert "function refreshCategoryAssignmentOptions" in APP_JS
+    assert "function updateCategoryCounts" in APP_JS
+    assert "Organiser les catégories" in APP_JS
+
+
 def test_enregistrement_bloque_interface_jusqu_a_confirmation() -> None:
     assert "async function saveData(message, triggerButton)" in APP_JS
     assert "function beginSaveLock(triggerButton)" in APP_JS

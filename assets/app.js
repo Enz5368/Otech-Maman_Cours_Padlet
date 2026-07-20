@@ -15,6 +15,15 @@
       };
       const categories = ["Audios", "Vidéos", "Affiches", "Documents", "Fiches vocabulaire", "Quiz", "Corrections", "Liens utiles"];
       const modalities = ["seul", "par deux", "groupe", "classe entière"];
+      const slideTools = {
+        wheel: { title: "Roue de la fortune", description: "Tirer un élève au hasard dans un groupe classe." },
+        timer: { title: "Chronomètre", description: "Afficher et piloter le minuteur de classe." }
+      };
+      const localAccounts = {
+        root: { password: "root", role: "admin" },
+        rose: { password: "it", role: "teacher" }
+      };
+      const localSessionKey = "mep-local-session-v1";
       const slideSize = { width: 960, height: 540, gap: 36 };
       let authenticatedUser = null;
       let storageInfo = null;
@@ -52,6 +61,22 @@
       async function loginAccount(username, password) {
         const cleanUsername = slugify(username);
         if (!cleanUsername || !password) return false;
+        if (isLocalFileMode()) {
+          const account = localAccounts[cleanUsername];
+          if (!account || account.password !== password) return false;
+          authenticatedUser = localAuthenticatedUser(cleanUsername);
+          sessionStorage.setItem(localSessionKey, cleanUsername);
+          adminUsers = [];
+          adminUsersLoaded = false;
+          adminUsersError = "";
+          state = ensureDemoData(loadData());
+          storageInfo = null;
+          markStateConfirmed();
+          currentView = "dashboard";
+          currentPage = { type: "classes" };
+          currentTableauPage = { type: "classes" };
+          return true;
+        }
         try {
           authenticatedUser = await window.ServerAPI.login(cleanUsername, password);
           adminUsers = [];
@@ -77,6 +102,19 @@
         return authenticatedUser?.username || "";
       }
 
+      function isLocalFileMode() {
+        return window.location.protocol === "file:";
+      }
+
+      function localAuthenticatedUser(username) {
+        const account = localAccounts[username];
+        return account ? { id: `local-${username}`, username, role: account.role, status: "active", local: true } : null;
+      }
+
+      function usesServerStorage() {
+        return isLoggedIn() && !isLocalFileMode();
+      }
+
       function isLoggedIn() {
         return Boolean(currentUsername());
       }
@@ -97,11 +135,14 @@
         document.querySelector("#appPage").hidden = true;
         document.querySelector("#boardPage").hidden = true;
         document.querySelector("#loginPage").hidden = false;
+        const localHint = document.querySelector("#localLoginHint");
+        if (localHint) localHint.hidden = !isLocalFileMode();
         setTimeout(() => document.querySelector("input[name='username']")?.focus(), 50);
       }
 
       function openFreeExample() {
-        window.ServerAPI.logout().catch(() => {});
+        if (!isLocalFileMode()) window.ServerAPI.logout().catch(() => {});
+        sessionStorage.removeItem(localSessionKey);
         authenticatedUser = null;
         storageInfo = null;
         freeExampleOpen = true;
@@ -371,7 +412,8 @@
 
       async function saveData(message, triggerButton) {
         localStorage.setItem(currentCacheKey(), JSON.stringify({ ...state, cachedAt: new Date().toISOString() }));
-        if (!isLoggedIn()) {
+        if (!usesServerStorage()) {
+          markStateConfirmed();
           if (message) toast(message);
           render();
           return true;
@@ -405,6 +447,10 @@
       }
 
       function offerPasswordChange() {
+        if (isLocalFileMode()) {
+          toast("Les mots de passe du mode local sont fixes. Utilisez root/root ou rose/it.");
+          return;
+        }
         const modal = document.querySelector("#editorModal");
         modal.hidden = false;
         modal.innerHTML = `
@@ -604,28 +650,36 @@
       }
 
       function openUrlInNewTabAfterSave(url) {
-        const target = window.open("about:blank", "_blank");
+        const targetName = arguments[1] || "_blank";
+        const target = window.open("", targetName);
         if (!target) {
           toast("Autorisez les fenêtres contextuelles pour ouvrir cette vue.");
           return;
         }
-        target.opener = null;
+        let openedFresh = false;
+        try {
+          openedFresh = target.location.href === "about:blank";
+        } catch {
+          // Un onglet nommé peut avoir navigué hors du site : il reste réutilisable.
+        }
+        target.focus();
         Promise.resolve(pendingWorkspaceSave).then((saved) => {
           if (saved || !isLoggedIn()) {
             target.location.replace(url);
+            target.focus();
             return;
           }
-          target.close();
+          if (openedFresh) target.close();
           toast("La vue n'a pas été ouverte car l'enregistrement serveur a échoué.");
         });
       }
 
       function openViewInNewTab(view) {
-        openUrlInNewTabAfterSave(appUrl({ view }));
+        openUrlInNewTabAfterSave(appUrl({ view }), `in-viaggio-view-${slugify(view)}`);
       }
 
       function openBoardInNewTab(activityId, slideIndex = 0) {
-        openUrlInNewTabAfterSave(appUrl({ board: activityId, slide: slideIndex }));
+        openUrlInNewTabAfterSave(appUrl({ board: activityId, slide: slideIndex }), `in-viaggio-board-${slugify(activityId)}`);
       }
 
       function applyInitialRoute() {
@@ -764,7 +818,10 @@
             <h3 style="font-size:28px">${escapeHtml(classe.title)}</h3>
             <p class="muted small">${classe.sequences.length} séquence(s)</p>
           </div>
-          <button class="btn primary" onclick="openTableauClass('${classe.id}')">Ouvrir</button>
+          <div class="row wrap">
+            <button class="btn" onclick="openTableauSubtree('class','${classe.id}')">Arbre</button>
+            <button class="btn primary" onclick="openTableauClass('${classe.id}')">Ouvrir</button>
+          </div>
         </article>`;
       }
 
@@ -791,7 +848,10 @@
             <h3 style="font-size:24px">${escapeHtml(sequence.title)}</h3>
             <p class="muted small">${sequence.lessons.length} séance(s)</p>
           </div>
-          <button class="btn primary" onclick="openTableauSequence('${classe.id}','${sequence.id}')">Ouvrir</button>
+          <div class="row wrap">
+            <button class="btn" onclick="openTableauSubtree('sequence','${classe.id}','${sequence.id}')">Arbre</button>
+            <button class="btn primary" onclick="openTableauSequence('${classe.id}','${sequence.id}')">Ouvrir</button>
+          </div>
         </article>`;
       }
 
@@ -819,8 +879,75 @@
             <h3>${escapeHtml(lesson.title)}</h3>
             <p class="muted small">${lesson.activities.length} activité(s)</p>
           </div>
-          <button class="btn primary" onclick="openTableauLesson('${classe.id}','${sequence.id}','${lesson.id}')">Ouvrir</button>
+          <div class="row wrap">
+            <button class="btn" onclick="openTableauSubtree('lesson','${classe.id}','${sequence.id}','${lesson.id}')">Arbre</button>
+            <button class="btn primary" onclick="openTableauLesson('${classe.id}','${sequence.id}','${lesson.id}')">Ouvrir</button>
+          </div>
         </article>`;
+      }
+
+      function openTableauSubtree(type, classId, sequenceId = "", lessonId = "") {
+        const classe = findItem("class", classId);
+        const sequence = sequenceId ? findItem("sequence", sequenceId) : null;
+        const lesson = lessonId ? findItem("lesson", lessonId) : null;
+        let branch = "";
+        let title = "Arbre";
+        if (type === "class" && classe) {
+          branch = projectTreeClassNode(classe);
+          title = classe.title;
+        }
+        if (type === "sequence" && classe && sequence) {
+          branch = projectTreeSequenceNode(classe, sequence);
+          title = sequence.title;
+        }
+        if (type === "lesson" && classe && sequence && lesson) {
+          branch = projectTreeLessonNode(classe, sequence, lesson);
+          title = lesson.title;
+        }
+        if (!branch) return;
+        const modal = document.querySelector("#editorModal");
+        modal.hidden = false;
+        modal.innerHTML = `<section class="subtree-dialog">
+          <header class="subtree-head">
+            <div><p class="small">Arbre à partir de l'élément</p><h2>${escapeHtml(title)}</h2></div>
+            <button class="btn icon" onclick="closeEditor()">X</button>
+          </header>
+          <div class="subtree-body course-tree-scroll" aria-label="Branche de ${escapeAttr(title)}">
+            <div class="course-tree subtree-course-tree"><ul class="tree-level tree-classes">${branch}</ul></div>
+          </div>
+        </section>`;
+      }
+
+      function projectTreeClassNode(classe) {
+        return `<li>
+          <button class="tree-node tree-class" onclick="closeEditor();openTableauClass('${classe.id}')"><span>Classe</span><strong>${escapeHtml(classe.title)}</strong></button>
+          ${treeChildren((classe.sequences || []).filter((sequence) => sequence.isVisible !== false).map((sequence) => projectTreeSequenceNode(classe, sequence)))}
+        </li>`;
+      }
+
+      function projectTreeSequenceNode(classe, sequence) {
+        return `<li>
+          <button class="tree-node tree-sequence" onclick="closeEditor();openTableauSequence('${classe.id}','${sequence.id}')"><span>Séquence</span><strong>${escapeHtml(sequence.title)}</strong></button>
+          ${treeChildren((sequence.lessons || []).filter((lesson) => lesson.isVisible !== false).map((lesson) => projectTreeLessonNode(classe, sequence, lesson)))}
+        </li>`;
+      }
+
+      function projectTreeLessonNode(classe, sequence, lesson) {
+        return `<li>
+          <button class="tree-node tree-lesson" onclick="closeEditor();openTableauLesson('${classe.id}','${sequence.id}','${lesson.id}')"><span>Séance</span><strong>${escapeHtml(lesson.title)}</strong></button>
+          ${treeChildren((lesson.activities || []).filter((activity) => activity.isVisible !== false).map(projectTreeActivityNode))}
+        </li>`;
+      }
+
+      function projectTreeActivityNode(activity) {
+        return `<li>
+          <button class="tree-node tree-activity" onclick="closeEditor();openBoardInNewTab('${activity.id}',0)"><span>Activité</span><strong>${escapeHtml(activity.title)}</strong></button>
+          ${treeChildren((activity.resources || []).filter((resource) => resource.isVisible !== false).map(projectTreeResourceNode))}
+        </li>`;
+      }
+
+      function projectTreeResourceNode(resource) {
+        return `<li><div class="tree-node tree-resource"><span>Ressource</span><strong>${escapeHtml(resource.title)}</strong></div></li>`;
       }
 
       function renderTableauLesson(classId, sequenceId, lessonId) {
@@ -848,7 +975,10 @@
             <h3 style="font-size:24px">${escapeHtml(activity.title)}</h3>
             <p class="muted small">${escapeHtml(activity.description || "Activité à projeter.")}</p>
           </div>
-          <button class="btn primary" onclick="openBoardInNewTab('${activity.id}',0)">Présenter</button>
+          <div class="row wrap">
+            <button class="btn" onclick="openActivityPrintPreview('${activity.id}')">Aperçu / imprimer</button>
+            <button class="btn primary" onclick="openBoardInNewTab('${activity.id}',0)">Présenter</button>
+          </div>
         </article>`;
       }
 
@@ -862,6 +992,7 @@
             </div>
             <div class="activity-actions">
               <button class="btn primary" onclick="openBoardInNewTab('${activity.id}',0)">Présenter</button>
+              <button class="btn" onclick="openActivityPrintPreview('${activity.id}')">Aperçu / imprimer</button>
               <button class="btn" onclick="setView('classes')">Retrouver dans les classes</button>
             </div>
           </div>
@@ -880,7 +1011,7 @@
                 <h2 style="margin:0;color:var(--wine-900);font-size:34px">Toutes les classes</h2>
                 <p class="muted">Clique sur Modifier pour entrer dans une classe et gérer ses séquences sur une page dédiée.</p>
               </div>
-              ${editOnly(`<div class="row wrap"><button class="btn" onclick="manageCategories()">Catégorie</button><button class="btn primary" onclick="openEditor('class')">Ajouter une classe</button></div>`)}
+              ${editOnly(`<div class="row wrap"><button class="btn" onclick="manageCategories()">Organiser les catégories</button><button class="btn primary" onclick="openEditor('class')">Ajouter une classe</button></div>`)}
             </div>
           </section>
           <section>${state.categories.map((category) => `<div class="category-group"><h3 class="category-title" draggable="true" data-category="${escapeAttr(category)}">— ${escapeHtml(category)} —</h3><div class="page-grid">${state.classes.filter((classe) => classe.category === category).map(classCard).join("") || empty("Aucune classe dans cette catégorie.")}</div></div>`).join("")}${state.classes.some((classe) => !classe.category || !state.categories.includes(classe.category)) ? `<div class="category-group"><h3 class="category-title">— Sans catégorie —</h3><div class="page-grid">${state.classes.filter((classe) => !classe.category || !state.categories.includes(classe.category)).map(classCard).join("")}</div></div>` : ""}</section>
@@ -953,28 +1084,156 @@
       function manageCategories() {
         const modal = document.querySelector("#editorModal");
         modal.hidden = false;
-        modal.innerHTML = `<div class="drawer"><div class="drawer-head"><strong>Catégories</strong><button class="btn" type="button" onclick="closeEditor()">Fermer</button></div><div class="drawer-body"><p class="muted small">Glissez une catégorie pour changer son ordre.</p><div id="categoryEditorList">${state.categories.map((category) => `<div class="row wrap category-editor-item" draggable="true" data-category="${escapeAttr(category)}"><input class="input" value="${escapeAttr(category)}"><button class="btn danger" type="button" onclick="removeCategory('${escapeAttr(category)}')">Supprimer</button></div>`).join("")}</div><button class="btn" type="button" onclick="addCategoryEditorRow()">Ajouter une catégorie</button><hr><p class="muted small">Items</p><div id="categoryItems">${state.classes.map((classe) => `<label class="label">${escapeHtml(classe.title)}<select data-class-category="${escapeAttr(classe.id)}"><option value="">Sans catégorie</option>${state.categories.map((category) => `<option value="${escapeAttr(category)}" ${classe.category === category ? "selected" : ""}>${escapeHtml(category)}</option>`).join("")}</select></label>`).join("")}</div><button class="btn primary" type="button" onclick="saveCategoriesFromDrawer()">Enregistrer</button></div></div>`;
-        document.querySelectorAll(".category-editor-item").forEach((item) => item.addEventListener("dragstart", (event) => event.dataTransfer.setData("text/plain", item.dataset.category)));
-        document.querySelectorAll(".category-editor-item").forEach((item) => item.addEventListener("dragover", (event) => event.preventDefault()));
-        document.querySelectorAll(".category-editor-item").forEach((item) => item.addEventListener("drop", (event) => { event.preventDefault(); const source = event.dataTransfer.getData("text/plain"); const node = [...document.querySelectorAll(".category-editor-item")].find((entry) => entry.dataset.category === source); if (node && node !== item) item.parentNode.insertBefore(node, item); }));
-        document.querySelectorAll("[data-class-category]").forEach((select) => select.closest(".label").setAttribute("draggable", "true"));
-        organizeCategoryDrawerItems();
+        const categoryRows = state.categories.map((category, index) => ({ key: `category-${index}`, name: category }));
+        modal.innerHTML = `<div class="drawer category-drawer">
+          <div class="drawer-head category-drawer-head">
+            <div>
+              <p class="category-eyebrow">Organisation des cours</p>
+              <h2>Ranger les niveaux par catégorie</h2>
+              <p class="muted small">Suivez simplement les étapes 1 et 2, puis enregistrez.</p>
+            </div>
+            <button class="btn icon" type="button" onclick="closeEditor()" aria-label="Fermer sans enregistrer">X</button>
+          </div>
+          <div class="drawer-body category-manager">
+            <section class="category-step">
+              <div class="category-step-title"><span>1</span><div><h3>Créer et ordonner les catégories</h3><p>Exemples : Collège, Lycée. Utilisez les flèches pour choisir l'ordre d'affichage.</p></div></div>
+              <div id="categoryEditorList" class="category-editor-list">${categoryRows.map(categoryEditorRow).join("")}</div>
+              <div class="category-add-box">
+                <label class="label">Nom de la nouvelle catégorie<input id="newCategoryName" class="input" placeholder="Exemple : Primaire"></label>
+                <button class="btn" type="button" onclick="addCategoryEditorRow()">+ Ajouter cette catégorie</button>
+              </div>
+            </section>
+            <section class="category-step">
+              <div class="category-step-title"><span>2</span><div><h3>Choisir la catégorie de chaque niveau</h3><p>Pour chaque niveau, choisissez simplement où le ranger.</p></div></div>
+              <div id="categoryItems" class="category-class-list">${state.classes.map((classe, index) => categoryClassRow(classe, index, categoryRows)).join("") || empty("Aucun niveau à classer.")}</div>
+            </section>
+          </div>
+          <div class="category-manager-footer">
+            <button class="btn" type="button" onclick="closeEditor()">Annuler</button>
+            <button class="btn primary" type="button" onclick="saveCategoriesFromDrawer(this)">Enregistrer les changements</button>
+          </div>
+        </div>`;
+        document.querySelector("#newCategoryName")?.addEventListener("keydown", (event) => {
+          if (event.key === "Enter") { event.preventDefault(); addCategoryEditorRow(); }
+        });
+        updateCategoryMoveButtons();
+        updateCategoryCounts();
       }
 
-      function organizeCategoryDrawerItems() {
-        const list = document.querySelector("#categoryItems");
-        if (!list) return;
-        const labels = [...list.querySelectorAll(".label")];
-        const groups = new Map();
-        state.categories.forEach((category) => { const group = document.createElement("div"); group.className = "category-items-group"; group.innerHTML = `<h3>${escapeHtml(category)}</h3>`; list.appendChild(group); groups.set(category, group); });
-        const uncategorized = document.createElement("div"); uncategorized.className = "category-items-group"; uncategorized.innerHTML = "<h3>Sans catégorie</h3>"; list.appendChild(uncategorized);
-        labels.forEach((label) => { const select = label.querySelector("select"); const group = groups.get(select.value) || uncategorized; group.appendChild(label); });
+      function categoryEditorRow(category) {
+        return `<article class="category-editor-item" data-category-key="${escapeAttr(category.key)}">
+          <div class="category-order-buttons">
+            <button class="btn" type="button" data-move="up" onclick="moveCategoryEditorRow('${escapeAttr(category.key)}',-1)">↑ Monter</button>
+            <button class="btn" type="button" data-move="down" onclick="moveCategoryEditorRow('${escapeAttr(category.key)}',1)">↓ Descendre</button>
+          </div>
+          <label class="label category-name-field">Nom de la catégorie<input class="input" value="${escapeAttr(category.name)}" oninput="refreshCategoryAssignmentOptions()"></label>
+          <span class="pill category-count" data-category-count="${escapeAttr(category.key)}">0 niveau</span>
+          <button class="btn danger" type="button" onclick="removeCategory('${escapeAttr(category.key)}')">Supprimer</button>
+        </article>`;
       }
 
-      function addCategoryEditorRow() { const list = document.querySelector("#categoryEditorList"); list.insertAdjacentHTML("beforeend", `<div class="row wrap category-editor-item"><input class="input" placeholder="Nouvelle catégorie"><button class="btn danger" type="button" onclick="this.parentElement.remove()">Supprimer</button></div>`); }
-      function renderCategoryGroups() { return state.categories.map((category) => `<div class="category-preview"><h3>${escapeHtml(category)}</h3>${state.classes.filter((classe) => classe.category === category).map((classe) => `<div class="category-preview-item">${escapeHtml(classe.title)}</div>`).join("") || `<p class="muted small">Aucun item</p>`}</div>`).join("") + `<div class="category-preview"><h3>Sans catégorie</h3>${state.classes.filter((classe) => !classe.category || !state.categories.includes(classe.category)).map((classe) => `<div class="category-preview-item">${escapeHtml(classe.title)}</div>`).join("")}</div>`; }
-      function removeCategory(category) { const item = [...document.querySelectorAll(".category-editor-item")].find((entry) => entry.dataset.category === category); if (item) item.remove(); }
-      function saveCategoriesFromDrawer() { const next = [...document.querySelectorAll("#categoryEditorList input")].map((input) => input.value.trim()).filter(Boolean); state.categories = [...new Set(next)]; document.querySelectorAll("[data-class-category]").forEach((select) => { const classe = state.classes.find((item) => item.id === select.dataset.classCategory); if (classe) classe.category = select.value || ""; }); saveData("Catégories mises à jour."); }
+      function categoryClassRow(classe, index, categories) {
+        const selectedKey = categories.find((category) => category.name === classe.category)?.key || "";
+        return `<article class="category-class-row">
+          <span class="category-class-number">${index + 1}</span>
+          <div class="category-class-name"><strong>${escapeHtml(classe.title)}</strong><small>Niveau à ranger</small></div>
+          <label class="label">Ranger dans
+            <select data-class-category="${escapeAttr(classe.id)}" onchange="updateCategoryCounts()">
+              <option value="">Sans catégorie</option>
+              ${categories.map((category) => `<option value="${escapeAttr(category.key)}" ${selectedKey === category.key ? "selected" : ""}>${escapeHtml(category.name)}</option>`).join("")}
+            </select>
+          </label>
+        </article>`;
+      }
+
+      function categoryDraftRows() {
+        return [...document.querySelectorAll(".category-editor-item")].map((row) => ({
+          key: row.dataset.categoryKey,
+          name: row.querySelector(".category-name-field input")?.value.trim() || ""
+        }));
+      }
+
+      function addCategoryEditorRow() {
+        const input = document.querySelector("#newCategoryName");
+        const name = input?.value.trim() || "";
+        if (!name) {
+          input?.focus();
+          toast("Écrivez d'abord le nom de la catégorie.");
+          return;
+        }
+        const duplicate = categoryDraftRows().some((category) => category.name.toLowerCase() === name.toLowerCase());
+        if (duplicate) return toast("Cette catégorie existe déjà.");
+        const category = { key: uid("category"), name };
+        document.querySelector("#categoryEditorList")?.insertAdjacentHTML("beforeend", categoryEditorRow(category));
+        input.value = "";
+        updateCategoryMoveButtons();
+        refreshCategoryAssignmentOptions();
+        input.focus();
+      }
+
+      function moveCategoryEditorRow(key, direction) {
+        const row = document.querySelector(`.category-editor-item[data-category-key="${key}"]`);
+        if (!row) return;
+        if (direction < 0 && row.previousElementSibling) row.parentElement.insertBefore(row, row.previousElementSibling);
+        if (direction > 0 && row.nextElementSibling) row.parentElement.insertBefore(row.nextElementSibling, row);
+        updateCategoryMoveButtons();
+      }
+
+      function updateCategoryMoveButtons() {
+        const rows = [...document.querySelectorAll(".category-editor-item")];
+        rows.forEach((row, index) => {
+          const up = row.querySelector('[data-move="up"]');
+          const down = row.querySelector('[data-move="down"]');
+          if (up) up.disabled = index === 0;
+          if (down) down.disabled = index === rows.length - 1;
+        });
+      }
+
+      function removeCategory(key) {
+        const row = document.querySelector(`.category-editor-item[data-category-key="${key}"]`);
+        if (!row) return;
+        const assigned = [...document.querySelectorAll("[data-class-category]")].filter((select) => select.value === key);
+        const name = row.querySelector("input")?.value.trim() || "cette catégorie";
+        if (assigned.length && !confirm(`Supprimer « ${name} » ? ${assigned.length} niveau(x) passeront dans « Sans catégorie ».`)) return;
+        assigned.forEach((select) => { select.value = ""; });
+        row.remove();
+        updateCategoryMoveButtons();
+        refreshCategoryAssignmentOptions();
+      }
+
+      function refreshCategoryAssignmentOptions() {
+        const categories = categoryDraftRows();
+        document.querySelectorAll("[data-class-category]").forEach((select) => {
+          const selected = select.value;
+          select.innerHTML = `<option value="">Sans catégorie</option>${categories.map((category) => `<option value="${escapeAttr(category.key)}">${escapeHtml(category.name || "Catégorie sans nom")}</option>`).join("")}`;
+          select.value = categories.some((category) => category.key === selected) ? selected : "";
+        });
+        updateCategoryCounts();
+      }
+
+      function updateCategoryCounts() {
+        const counts = {};
+        document.querySelectorAll("[data-class-category]").forEach((select) => { if (select.value) counts[select.value] = Number(counts[select.value] || 0) + 1; });
+        document.querySelectorAll("[data-category-count]").forEach((badge) => {
+          const count = Number(counts[badge.dataset.categoryCount] || 0);
+          badge.textContent = `${count} niveau${count > 1 ? "x" : ""}`;
+        });
+      }
+
+      async function saveCategoriesFromDrawer(triggerButton) {
+        const categories = categoryDraftRows();
+        if (categories.some((category) => !category.name)) return toast("Chaque catégorie doit avoir un nom.");
+        const normalized = categories.map((category) => category.name.toLowerCase());
+        if (new Set(normalized).size !== normalized.length) return toast("Deux catégories portent le même nom.");
+        const namesByKey = Object.fromEntries(categories.map((category) => [category.key, category.name]));
+        state.categories = categories.map((category) => category.name);
+        document.querySelectorAll("[data-class-category]").forEach((select) => {
+          const classe = state.classes.find((item) => item.id === select.dataset.classCategory);
+          if (classe) classe.category = namesByKey[select.value] || "";
+        });
+        const saved = await saveData("Catégories mises à jour.", triggerButton);
+        if (saved) closeEditor();
+      }
 
       function reorderCategory(event, target) {
         const source = event.dataTransfer.getData("text/plain");
@@ -1118,8 +1377,9 @@
       }
 
       function updateTimerDisplay() {
-        const display = document.querySelector("#timerDisplay");
-        if (display) display.textContent = formatTimer(timerRemaining);
+        document.querySelectorAll("#timerDisplay, .embedded-timer-display").forEach((display) => {
+          display.textContent = formatTimer(timerRemaining);
+        });
       }
 
       function setTimerMinutes(value) {
@@ -1258,7 +1518,7 @@
               </div>
               ${editOnly(`<div class="row wrap">
 
-                <button class="btn" onclick="manageCategories()">Catégorie</button>
+                <button class="btn" onclick="manageCategories()">Organiser les catégories</button>
                 <button class="btn" onclick="openEditor('class','${classe.id}')">Modification</button>
                 <button class="btn primary" onclick="openEditor('sequence',null,{classId:'${classe.id}'})">Ajouter une séquence</button>
                 <button class="btn danger" onclick="removeItem('class','${classe.id}')">Supprimer la classe</button>
@@ -1304,7 +1564,7 @@
                 <p class="muted">${escapeHtml(sequence.description)}</p>
               </div>
               ${editOnly(`<div class="row wrap">
-                <button class="btn" onclick="manageCategories()">Catégorie</button>
+                <button class="btn" onclick="manageCategories()">Organiser les catégories</button>
                 <button class="btn" onclick="openEditor('sequence','${sequence.id}')">Modification</button>
                 <button class="btn primary" onclick="openEditor('lesson',null,{classId:'${classe.id}',sequenceId:'${sequence.id}'})">Ajouter une séance</button>
                 <button class="btn danger" onclick="removeItem('sequence','${sequence.id}')">Supprimer la séquence</button>
@@ -1349,7 +1609,7 @@
               </div>
               ${editOnly(`<div class="row wrap">
 
-                <button class="btn" onclick="manageCategories()">Catégorie</button>
+                <button class="btn" onclick="manageCategories()">Organiser les catégories</button>
                 <button class="btn" onclick="openEditor('lesson','${lesson.id}')">Modification</button>
                 <button class="btn primary" onclick="createActivityInLesson('${lesson.id}')">Ajouter une activité</button>
                 <button class="btn danger" onclick="removeItem('lesson','${lesson.id}')">Supprimer la séance</button>
@@ -1416,6 +1676,7 @@
             <div class="activity-actions">
               ${editOnly(moveButtons("activity", activity.id))}
               <button class="btn primary" onclick="openBoardInNewTab('${activity.id}')">Présenter</button>
+              <button class="btn" onclick="openActivityPrintPreview('${activity.id}')">Aperçu / imprimer</button>
               ${editOnly(`<button class="btn" onclick="openActivityStudio('${activity.id}')">Modifier</button>
               <button class="btn danger" onclick="removeItem('activity','${activity.id}')">Supprimer</button>`)}
             </div>
@@ -1606,18 +1867,19 @@
 
       function renderSettings() {
         const formatBytes = (value) => `${(Number(value || 0) / (1024 * 1024)).toLocaleString("fr-FR", { maximumFractionDigits: 1 })} Mo`;
-        const isAdmin = authenticatedUser?.role === "admin";
+        const localMode = isLoggedIn() && isLocalFileMode();
+        const isAdmin = authenticatedUser?.role === "admin" && !localMode;
         document.querySelector("#content").innerHTML = `
           <div class="grid two">
             <section class="card">
               <h2>Compte et sécurité</h2>
               <p class="muted">Compte connecté : <strong>${isLoggedIn() ? escapeHtml(currentUsername()) : "visiteur public"}</strong></p>
-              <p class="small muted">${isLoggedIn() ? "Votre mot de passe protège vos cours et vos données enregistrées sur le serveur." : "Vous pouvez consulter les exemples sans identifiant. Connectez-vous pour modifier, exporter ou importer des données."}</p>
-              ${isLoggedIn() ? '<button class="btn primary" onclick="offerPasswordChange()">Changer mon mot de passe</button>' : ""}
+              <p class="small muted">${localMode ? "Mode local autonome : les données restent dans ce navigateur et ne sont pas envoyées au serveur." : isLoggedIn() ? "Votre mot de passe protège vos cours et vos données enregistrées sur le serveur." : "Vous pouvez consulter les exemples sans identifiant. Connectez-vous pour modifier, exporter ou importer des données."}</p>
+              ${isLoggedIn() && !localMode ? '<button class="btn primary" onclick="offerPasswordChange()">Changer mon mot de passe</button>' : ""}
             </section>
             <section class="card">
               <h2>Données</h2>
-              <p class="muted">${isLoggedIn() ? "Mode serveur activé : vos données sont enregistrées sur le NAS et disponibles depuis tous vos appareils. Utilisez Exporter ZIP ou Exporter pour conserver une copie supplémentaire." : "Mode consultation uniquement."}</p>
+              <p class="muted">${localMode ? "Mode local activé : vos modifications sont enregistrées uniquement dans le stockage de ce navigateur. Pensez à utiliser Exporter ZIP pour conserver une sauvegarde." : isLoggedIn() ? "Mode serveur activé : vos données sont enregistrées sur le NAS et disponibles depuis tous vos appareils. Utilisez Exporter ZIP ou Exporter pour conserver une copie supplémentaire." : "Mode consultation uniquement."}</p>
               ${isLoggedIn() && storageInfo ? `<p class="small muted">Espace serveur : ${formatBytes(storageInfo.used_bytes)} utilisés sur ${formatBytes(storageInfo.quota_bytes)}. Images : ${formatBytes(storageInfo.categories?.images)} · Vidéos : ${formatBytes(storageInfo.categories?.videos)} · Documents : ${formatBytes(storageInfo.categories?.documents)} · Sauvegardes : ${formatBytes(storageInfo.categories?.backups)}</p>` : ""}
               ${isLoggedIn() ? `<div class="row wrap" style="margin-top:12px">
                 <button class="btn" onclick="exportData()">Exporter</button>
@@ -1682,10 +1944,11 @@
 
       function editorFields(type, item) {
         const flat = flatten();
+        const descriptionLabel = type === "lesson" ? "Objectif" : "Description";
         const base = `
           <div class="form-grid">
             ${field("title", "Titre", item.title, true)}
-            ${textarea("description", "Description", item.description, "wide")}
+            ${textarea("description", descriptionLabel, item.description, "wide")}
             ${field("order", "Ordre", item.order, false, "number")}
             <label class="label">Visible <select name="isVisible"><option value="true" ${item.isVisible !== false ? "selected" : ""}>Oui</option><option value="false" ${item.isVisible === false ? "selected" : ""}>Non</option></select></label>
           </div>`;
@@ -1729,18 +1992,29 @@
 
       async function fileToDataUrl(file) {
         if (!file) return;
+        const field = document.querySelector("input[name='url']");
+        if (isLocalFileMode()) {
+          field.value = await readFileAsDataUrl(file);
+          toast("Fichier chargé localement. Enregistrez la ressource.");
+          return;
+        }
         try {
           const uploaded = await window.ServerAPI.upload(file);
-          document.querySelector("input[name='url']").value = uploaded.content_url;
+          field.value = uploaded.content_url;
           toast("Fichier charge. Enregistrez la ressource.");
         } catch {
-          const reader = new FileReader();
-          reader.onload = () => {
-            document.querySelector("input[name='url']").value = reader.result;
-            toast("Fichier charge. Enregistrez la ressource.");
-          };
-          reader.readAsDataURL(file);
+          field.value = await readFileAsDataUrl(file);
+          toast("Fichier charge. Enregistrez la ressource.");
         }
+      }
+
+      function readFileAsDataUrl(file) {
+        return new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(String(reader.result || ""));
+          reader.onerror = () => reject(reader.error || new Error("Lecture locale impossible"));
+          reader.readAsDataURL(file);
+        });
       }
 
       async function createActivityInLesson(lessonId) {
@@ -1785,9 +2059,17 @@
                 <button class="btn" onclick="addTextElement('${activity.id}')">+ Texte</button>
                 <button class="btn" onclick="addUrlElement('${activity.id}')">+ URL</button>
                 <label class="btn">+ Fichier <input type="file" hidden onchange="addFileElement('${activity.id}',this.files[0],this);this.value=''"></label>
+                <label class="studio-tool-picker">Outil
+                  <select id="studioToolSelect">${Object.entries(slideTools).map(([value, tool]) => `<option value="${value}">${escapeHtml(tool.title)}</option>`).join("")}</select>
+                </label>
+                <label class="studio-tool-picker">Groupe
+                  <select id="studioToolClass">${(state.studentClasses || []).map((classe) => `<option value="${escapeAttr(classe.id)}">${escapeHtml(classe.title)}</option>`).join("") || '<option value="">Aucun groupe</option>'}</select>
+                </label>
+                <button class="btn" onclick="addToolElement('${activity.id}')">+ Outil</button>
                 <button class="btn danger" onclick="deleteSelectedElement()">Suppr. objet</button>
                 <button class="btn primary" onclick="saveStudio('${activity.id}',false,this)">Enregistrer</button>
                 <button class="btn" onclick="showBoard('${activity.id}',0)">Presenter</button>
+                <button class="btn" onclick="previewStudioActivity('${activity.id}',this)">Imprimer / Word</button>
                 <button class="btn" onclick="closeEditor()">Fermer</button>
               </div>
             </header>
@@ -1816,11 +2098,145 @@
 
       function renderElementContent(element, editable) {
         if (element.kind === "text") return `<div class="slide-text" contenteditable="${editable ? "true" : "false"}" style="font-size:${Number(element.fontSize || 34)}px">${escapeHtml(element.value || "Texte")}</div>`;
+        if (element.kind === "tool") return renderSlideTool(element.value, editable, element.id);
         if (element.kind === "youtube" || youtubeId(element.value)) return youtubeCard(element.value);
         if (element.kind === "image") return `<img src="${escapeAttr(element.value)}" alt="">`;
         if (element.kind === "audio") return `<audio controls preload="metadata" src="${escapeAttr(element.value)}" onerror="reportMediaError(this)"></audio>`;
         if (element.kind === "video") return `<video controls preload="metadata" src="${escapeAttr(element.value)}" onerror="reportMediaError(this)"></video>`;
         return `<iframe src="${toEmbedUrl(element.value)}"></iframe>`;
+      }
+
+      function renderSlideTool(value, editable, elementId) {
+        const [toolId, configuredValue] = String(value || "timer|5").split("|");
+        if (toolId === "wheel") {
+          const classes = state.studentClasses || [];
+          const classe = classes.find((item) => item.id === configuredValue) || classes[0];
+          if (!classe) return `<div class="slide-tool"><strong>Roue de la fortune</strong><p>Le groupe associé n'existe plus.</p></div>`;
+          const history = state.tools.wheelHistory[classe.id] || [];
+          const counts = wheelCountsForClass(classe.id);
+          const absences = wheelAbsencesForClass(classe.id);
+          const limit = wheelLimitForClass(classe.id);
+          const students = classe.students || [];
+          const available = students.filter((student) => !absences.includes(student) && Number(counts[student] || 0) < limit).length;
+          return `<div class="slide-tool slide-wheel" onclick="event.stopPropagation()">
+            <div class="slide-tool-head">
+              <span class="slide-tool-kicker">Roue de la fortune</span>
+              ${editable ? `<div class="slide-tool-settings">
+                <label>Groupe <select onchange="configureSlideWheel(this,event)">${classes.map((item) => `<option value="${escapeAttr(item.id)}" ${item.id === classe.id ? "selected" : ""}>${escapeHtml(item.title)}</option>`).join("")}</select></label>
+                <label>Maximum <input class="slide-wheel-limit" type="number" min="1" max="20" value="${limit}" onchange="configureSlideWheel(this,event)"></label>
+              </div>` : `<strong class="slide-tool-class-name">${escapeHtml(classe.title)}</strong>`}
+            </div>
+            <div class="slide-wheel-visual"><strong id="slideToolResult-${escapeAttr(elementId)}" class="slide-tool-result">${escapeHtml(history[0]?.student || "Prêt ?")}</strong></div>
+            <div class="slide-tool-summary"><span>${available} disponible(s)</span><span>${students.length - absences.length} présent(s)</span><span>max. ${limit}</span></div>
+            ${editable ? `<div class="slide-student-list">${students.map((student, index) => {
+              const absent = absences.includes(student);
+              return `<button type="button" class="slide-student ${absent ? "absent" : ""}" onclick="toggleSlideWheelAbsence('${escapeAttr(elementId)}','${escapeAttr(classe.id)}',${index},event)"><span>${escapeHtml(student)}</span><small>${absent ? "Absent" : `${Number(counts[student] || 0)} / ${limit}`}</small></button>`;
+            }).join("") || '<span class="muted small">Aucun élève.</span>'}</div>` : ""}
+            <div class="slide-tool-buttons">
+              <button class="btn primary" ${available ? "" : "disabled"} onclick="spinSlideWheel('${escapeAttr(classe.id)}','${escapeAttr(elementId)}',event)">Lancer</button>
+              ${editable ? `<button class="btn" onclick="resetSlideWheelCounts('${escapeAttr(elementId)}','${escapeAttr(classe.id)}',event)">Compteurs à 0</button>` : ""}
+            </div>
+          </div>`;
+        }
+        const minutes = Math.max(1, Math.min(120, Number(configuredValue) || 5));
+        return `<div class="slide-tool slide-timer" onclick="event.stopPropagation()">
+          <div class="slide-tool-head"><span class="slide-tool-kicker">Chronomètre</span></div>
+          <div class="slide-timer-face"><strong class="embedded-timer-display">${formatTimer(minutes * 60)}</strong></div>
+          <label class="slide-timer-setting">Minutes <input class="slide-timer-minutes" type="number" min="1" max="120" value="${minutes}" onchange="setSlideTimerMinutes(this.value,event)"></label>
+          <div class="slide-tool-buttons">
+            <button class="btn primary" onclick="startSlideTimer(this,event)">Démarrer</button>
+            <button class="btn" onclick="event.stopPropagation();pauseClassTimer()">Pause</button>
+            <button class="btn" onclick="resetSlideTimer(this,event)">Réinitialiser</button>
+          </div>
+        </div>`;
+      }
+
+      function refreshStudioTool(elementId) {
+        const node = document.querySelector(`.studio .slide-el[data-el-id="${elementId}"]`);
+        if (node) node.innerHTML = renderSlideTool(node.dataset.value, true, elementId);
+      }
+
+      function configureSlideWheel(control, event) {
+        event?.stopPropagation();
+        const node = control.closest(".slide-el");
+        if (!node) return;
+        const classId = node.querySelector(".slide-tool-settings select")?.value || "";
+        const limit = control.matches("select")
+          ? wheelLimitForClass(classId)
+          : Math.max(1, Math.min(20, Number(node.querySelector(".slide-wheel-limit")?.value) || 2));
+        state.tools.wheelLimits[classId] = limit;
+        node.dataset.value = `wheel|${classId}`;
+        refreshStudioTool(node.dataset.elId);
+      }
+
+      function toggleSlideWheelAbsence(elementId, classId, studentIndex, event) {
+        event?.stopPropagation();
+        const classe = (state.studentClasses || []).find((item) => item.id === classId);
+        const student = classe?.students?.[studentIndex];
+        if (!student) return;
+        const absences = wheelAbsencesForClass(classId);
+        const index = absences.indexOf(student);
+        if (index >= 0) absences.splice(index, 1);
+        else absences.push(student);
+        refreshStudioTool(elementId);
+      }
+
+      function resetSlideWheelCounts(elementId, classId, event) {
+        event?.stopPropagation();
+        state.tools.wheelCounts[classId] = {};
+        refreshStudioTool(elementId);
+      }
+
+      async function spinSlideWheel(classId, elementId, event) {
+        event?.stopPropagation();
+        if (!requireLogin()) return;
+        const classe = (state.studentClasses || []).find((item) => item.id === classId);
+        const students = classe?.students || [];
+        const limit = wheelLimitForClass(classId);
+        const counts = wheelCountsForClass(classId);
+        const absences = wheelAbsencesForClass(classId);
+        const availableStudents = students.filter((student) => !absences.includes(student) && Number(counts[student] || 0) < limit);
+        if (!availableStudents.length) return toast("Aucun élève disponible pour cette roue.");
+        const resultNode = document.getElementById(`slideToolResult-${elementId}`);
+        const studioToolNode = resultNode?.closest(".studio .slide-el");
+        resultNode?.closest(".slide-wheel")?.classList.add("spinning");
+        const student = availableStudents[Math.floor(Math.random() * availableStudents.length)];
+        await new Promise((resolve) => setTimeout(resolve, 450));
+        counts[student] = Number(counts[student] || 0) + 1;
+        state.tools.wheelHistory[classId] = state.tools.wheelHistory[classId] || [];
+        state.tools.wheelHistory[classId].unshift({ student, count: counts[student], limit, date: new Date().toISOString() });
+        state.tools.wheelHistory[classId] = state.tools.wheelHistory[classId].slice(0, 100);
+        if (resultNode) resultNode.textContent = student;
+        const board = document.querySelector("#boardPage");
+        const activityId = board?.dataset.activityId;
+        const slideIndex = Number(board?.dataset.slideIndex || 0);
+        const saved = await saveData();
+        if (saved && activityId) showBoard(activityId, slideIndex);
+        else if (saved && studioToolNode?.isConnected) refreshStudioTool(elementId);
+        toast(`${student} est tombé.`);
+      }
+
+      function setSlideTimerMinutes(value, event) {
+        event?.stopPropagation();
+        const minutes = Math.max(1, Math.min(120, Number(value) || 5));
+        const node = event?.target?.closest(".slide-el");
+        if (node) node.dataset.value = `timer|${minutes}`;
+        timerRemaining = minutes * 60;
+        pauseClassTimer();
+        updateTimerDisplay();
+      }
+
+      function startSlideTimer(button, event) {
+        event?.stopPropagation();
+        const value = button?.closest(".slide-timer")?.querySelector(".slide-timer-minutes")?.value || 5;
+        setSlideTimerMinutes(value, event);
+        startClassTimer();
+      }
+
+      function resetSlideTimer(button, event) {
+        event?.stopPropagation();
+        const value = button?.closest(".slide-timer")?.querySelector(".slide-timer-minutes")?.value;
+        setSlideTimerMinutes(value || 5, event);
       }
 
       function reportMediaError() {
@@ -1868,11 +2284,41 @@
         initStudioDrag();
       }
 
+      function addToolElement(activityId) {
+        const toolId = document.querySelector("#studioToolSelect")?.value || "timer";
+        const classId = document.querySelector("#studioToolClass")?.value || "";
+        if (toolId === "wheel" && !classId) {
+          toast("Ajoutez d'abord un groupe dans Groupes Classes pour utiliser la roue.");
+          return;
+        }
+        const slide = selectedSlide();
+        if (!slide) return;
+        const slideIndex = Number(slide.dataset.slideIndex || 0);
+        const slideTop = slideIndex * (slideSize.height + slideSize.gap);
+        const toolCount = [...document.querySelectorAll('.slide-el[data-kind="tool"]')].filter((node) => {
+          const top = parseFloat(node.style.top) || 0;
+          return top >= slideTop && top < slideTop + slideSize.height;
+        }).length;
+        const value = toolId === "wheel" ? `${toolId}|${classId}` : "timer|5";
+        const x = toolCount % 2 === 0 ? 40 : 500;
+        document.querySelector("#slideStrip").insertAdjacentHTML("beforeend", renderStudioElement({
+          id: uid("el"), kind: "tool", x, y: 60, w: 420, h: 420, value
+        }, slideIndex));
+        initStudioDrag();
+        toast(`${slideTools[toolId]?.title || "Outil"} ajouté à la diapo.`);
+      }
+
+      async function previewStudioActivity(activityId, triggerButton) {
+        if (await saveStudio(activityId, false, triggerButton, false)) openActivityPrintPreview(activityId);
+      }
+
       async function addFileElement(activityId, file) {
         if (!file) return;
         const finishUploadLock = beginSaveLock(null);
         try {
-          const uploaded = await window.ServerAPI.upload(file);
+          const uploaded = isLocalFileMode()
+            ? { mime_type: file.type || "", content_url: await readFileAsDataUrl(file) }
+            : await window.ServerAPI.upload(file);
           const mimeType = uploaded.mime_type || file.type || "";
           const kind = mimeType.startsWith("image/") ? "image" : mimeType.startsWith("audio/") ? "audio" : mimeType.startsWith("video/") ? "video" : "embed";
           const slide = selectedSlide();
@@ -1880,11 +2326,13 @@
           initStudioDrag();
           const status = document.querySelector("#studioSaveStatus");
           if (status) {
-            status.textContent = "Fichier envoyé au NAS. Cliquez sur Enregistrer pour valider la présentation.";
+            status.textContent = isLocalFileMode()
+              ? "Fichier ajouté localement. Cliquez sur Enregistrer pour valider la présentation."
+              : "Fichier envoyé au NAS. Cliquez sur Enregistrer pour valider la présentation.";
             status.className = "studio-save-status pending";
             status.hidden = false;
           }
-          toast("Fichier envoyé. Enregistrez maintenant la présentation.");
+          toast(isLocalFileMode() ? "Fichier ajouté. Enregistrez maintenant la présentation." : "Fichier envoyé. Enregistrez maintenant la présentation.");
         } catch (error) {
           toast(`Envoi du fichier impossible : ${error.message || "erreur serveur"}.`);
         } finally {
@@ -1965,6 +2413,7 @@
       function initStudioDrag() {
         document.querySelectorAll(".slide-el").forEach((node) => {
           node.onpointerdown = (event) => {
+            if (event.target.closest("button,input,select,label")) return;
             if (event.target.closest(".slide-text") && event.detail > 1) return;
             document.querySelectorAll(".slide-el").forEach((item) => item.classList.remove("selected"));
             node.classList.add("selected", "dragging");
@@ -2157,6 +2606,8 @@
         const nextIndex = index < slides.length - 1 ? index + 1 : null;
         document.querySelector("#appPage").hidden = true;
         document.querySelector("#boardPage").hidden = false;
+        document.querySelector("#boardPage").dataset.activityId = activity.id;
+        document.querySelector("#boardPage").dataset.slideIndex = String(index);
         document.querySelector("#boardPage").innerHTML = `
           <main class="board-wrap">
             <section class="board-slide-stage">
@@ -2193,7 +2644,7 @@
       }
 
       function renderBoardSlideElement(element) {
-        return `<div class="slide-el" style="left:${Number(element.x || 0)}px;top:${Number(element.y || 0)}px;width:${Number(element.w || 320)}px;height:${Number(element.h || 160)}px">${renderElementContent(element, false)}</div>`;
+        return `<div class="slide-el" data-el-id="${escapeAttr(element.id || "")}" data-kind="${escapeAttr(element.kind || "text")}" data-value="${escapeAttr(element.value || "")}" style="left:${Number(element.x || 0)}px;top:${Number(element.y || 0)}px;width:${Number(element.w || 320)}px;height:${Number(element.h || 160)}px">${renderElementContent(element, false)}</div>`;
       }
 
       function fitBoardSlide() {
@@ -2209,6 +2660,124 @@
       function hideBoard() {
         document.querySelector("#boardPage").hidden = true;
         document.querySelector("#appPage").hidden = false;
+      }
+
+      function openActivityPrintPreview(activityId) {
+        const result = findActivity(activityId);
+        if (!result) return;
+        const { activity, lesson, sequence, classe } = result;
+        ensureActivitySlides(activity);
+        const modal = document.querySelector("#editorModal");
+        modal.hidden = false;
+        modal.innerHTML = `<section class="print-preview-shell">
+          <header class="print-preview-toolbar">
+            <div>
+              <strong>Aperçu avant impression</strong>
+              <p class="small muted">Vérifiez la fiche, puis imprimez-la ou exportez-la dans Word.</p>
+            </div>
+            <div class="row wrap">
+              <button class="btn primary" onclick="printActivity()">Imprimer</button>
+              <button class="btn" onclick="exportActivityWord('${activity.id}')">Exporter Word (.docx)</button>
+              <button class="btn" onclick="closeEditor()">Fermer</button>
+            </div>
+          </header>
+          <div class="print-preview-scroll">
+            <article class="printable-activity" id="activityPrintPreview">
+              <header class="print-activity-head">
+                <p class="print-breadcrumb">${escapeHtml(classe.title)} · ${escapeHtml(sequence.title)} · ${escapeHtml(lesson.title)}</p>
+                <h1>${escapeHtml(activity.title)}</h1>
+                ${activity.description ? `<p>${escapeHtml(activity.description)}</p>` : ""}
+                <dl class="print-activity-meta">
+                  ${printMeta("Objectif", activity.objective)}
+                  ${printMeta("Consigne", activity.instruction)}
+                  ${printMeta("Durée", activity.estimatedDuration)}
+                  ${printMeta("Modalité", activity.modality)}
+                  ${printMeta("Niveau", activity.level)}
+                </dl>
+              </header>
+              ${(activity.slides || []).map((slide, index) => renderPrintableSlide(activity, slide, index)).join("")}
+              ${(activity.resources || []).length ? `<section class="print-resources"><h2>Ressources</h2><ul>${activity.resources.map((resource) => `<li><strong>${escapeHtml(resource.title)}</strong>${resource.url ? ` — ${escapeHtml(resource.url)}` : ""}</li>`).join("")}</ul></section>` : ""}
+            </article>
+          </div>
+        </section>`;
+      }
+
+      function printMeta(label, value) {
+        return value ? `<div><dt>${escapeHtml(label)}</dt><dd>${escapeHtml(value)}</dd></div>` : "";
+      }
+
+      function renderPrintableSlide(activity, slide, index) {
+        return `<section class="print-slide-page">
+          <h2>Diapo ${index + 1}</h2>
+          <div class="print-slide-canvas">
+            ${elementsForBoardSlide(activity, index).map(renderPrintableElement).join("")}
+          </div>
+        </section>`;
+      }
+
+      function renderPrintableElement(element) {
+        const style = `left:${Number(element.x || 0) / slideSize.width * 100}%;top:${Number(element.y || 0) / slideSize.height * 100}%;width:${Number(element.w || 320) / slideSize.width * 100}%;height:${Number(element.h || 160) / slideSize.height * 100}%`;
+        if (element.kind === "text") return `<div class="print-slide-element print-slide-text" style="${style};font-size:${Math.max(10, Number(element.fontSize || 34) * 0.75)}px">${escapeHtml(element.value || "")}</div>`;
+        if (element.kind === "image") return `<div class="print-slide-element" style="${style}"><img src="${escapeAttr(element.value)}" alt=""></div>`;
+        if (element.kind === "tool") {
+          const toolId = String(element.value || "timer").split("|")[0];
+          return `<div class="print-slide-element print-slide-placeholder" style="${style}"><strong>Outil : ${escapeHtml(slideTools[toolId]?.title || "Outil")}</strong><span>À utiliser dans la présentation interactive.</span></div>`;
+        }
+        return `<div class="print-slide-element print-slide-placeholder" style="${style}"><strong>${escapeHtml(labelTypeForPptx(element.kind))}</strong><span>${escapeHtml(element.value || "")}</span></div>`;
+      }
+
+      function printActivity() {
+        window.print();
+      }
+
+      function exportActivityWord(activityId) {
+        const result = findActivity(activityId);
+        if (!result) return;
+        const blob = new Blob([makeActivityDocx(result)], { type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document" });
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(blob);
+        link.download = `${slugify(result.activity.title)}.docx`;
+        link.click();
+        setTimeout(() => URL.revokeObjectURL(link.href), 0);
+        toast("Document Word exporté.");
+      }
+
+      function makeActivityDocx({ activity, lesson, sequence, classe }) {
+        const paragraphs = [
+          docxParagraph(activity.title || "Activité", true, 36),
+          docxParagraph(`${classe.title} · ${sequence.title} · ${lesson.title}`, false, 20),
+          docxParagraph(activity.description || "", false, 22),
+          docxParagraph(activity.objective ? `Objectif : ${activity.objective}` : "", true, 22),
+          docxParagraph(activity.instruction ? `Consigne : ${activity.instruction}` : "", true, 22),
+          docxParagraph([activity.estimatedDuration && `Durée : ${activity.estimatedDuration}`, activity.modality && `Modalité : ${activity.modality}`, activity.level && `Niveau : ${activity.level}`].filter(Boolean).join(" · "), false, 20)
+        ];
+        (activity.slides || []).forEach((slide, index) => {
+          paragraphs.push(docxParagraph(`Diapo ${index + 1}`, true, 28, index > 0));
+          elementsForBoardSlide(activity, index)
+            .sort((a, b) => Number(a.y || 0) - Number(b.y || 0) || Number(a.x || 0) - Number(b.x || 0))
+            .forEach((element) => {
+              if (element.kind === "text") paragraphs.push(docxParagraph(element.value || "", false, Math.min(28, Math.max(18, Number(element.fontSize || 24)))));
+              else if (element.kind === "tool") paragraphs.push(docxParagraph(`Outil interactif : ${slideTools[String(element.value || "timer").split("|")[0]]?.title || "Outil"}`, true, 20));
+              else paragraphs.push(docxParagraph(`${labelTypeForPptx(element.kind)} : ${element.value || ""}`, false, 18));
+            });
+        });
+        if ((activity.resources || []).length) {
+          paragraphs.push(docxParagraph("Ressources", true, 28, true));
+          activity.resources.forEach((resource) => paragraphs.push(docxParagraph(`• ${resource.title}${resource.url ? ` — ${resource.url}` : ""}`, false, 20)));
+        }
+        const documentXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body>${paragraphs.join("")}<w:sectPr><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="1134" w:right="1134" w:bottom="1134" w:left="1134" w:header="708" w:footer="708" w:gutter="0"/></w:sectPr></w:body></w:document>`;
+        return makeZip([
+          { path: "[Content_Types].xml", content: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/></Types>` },
+          { path: "_rels/.rels", content: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>` },
+          { path: "word/document.xml", content: documentXml }
+        ]);
+      }
+
+      function docxParagraph(value, bold = false, fontSize = 22, pageBreakBefore = false) {
+        if (!value) return "";
+        const lines = String(value).split(/\r?\n/);
+        const runs = lines.map((line, index) => `${index ? "<w:r><w:br/></w:r>" : ""}<w:r><w:rPr>${bold ? "<w:b/>" : ""}<w:sz w:val="${Math.round(fontSize * 2)}"/><w:szCs w:val="${Math.round(fontSize * 2)}"/></w:rPr><w:t xml:space="preserve">${xmlEscape(line || " ")}</w:t></w:r>`).join("");
+        return `<w:p><w:pPr>${pageBreakBefore ? '<w:pageBreakBefore/>' : ""}<w:spacing w:after="160"/></w:pPr>${runs}</w:p>`;
       }
 
       function exportData() {
@@ -2542,7 +3111,8 @@
       document.querySelectorAll(".nav-button[data-view]").forEach((button) => button.addEventListener("click", () => openViewInNewTab(button.dataset.view)));
       document.querySelector("#loginNavBtn").addEventListener("click", showLogin);
       document.querySelector("#logoutBtn").addEventListener("click", async () => {
-        await window.ServerAPI.logout().catch(() => {});
+        if (!isLocalFileMode()) await window.ServerAPI.logout().catch(() => {});
+        sessionStorage.removeItem(localSessionKey);
         authenticatedUser = null;
         storageInfo = null;
         adminUsers = [];
@@ -2571,6 +3141,20 @@
 
       async function bootstrapApplication() {
         applyInitialRoute();
+        if (isLocalFileMode()) {
+          const localUsername = sessionStorage.getItem(localSessionKey) || "";
+          authenticatedUser = localAuthenticatedUser(localUsername);
+          if (authenticatedUser) {
+            state = ensureDemoData(loadData());
+            markStateConfirmed();
+          }
+          render();
+          const localParams = new URLSearchParams(window.location.search);
+          if (localParams.get("board") && isLoggedIn()) {
+            setTimeout(() => showBoard(localParams.get("board"), Number(localParams.get("slide") || 0)), 0);
+          }
+          return;
+        }
         try {
           authenticatedUser = await window.ServerAPI.me();
           const workspace = await window.ServerAPI.loadWorkspace();

@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>TestFinal</title>
-    <link rel="stylesheet" href="assets/styles.css?v=video-save-1" />
+    <link rel="stylesheet" href="assets/styles.css?v=category-manager-1" />
   </head>
   <body>
     <section id="loginPage" class="login">
@@ -28,6 +28,7 @@
             <label class="label">Identifiant <input name="username" autocomplete="username" required autofocus /></label>
             <label class="label">Mot de passe <input name="password" type="password" autocomplete="current-password" required /></label>
             <a class="forgot-link" href="mailto:orellanatech37@gmail.com?subject=Mot%20de%20passe%20oublie%20-%20In%20viaggio%20per%20l'Italia&body=Bonjour%2C%0A%0AJ'ai%20oublie%20mon%20mot%20de%20passe%20pour%20In%20viaggio%20per%20l'Italia.%0A%0AIdentifiant%20%3A%20" target="_blank" rel="noopener noreferrer">Mot de passe oublie ?</a>
+            <p id="localLoginHint" class="local-login-hint" hidden>Mode local : utilisez <strong>rose / it</strong> ou <strong>root / root</strong>.</p>
             <p id="loginError" class="small" style="color:#a11" hidden>Mot de passe incorrect pour cet identifiant.</p>
             <button class="btn primary" type="submit">Se connecter</button>
             <button class="btn" type="button" onclick="openFreeExample()">Voir l'exemple gratuit</button>
@@ -106,7 +107,7 @@
     <div id="tourOverlay" hidden></div>
     <p id="notice" class="notice" hidden></p>
 
-    <script src="assets/api-client.js?v=video-save-1"></script>
-    <script src="assets/app.js?v=video-save-1"></script>
+    <script src="assets/api-client.js?v=category-manager-1"></script>
+    <script src="assets/app.js?v=category-manager-1"></script>
   </body>
 </html>

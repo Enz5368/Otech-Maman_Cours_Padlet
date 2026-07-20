@@ -130,6 +130,15 @@
       }
 
       .forgot-link:hover { text-decoration: underline; }
+      .local-login-hint {
+        margin: 0;
+        border: 1px solid rgba(116, 24, 42, .18);
+        border-radius: var(--radius);
+        background: #f8f1e8;
+        color: var(--wine-700);
+        padding: 10px 12px;
+        font-size: 13px;
+      }
 
       .brand-row {
         display: flex;
@@ -687,6 +696,30 @@
       .form-grid { display: grid; gap: 12px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
       .form-grid .wide { grid-column: 1 / -1; }
 
+      .subtree-dialog {
+        position: absolute;
+        inset: 34px;
+        display: grid;
+        grid-template-rows: auto minmax(0, 1fr);
+        overflow: hidden;
+        border-radius: var(--radius);
+        background: var(--paper-2);
+        box-shadow: var(--shadow);
+      }
+      .subtree-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        border-bottom: 1px solid var(--line);
+        background: var(--paper);
+        padding: 16px 20px;
+      }
+      .subtree-head p { margin: 0 0 4px; color: var(--wine-700); font-weight: 850; }
+      .subtree-head h2 { margin: 0; color: var(--wine-900); }
+      .subtree-body { min-height: 0; padding: 24px; }
+      .subtree-course-tree { width: max-content; min-width: 100%; }
+
       .studio {
         position: fixed;
         inset: 0;
@@ -710,6 +743,20 @@
         display: flex;
         flex-wrap: wrap;
         gap: 8px;
+      }
+      .studio-tool-picker {
+        display: grid;
+        gap: 3px;
+        color: var(--muted);
+        font-size: 11px;
+        font-weight: 800;
+      }
+      .studio-tool-picker select {
+        min-width: 130px;
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        background: white;
+        padding: 7px 9px;
       }
       .slide-world {
         overflow: auto;
@@ -801,6 +848,139 @@
         width: calc(100% - 20px);
         margin: 18px 10px;
       }
+      .slide-tool {
+        display: grid;
+        align-content: start;
+        gap: 9px;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        border: 2px solid rgba(116, 24, 42, 0.18);
+        border-radius: 6px;
+        background: linear-gradient(145deg, #fffdf9, #f7ece4);
+        padding: 14px;
+        text-align: center;
+      }
+      .slide-tool strong { color: var(--wine-900); font-size: 24px; }
+      .slide-tool p { margin: 0; color: var(--muted); font-size: 15px; }
+      .slide-tool-kicker { color: var(--wine-700); font-size: 12px; font-weight: 900; text-transform: uppercase; letter-spacing: .08em; }
+      .slide-tool-head { display: grid; gap: 7px; }
+      .slide-tool-settings { display: grid; grid-template-columns: minmax(0, 1fr) 92px; gap: 8px; }
+      .slide-tool-settings label, .slide-timer-setting { display: grid; gap: 3px; color: var(--muted); font-size: 11px; font-weight: 850; text-align: left; }
+      .slide-tool-settings select, .slide-tool-settings input, .slide-timer-setting input {
+        width: 100%;
+        min-width: 0;
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        background: white;
+        padding: 6px 8px;
+        color: var(--ink);
+        font: inherit;
+      }
+      .slide-tool-class-name { font-size: 17px !important; }
+      .slide-wheel-visual {
+        display: grid;
+        place-items: center;
+        width: 116px;
+        height: 116px;
+        margin: 0 auto;
+        border: 8px solid var(--wine-700);
+        border-radius: 50%;
+        background: conic-gradient(#8b142c 0 20%, #f0d7b5 20% 40%, #d98c73 40% 60%, #647447 60% 80%, #f7ece4 80%);
+        box-shadow: inset 0 0 0 8px white, 0 8px 20px rgba(59, 13, 22, .15);
+      }
+      .slide-wheel-visual .slide-tool-result {
+        display: grid;
+        place-items: center;
+        width: 82px;
+        height: 82px;
+        overflow: hidden;
+        border-radius: 50%;
+        background: rgba(255,255,255,.94);
+        padding: 7px;
+        font-size: 16px;
+        line-height: 1.05;
+      }
+      .slide-tool-summary { display: flex; justify-content: center; flex-wrap: wrap; gap: 5px 12px; color: var(--muted); font-size: 11px; font-weight: 800; }
+      .slide-student-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 5px; max-height: 78px; overflow: auto; }
+      .slide-student {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 6px;
+        min-width: 0;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: white;
+        padding: 5px 7px;
+        color: var(--ink);
+        font-size: 11px;
+        text-align: left;
+      }
+      .slide-student span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .slide-student small { flex: 0 0 auto; color: var(--muted); }
+      .slide-student.absent { opacity: .5; text-decoration: line-through; background: #f9dfe4; }
+      .slide-tool-buttons { display: flex; justify-content: center; flex-wrap: wrap; gap: 6px; }
+      .slide-tool-buttons .btn { min-height: 34px; padding: 7px 10px; font-size: 11px; }
+      .slide-timer { place-items: center; align-content: center; gap: 16px; }
+      .slide-timer-face {
+        display: grid;
+        place-items: center;
+        min-width: 300px;
+        border: 3px solid var(--wine-700);
+        border-radius: 18px;
+        background: white;
+        padding: 24px 30px;
+        box-shadow: 0 12px 25px rgba(59, 13, 22, .12);
+      }
+      .slide-timer .embedded-timer-display { font-size: 64px; line-height: 1; font-variant-numeric: tabular-nums; }
+      .slide-timer-setting { width: 130px; text-align: center; }
+      .slide-wheel.spinning .slide-tool-result { animation: toolPulse .18s ease-in-out infinite alternate; }
+      @keyframes toolPulse { to { transform: scale(1.08); opacity: .55; } }
+
+      .print-preview-shell {
+        position: fixed;
+        inset: 20px;
+        display: grid;
+        grid-template-rows: auto minmax(0, 1fr);
+        overflow: hidden;
+        border-radius: var(--radius);
+        background: #ebe5df;
+        box-shadow: var(--shadow);
+      }
+      .print-preview-toolbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        border-bottom: 1px solid var(--line);
+        background: white;
+        padding: 14px 18px;
+      }
+      .print-preview-toolbar p { margin: 4px 0 0; }
+      .print-preview-scroll { overflow: auto; padding: 28px; }
+      .printable-activity {
+        width: min(100%, 1040px);
+        margin: 0 auto;
+        background: white;
+        padding: 42px;
+        box-shadow: 0 16px 45px rgba(43, 32, 32, .14);
+      }
+      .print-activity-head h1 { margin: 4px 0 12px; color: var(--wine-900); font-size: 36px; }
+      .print-breadcrumb { margin: 0; color: var(--wine-700); font-size: 13px; font-weight: 850; }
+      .print-activity-meta { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin: 22px 0 0; }
+      .print-activity-meta div { border: 1px solid var(--line); border-radius: var(--radius); padding: 10px 12px; }
+      .print-activity-meta dt { color: var(--wine-700); font-size: 12px; font-weight: 900; text-transform: uppercase; }
+      .print-activity-meta dd { margin: 4px 0 0; white-space: pre-line; }
+      .print-slide-page { margin-top: 32px; break-inside: avoid; }
+      .print-slide-page h2, .print-resources h2 { color: var(--wine-900); }
+      .print-slide-canvas { position: relative; width: 100%; aspect-ratio: 16 / 9; overflow: hidden; border: 1px solid var(--line); background: #fffdf9; }
+      .print-slide-element { position: absolute; overflow: hidden; }
+      .print-slide-element img { width: 100%; height: 100%; object-fit: contain; }
+      .print-slide-text { padding: 6px; white-space: pre-line; line-height: 1.18; }
+      .print-slide-placeholder { display: grid; place-items: center; align-content: center; gap: 6px; border: 1px dashed var(--line); background: #f8f1e8; padding: 10px; text-align: center; }
+      .print-slide-placeholder span { max-width: 100%; overflow-wrap: anywhere; color: var(--muted); font-size: 11px; }
+      .print-resources { margin-top: 30px; }
       .youtube-card {
         position: relative;
         display: grid;
@@ -1122,14 +1302,50 @@
       }
       .category-group .entity-card { counter-increment: category-item; }
       .category-group .entity-card::before { content: counter(category-item) "."; font-weight: 850; color: var(--wine-700); margin-right: 10px; }
-      #categoryEditorList, #categoryItems { display: grid; gap: 10px; }
-      .category-editor-item { padding: 10px; border: 1px solid var(--line); border-radius: 12px; background: white; cursor: grab; }
-      .category-editor-item .input { flex: 1; min-width: 180px; }
-      #categoryItems .label { padding: 12px 14px; border: 1px solid var(--line); border-radius: 12px; background: white; }
-      #categoryItems select { margin-top: 6px; }
-      .category-items-group { display: grid; gap: 6px; padding: 12px; border: 1px solid var(--line); border-radius: 12px; background: rgba(255,255,255,.55); }
-      .category-items-group h3 { margin: 0 0 4px; font-size: 18px; color: var(--wine-700); }
-      .category-items-group .label { font-size: 14px; padding: 8px 10px; }
+      .category-drawer { display: grid; grid-template-rows: auto minmax(0, 1fr) auto; overflow: hidden; width: min(820px, 100%); }
+      .category-drawer-head { position: static; }
+      .category-drawer-head h2 { margin: 2px 0 6px; color: var(--wine-900); }
+      .category-eyebrow { margin: 0; color: var(--wine-700); font-size: 12px; font-weight: 900; text-transform: uppercase; letter-spacing: .08em; }
+      .category-manager { overflow: auto; align-content: start; padding: 20px; }
+      .category-step { display: grid; gap: 14px; border: 1px solid var(--line); border-radius: 16px; background: rgba(255,255,255,.65); padding: 16px; }
+      .category-step-title { display: grid; grid-template-columns: 42px minmax(0, 1fr); align-items: start; gap: 12px; }
+      .category-step-title > span { display: grid; place-items: center; width: 42px; height: 42px; border-radius: 50%; background: var(--wine-700); color: white; font-size: 20px; font-weight: 900; }
+      .category-step-title h3 { margin: 0; color: var(--wine-900); font-size: 20px; }
+      .category-step-title p { margin: 4px 0 0; color: var(--muted); font-size: 13px; line-height: 1.45; }
+      .category-editor-list, .category-class-list { display: grid; gap: 9px; }
+      .category-editor-item {
+        display: grid;
+        grid-template-columns: auto minmax(190px, 1fr) auto auto;
+        align-items: end;
+        gap: 10px;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        background: white;
+        padding: 10px;
+      }
+      .category-order-buttons { display: grid; gap: 5px; padding-bottom: 1px; }
+      .category-order-buttons .btn { min-height: 32px; padding: 6px 9px; font-size: 11px; }
+      .category-name-field { min-width: 0; }
+      .category-name-field .input { width: 100%; min-width: 0; }
+      .category-count { align-self: center; white-space: nowrap; }
+      .category-add-box { display: grid; grid-template-columns: minmax(180px, 1fr) auto; align-items: end; gap: 10px; border: 2px dashed rgba(116,24,42,.22); border-radius: 12px; background: #fffdf9; padding: 12px; }
+      .category-class-row {
+        display: grid;
+        grid-template-columns: 38px minmax(120px, 1fr) minmax(220px, 1.2fr);
+        align-items: center;
+        gap: 12px;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        background: white;
+        padding: 11px 12px;
+      }
+      .category-class-number { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 50%; background: var(--paper); color: var(--wine-700); font-weight: 900; }
+      .category-class-name { display: grid; gap: 2px; min-width: 0; }
+      .category-class-name strong { overflow: hidden; color: var(--wine-900); text-overflow: ellipsis; white-space: nowrap; }
+      .category-class-name small { color: var(--muted); }
+      .category-class-row .label { min-width: 0; }
+      .category-manager-footer { display: flex; justify-content: flex-end; gap: 10px; border-top: 1px solid var(--line); background: var(--paper); padding: 14px 18px; }
+      .category-manager-footer .primary { min-width: 230px; }
 
       .numbered-list {
         display: grid;
@@ -1174,8 +1390,29 @@
         .tools-grid { grid-template-columns: 1fr; }
         .form-grid { grid-template-columns: 1fr; }
         .topbar { align-items: flex-start; flex-direction: column; }
+        .subtree-dialog { inset: 10px; }
+        .category-editor-item { grid-template-columns: 1fr auto; align-items: end; }
+        .category-order-buttons { grid-column: 1; }
+        .category-name-field { grid-column: 1 / -1; grid-row: 1; }
+        .category-count { justify-self: start; }
+        .category-add-box, .category-class-row { grid-template-columns: 1fr; }
+        .category-class-number { display: none; }
+        .category-manager-footer { flex-direction: column-reverse; }
+        .category-manager-footer .btn { width: 100%; }
       }
 
       @media print {
+        @page { size: A4 landscape; margin: 10mm; }
+        body > :not(#editorModal) { display: none !important; }
+        #editorModal { position: static; display: block !important; background: white; }
+        .print-preview-shell { position: static; display: block; overflow: visible; box-shadow: none; }
+        .print-preview-toolbar { display: none; }
+        .print-preview-scroll { overflow: visible; padding: 0; }
+        .printable-activity { width: 100%; padding: 0; box-shadow: none; }
+        .print-activity-head { break-after: page; }
+        .print-slide-page { margin: 0; break-after: page; }
+        .print-slide-page:last-of-type { break-after: auto; }
+        .print-slide-page h2 { margin-top: 0; }
+        .print-slide-canvas { width: 100%; }
         .board-controls { display: none; }
       }
