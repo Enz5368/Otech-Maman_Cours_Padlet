@@ -1504,8 +1504,7 @@
         list-style: none;
       }
 
-      .course-tree ul ul > li > .tree-node::before,
-      .course-tree ul ul > li > .tree-node-stack::before {
+      .course-tree li::before {
         content: "";
         position: absolute;
         top: 50%;
@@ -1515,6 +1514,7 @@
         background: rgba(116, 24, 42, 0.24);
         transform: translateY(-50%);
       }
+      .course-tree > ul > li::before { display: none; }
 
       .tree-node {
         position: relative;
