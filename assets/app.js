@@ -810,15 +810,15 @@
       }
 
       function classCard(classe) {
-        return `<article class="card entity-card">
-          <div class="row">
-            <div><h3 style="font-size:28px">${escapeHtml(classe.title)}</h3><p class="muted small">${escapeHtml(classe.description)}</p></div>
+        return `<article class="card entity-card class-grid-card">
+          <div class="class-grid-card-body">
+            <div><h3>${escapeHtml(classe.title)}</h3><p class="muted small">${classe.sequences.length} séquence(s)</p></div>
             ${classe.isVisible ? "" : "<span class='pill'>Masque</span>"}
           </div>
-          <div class="row wrap">
-            <p class="pill">${classe.sequences.length} séquence(s)</p>
+          <div class="class-grid-card-actions">
+            <button class="btn" onclick="openTableauSubtree('class','${classe.id}')">Arbre</button>
             ${editOnly(moveButtons("class", classe.id))}
-            <button class="btn primary" onclick="openClassPage('${classe.id}')">${isLoggedIn() ? "Modifier" : "Voir"}</button>
+            <button class="btn primary" onclick="openClassPage('${classe.id}')">Ouvrir</button>
             ${editOnly(`<button class="btn danger" onclick="removeItem('class','${classe.id}')">Supprimer</button>`)}
           </div>
         </article>`;

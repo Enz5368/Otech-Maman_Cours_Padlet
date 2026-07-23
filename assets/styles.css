@@ -1610,13 +1610,17 @@
       .tree-resource { border-left-color: #8a7fae; background: linear-gradient(90deg, rgba(138,127,174,0.06), #ffffff 60%); }
 
       .category-group .page-grid {
-        display: flex;
-        flex-direction: column;
-        gap: 14px;
-        counter-reset: category-item;
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+        gap: 16px;
       }
-      .category-group .entity-card { counter-increment: category-item; }
-      .category-group .entity-card::before { content: counter(category-item) "."; font-weight: 850; color: var(--wine-700); margin-right: 10px; }
+      .category-group { margin-bottom: 28px; }
+      .category-group .class-grid-card { min-height: 190px; padding: 16px; }
+      .class-grid-card-body { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+      .class-grid-card-body h3 { font-size: 24px; line-height: 1.25; }
+      .class-grid-card-body p { margin: 12px 0 0; }
+      .class-grid-card-actions { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 9px; }
+      .class-grid-card-actions .btn.danger { padding-inline: 10px; }
       .category-drawer { display: grid; grid-template-rows: auto minmax(0, 1fr) auto; overflow: hidden; width: min(1180px, calc(100% - 48px)); }
       .category-drawer-head { position: static; }
       .category-drawer-head h2 { margin: 2px 0 6px; color: var(--wine-900); }
