@@ -667,7 +667,8 @@
       }
 
       function openUrlInNewTabAfterSave(url) {
-        const targetName = arguments[1] || "_blank";
+        const requestedTargetName = arguments[1] || "_blank";
+        const targetName = requestedTargetName.startsWith("in-viaggio-") ? nextManagedTabName() : requestedTargetName;
         const target = window.open("", targetName);
         if (!target) {
           toast("Autorisez les fenêtres contextuelles pour ouvrir cette vue.");
@@ -689,6 +690,13 @@
           if (openedFresh) target.close();
           toast("La vue n'a pas été ouverte car l'enregistrement serveur a échoué.");
         });
+      }
+
+      function nextManagedTabName() {
+        const key = "mep-managed-tab-slot-v1";
+        const nextSlot = Number(localStorage.getItem(key) || 0) % 3;
+        localStorage.setItem(key, String((nextSlot + 1) % 3));
+        return `in-viaggio-slot-${nextSlot + 1}`;
       }
 
       function openViewInNewTab(view) {
@@ -816,7 +824,7 @@
             ${classe.isVisible ? "" : "<span class='pill'>Masque</span>"}
           </div>
           <div class="class-grid-card-actions">
-            <button class="btn" onclick="openTableauSubtree('class','${classe.id}')">Arbre</button>
+            <button class="btn" onclick="openEditableSubtree('${classe.id}')">Arbre</button>
             ${editOnly(moveButtons("class", classe.id))}
             <button class="btn primary" onclick="openClassPage('${classe.id}')">Ouvrir</button>
             ${editOnly(`<button class="btn danger" onclick="removeItem('class','${classe.id}')">Supprimer</button>`)}
@@ -1070,7 +1078,7 @@
 
       function treeClassNode(classe) {
         return `<li>
-          <button class="tree-node tree-class" onclick="openClassPage('${classe.id}')">
+          <button class="tree-node tree-class" onclick="closeEditor();openClassPage('${classe.id}')">
             <span>Classe</span><strong>${escapeHtml(classe.title)}</strong>${classe.isVisible === false ? "<em>Masquée</em>" : ""}
           </button>
           ${treeChildren((classe.sequences || []).map((sequence) => treeSequenceNode(classe, sequence)))}
@@ -1079,7 +1087,7 @@
 
       function treeSequenceNode(classe, sequence) {
         return `<li>
-          <button class="tree-node tree-sequence" onclick="openSequencePage('${classe.id}','${sequence.id}')">
+          <button class="tree-node tree-sequence" onclick="closeEditor();openSequencePage('${classe.id}','${sequence.id}')">
             <span>Séquence n° ${sequenceNumber(classe, sequence)}</span><strong>${escapeHtml(sequence.title)}</strong>${sequence.isVisible === false ? "<em>Masquée</em>" : ""}
           </button>
           ${treeChildren((sequence.lessons || []).map((lesson) => treeLessonNode(classe, sequence, lesson)))}
@@ -1089,7 +1097,7 @@
       function treeLessonNode(classe, sequence, lesson) {
         return `<li>
           <div class="tree-node-stack">
-            <button class="tree-node tree-lesson" onclick="openLessonPage('${classe.id}','${sequence.id}','${lesson.id}')">
+            <button class="tree-node tree-lesson" onclick="closeEditor();openLessonPage('${classe.id}','${sequence.id}','${lesson.id}')">
               <span>Séance</span><strong>${escapeHtml(lesson.title)}</strong>${lesson.isVisible === false ? "<em>Masquée</em>" : ""}
             </button>
             <button class="tree-node-action" onclick="openLessonPrintPreview('${lesson.id}')">Imprimer la séance</button>
@@ -1113,6 +1121,22 @@
 
       function treeChildren(children) {
         return children.length ? `<ul class="tree-level">${children.join("")}</ul>` : "";
+      }
+
+      function openEditableSubtree(classId) {
+        const classe = findItem("class", classId);
+        if (!classe) return;
+        const modal = document.querySelector("#editorModal");
+        modal.hidden = false;
+        modal.innerHTML = `<section class="subtree-dialog">
+          <header class="subtree-head">
+            <div><p class="small">Arbre des cours modifiables</p><h2>${escapeHtml(classe.title)}</h2></div>
+            <button class="btn icon" onclick="closeEditor()">X</button>
+          </header>
+          <div class="subtree-body course-tree-scroll" aria-label="Cours modifiables de ${escapeAttr(classe.title)}">
+            <div class="course-tree subtree-course-tree"><ul class="tree-level tree-classes">${treeClassNode(classe)}</ul></div>
+          </div>
+        </section>`;
       }
 
       function manageCategories() {
