@@ -1113,6 +1113,7 @@
       }
 
       function manageCategories() {
+        if (currentPage.type !== "classes") return manageCurrentPageItems();
         const modal = document.querySelector("#editorModal");
         modal.hidden = false;
         const categoryRows = state.categories.map((category, index) => ({ key: `category-${index}`, name: category }));
@@ -1150,6 +1151,93 @@
         updateCategoryMoveButtons();
         updateCategoryCounts();
         updateClassMoveButtons();
+      }
+
+      function currentPageOrganization() {
+        if (currentPage.type === "class") {
+          const classe = findItem("class", currentPage.classId);
+          return classe && { title: `Organiser les séquences de ${classe.title}`, label: "Séquence", items: classe.sequences };
+        }
+        if (currentPage.type === "sequence") {
+          const sequence = findItem("sequence", currentPage.sequenceId);
+          return sequence && { title: `Organiser les séances de ${sequence.title}`, label: "Séance", items: sequence.lessons };
+        }
+        if (currentPage.type === "lesson") {
+          const lesson = findItem("lesson", currentPage.lessonId);
+          return lesson && { title: `Organiser les activités de ${lesson.title}`, label: "Activité", items: lesson.activities };
+        }
+        return null;
+      }
+
+      function manageCurrentPageItems() {
+        const organization = currentPageOrganization();
+        if (!organization) return;
+        const modal = document.querySelector("#editorModal");
+        modal.hidden = false;
+        modal.innerHTML = `<div class="drawer category-drawer contextual-organizer">
+          <div class="drawer-head category-drawer-head">
+            <div>
+              <p class="category-eyebrow">Organisation des cours</p>
+              <h2>${escapeHtml(organization.title)}</h2>
+              <p class="muted small">Utilisez les deux flèches de chaque élément pour modifier son ordre.</p>
+            </div>
+            <button class="btn icon" type="button" onclick="closeEditor()" aria-label="Fermer sans enregistrer">X</button>
+          </div>
+          <div class="drawer-body category-manager">
+            <section class="category-step">
+              <div class="category-step-title"><span>1</span><div><h3>Choisir l'ordre</h3><p>Seuls les éléments du niveau actuellement ouvert sont affichés.</p></div></div>
+              <div id="contextOrderList" class="context-order-list">
+                ${organization.items.map((item, index) => contextOrderRow(item, index, organization.label)).join("") || empty(`Aucun élément à organiser.`)}
+              </div>
+            </section>
+          </div>
+          <div class="category-manager-footer">
+            <button class="btn" type="button" onclick="closeEditor()">Annuler</button>
+            <button class="btn primary" type="button" onclick="saveCurrentPageOrder(this)">Enregistrer les changements</button>
+          </div>
+        </div>`;
+        updateContextOrderButtons();
+      }
+
+      function contextOrderRow(item, index, label) {
+        return `<article class="context-order-row" data-context-item="${escapeAttr(item.id)}">
+          <span class="category-class-number">${index + 1}</span>
+          <div class="category-class-name"><strong>${escapeHtml(item.title)}</strong><small>${escapeHtml(label)} à déplacer</small></div>
+          <div class="item-move-buttons" aria-label="Déplacer ${escapeAttr(item.title)}">
+            <button class="btn icon" type="button" data-context-move="up" onclick="moveContextOrderRow('${escapeAttr(item.id)}',-1)" aria-label="Monter">↑</button>
+            <button class="btn icon" type="button" data-context-move="down" onclick="moveContextOrderRow('${escapeAttr(item.id)}',1)" aria-label="Descendre">↓</button>
+          </div>
+        </article>`;
+      }
+
+      function moveContextOrderRow(id, direction) {
+        const row = [...document.querySelectorAll(".context-order-row")].find((item) => item.dataset.contextItem === id);
+        if (!row) return;
+        const target = direction < 0 ? row.previousElementSibling : row.nextElementSibling;
+        if (!target?.classList.contains("context-order-row")) return;
+        if (direction < 0) row.parentElement.insertBefore(row, target);
+        else row.parentElement.insertBefore(row, target.nextElementSibling);
+        updateContextOrderButtons();
+      }
+
+      function updateContextOrderButtons() {
+        const rows = [...document.querySelectorAll(".context-order-row")];
+        rows.forEach((row, index) => {
+          row.querySelector(".category-class-number").textContent = index + 1;
+          row.querySelector('[data-context-move="up"]').disabled = index === 0;
+          row.querySelector('[data-context-move="down"]').disabled = index === rows.length - 1;
+        });
+      }
+
+      async function saveCurrentPageOrder(triggerButton) {
+        const organization = currentPageOrganization();
+        if (!organization) return closeEditor();
+        const byId = new Map(organization.items.map((item) => [item.id, item]));
+        organization.items.splice(0, organization.items.length, ...[...document.querySelectorAll(".context-order-row")]
+          .map((row) => byId.get(row.dataset.contextItem)).filter(Boolean));
+        organization.items.forEach((item, index) => { item.order = index + 1; });
+        const saved = await saveData("Ordre mis à jour.", triggerButton);
+        if (saved) closeEditor();
       }
 
       function categoryEditorRow(category) {
@@ -1650,7 +1738,7 @@
         }
         document.querySelector("#content").innerHTML = `
           <section class="page-head">
-            <div class="breadcrumb"><button onclick="currentPage={type:'classes'};render()">Cours modifiables</button> / Classe</div>
+            <div class="breadcrumb"><button onclick="currentPage={type:'classes'};render()">Cours modifiables</button> / <button onclick="openClassPage('${classe.id}')">${escapeHtml(classe.title)}</button></div>
             <div class="row wrap">
               <div>
                 <h2 style="margin:0;color:var(--wine-900);font-size:34px">${escapeHtml(classe.title)}</h2>
@@ -1658,7 +1746,7 @@
               </div>
               ${editOnly(`<div class="row wrap">
 
-                <button class="btn" onclick="manageCategories()">Organiser les catégories</button>
+                <button class="btn" onclick="manageCategories()">Organiser les séquences</button>
                 <button class="btn" onclick="openEditor('class','${classe.id}')">Modification</button>
                 <button class="btn primary" onclick="openEditor('sequence',null,{classId:'${classe.id}'})">Ajouter une séquence</button>
                 <button class="btn danger" onclick="removeItem('class','${classe.id}')">Supprimer la classe</button>
@@ -1697,7 +1785,7 @@
         }
         document.querySelector("#content").innerHTML = `
           <section class="page-head">
-            <div class="breadcrumb"><button onclick="currentPage={type:'classes'};render()">Cours modifiables</button> / Classe / Séquence</div>
+            <div class="breadcrumb"><button onclick="currentPage={type:'classes'};render()">Cours modifiables</button> / <button onclick="openClassPage('${classe.id}')">${escapeHtml(classe.title)}</button> / <button onclick="openSequencePage('${classe.id}','${sequence.id}')">${escapeHtml(sequence.title)}</button></div>
             <div class="row wrap">
               <div>
                 <p class="small" style="margin:0 0 4px;font-weight:850;color:var(--wine-700)">Séquence n° ${sequenceNumber(classe, sequence)}</p>
@@ -1705,7 +1793,7 @@
                 <p class="muted">${escapeHtml(sequence.description)}</p>
               </div>
               ${editOnly(`<div class="row wrap">
-                <button class="btn" onclick="manageCategories()">Organiser les catégories</button>
+                <button class="btn" onclick="manageCategories()">Organiser les séances</button>
                 <button class="btn" onclick="openEditor('sequence','${sequence.id}')">Modification</button>
                 <button class="btn primary" onclick="openEditor('lesson',null,{classId:'${classe.id}',sequenceId:'${sequence.id}'})">Ajouter une séance</button>
                 <button class="btn danger" onclick="removeItem('sequence','${sequence.id}')">Supprimer la séquence</button>
@@ -1742,7 +1830,7 @@
         }
         document.querySelector("#content").innerHTML = `
           <section class="page-head">
-            <div class="breadcrumb"><button onclick="currentPage={type:'classes'};render()">Cours modifiables</button> / Classe / Séquence / Séance</div>
+            <div class="breadcrumb"><button onclick="currentPage={type:'classes'};render()">Cours modifiables</button> / <button onclick="openClassPage('${classe.id}')">${escapeHtml(classe.title)}</button> / <button onclick="openSequencePage('${classe.id}','${sequence.id}')">${escapeHtml(sequence.title)}</button> / <button onclick="openLessonPage('${classe.id}','${sequence.id}','${lesson.id}')">${escapeHtml(lesson.title)}</button></div>
             <div class="row wrap">
               <div>
                 <h2 style="margin:0;color:var(--wine-900);font-size:34px">${escapeHtml(lesson.title)}</h2>
@@ -1750,7 +1838,7 @@
               </div>
               ${editOnly(`<div class="row wrap">
 
-                <button class="btn" onclick="manageCategories()">Organiser les catégories</button>
+                <button class="btn" onclick="manageCategories()">Organiser les activités</button>
                 <button class="btn" onclick="openEditor('lesson','${lesson.id}')">Modification</button>
                 <button class="btn primary" onclick="createActivityInLesson('${lesson.id}')">Ajouter une activité</button>
                 <button class="btn danger" onclick="removeItem('lesson','${lesson.id}')">Supprimer la séance</button>
@@ -1826,7 +1914,10 @@
       }
 
       function moveButtons(type, id) {
-        return "";
+        return `<span class="item-move-buttons" aria-label="Déplacer cet élément">
+          <button class="btn icon" type="button" onclick="moveItem('${type}','${id}',-1)" aria-label="Monter">↑</button>
+          <button class="btn icon" type="button" onclick="moveItem('${type}','${id}',1)" aria-label="Descendre">↓</button>
+        </span>`;
       }
 
       function resourceRow(resource) {

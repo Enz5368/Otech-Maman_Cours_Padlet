@@ -475,6 +475,9 @@
         color: var(--wine-700);
         padding: 0;
         font-weight: 850;
+        cursor: pointer;
+        text-decoration: underline;
+        text-underline-offset: 3px;
       }
       .list-table {
         display: grid;
@@ -1353,7 +1356,7 @@
       }
       .category-group .entity-card { counter-increment: category-item; }
       .category-group .entity-card::before { content: counter(category-item) "."; font-weight: 850; color: var(--wine-700); margin-right: 10px; }
-      .category-drawer { display: grid; grid-template-rows: auto minmax(0, 1fr) auto; overflow: hidden; width: min(820px, 100%); }
+      .category-drawer { display: grid; grid-template-rows: auto minmax(0, 1fr) auto; overflow: hidden; width: min(1180px, calc(100% - 48px)); }
       .category-drawer-head { position: static; }
       .category-drawer-head h2 { margin: 2px 0 6px; color: var(--wine-900); }
       .category-eyebrow { margin: 0; color: var(--wine-700); font-size: 12px; font-weight: 900; text-transform: uppercase; letter-spacing: .08em; }
@@ -1406,6 +1409,19 @@
       .category-class-order .btn { min-height: 38px; padding: 7px 9px; font-size: 11px; }
       .category-manager-footer { display: flex; justify-content: flex-end; gap: 10px; border-top: 1px solid var(--line); background: var(--paper); padding: 14px 18px; }
       .category-manager-footer .primary { min-width: 230px; }
+      .item-move-buttons { display: inline-grid; grid-template-rows: repeat(2, 34px); gap: 4px; align-self: center; }
+      .item-move-buttons .btn.icon { width: 38px; min-height: 34px; padding: 3px; font-size: 17px; line-height: 1; }
+      .context-order-list { display: grid; gap: 10px; }
+      .context-order-row {
+        display: grid;
+        grid-template-columns: 42px minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 14px;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        background: white;
+        padding: 12px 14px;
+      }
 
       .numbered-list {
         display: grid;
@@ -1498,6 +1514,7 @@
         .form-grid { grid-template-columns: 1fr; }
         .topbar { align-items: flex-start; flex-direction: column; }
         .subtree-dialog { inset: 10px; }
+        .category-drawer { width: 100%; }
         .category-editor-item { grid-template-columns: 1fr auto; align-items: end; }
         .category-order-buttons { grid-column: 1; }
         .category-name-field { grid-column: 1 / -1; grid-row: 1; }
