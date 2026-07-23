@@ -677,10 +677,10 @@
         let openedFresh = false;
         try {
           openedFresh = target.location.href === "about:blank";
+          target.document.documentElement.style.visibility = "hidden";
         } catch {
           // Un onglet nommé peut avoir navigué hors du site : il reste réutilisable.
         }
-        target.focus();
         Promise.resolve(pendingWorkspaceSave).then((saved) => {
           if (saved || !isLoggedIn()) {
             target.location.replace(url);
@@ -688,6 +688,9 @@
             return;
           }
           if (openedFresh) target.close();
+          else {
+            try { target.document.documentElement.style.visibility = ""; } catch {}
+          }
           toast("La vue n'a pas été ouverte car l'enregistrement serveur a échoué.");
         });
       }
