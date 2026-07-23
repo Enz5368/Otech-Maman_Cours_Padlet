@@ -1039,7 +1039,10 @@
                 <h2 style="margin:0;color:var(--wine-900);font-size:34px">Toutes les classes</h2>
                 <p class="muted">Clique sur Modifier pour entrer dans une classe et gérer ses séquences sur une page dédiée.</p>
               </div>
-              ${editOnly(`<div class="row wrap"><button class="btn" onclick="manageCategories()">Organiser les catégories</button><button class="btn primary" onclick="openEditor('class')">Ajouter une classe</button></div>`)}
+              <div class="row wrap">
+                <button class="btn" onclick="setView('tree')">Arbre</button>
+                ${editOnly(`<button class="btn" onclick="manageCategories()">Organiser les catégories</button><button class="btn primary" onclick="openEditor('class')">Ajouter une classe</button>`)}
+              </div>
             </div>
           </section>
           <section>${state.categories.map((category) => `<div class="category-group"><h3 class="category-title" draggable="true" data-category="${escapeAttr(category)}">— ${escapeHtml(category)} —</h3><div class="page-grid">${state.classes.filter((classe) => classe.category === category).map(classCard).join("") || empty("Aucune classe dans cette catégorie.")}</div></div>`).join("")}${state.classes.some((classe) => !classe.category || !state.categories.includes(classe.category)) ? `<div class="category-group"><h3 class="category-title">— Sans catégorie —</h3><div class="page-grid">${state.classes.filter((classe) => !classe.category || !state.categories.includes(classe.category)).map(classCard).join("")}</div></div>` : ""}</section>
