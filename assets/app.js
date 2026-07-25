@@ -624,6 +624,8 @@
         if (/\.(png|jpe?g|gif|webp|svg)(\?|#|$)/i.test(url)) return "image";
         if (/\.(mp3|wav|ogg)(\?|#|$)/i.test(url)) return "audio";
         if (/\.(mp4|webm|mov)(\?|#|$)/i.test(url)) return "video";
+        if (/\.pdf(\?|#|$)/i.test(url)) return "pdf";
+        if (/\.(docx?|xlsx?|pptx?|odt|ods|odp|zip)(\?|#|$)/i.test(url)) return "document";
         return "embed";
       }
 
@@ -646,6 +648,34 @@
         const youtube = value.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]+)/);
         if (youtube) return `https://www.youtube.com/embed/${youtube[1]}`;
         return escapeAttr(value);
+      }
+
+      function isStoredDocumentUrl(url) {
+        return /^\/api\/v1\/files\/[^/]+\/content(?:\?|#|$)/i.test(String(url || ""));
+      }
+
+      async function classifyStoredSlideElements() {
+        if (!window.ServerAPI?.files) return;
+        const storedFiles = [];
+        for (let offset = 0; ; offset += 200) {
+          const page = await window.ServerAPI.files(offset, 200);
+          storedFiles.push(...page);
+          if (page.length < 200) break;
+        }
+        const mimeByUrl = new Map(storedFiles.map((file) => [file.content_url, file.mime_type || ""]));
+        for (const classe of state.classes) for (const sequence of classe.sequences || []) {
+          for (const lesson of sequence.lessons || []) for (const activity of lesson.activities || []) {
+            for (const slide of activity.slides || []) for (const element of slide.elements || []) {
+              if (element.kind !== "embed" || !mimeByUrl.has(element.value)) continue;
+              const mimeType = mimeByUrl.get(element.value);
+              element.kind = mimeType.startsWith("image/") ? "image"
+                : mimeType.startsWith("audio/") ? "audio"
+                : mimeType.startsWith("video/") ? "video"
+                : mimeType === "application/pdf" ? "pdf"
+                : "document";
+            }
+          }
+        }
       }
 
       function setView(view) {
@@ -2365,6 +2395,10 @@
         if (element.kind === "image") return `<img src="${escapeAttr(element.value)}" alt="">`;
         if (element.kind === "audio") return `<audio controls preload="metadata" src="${escapeAttr(element.value)}" onerror="reportMediaError(this)"></audio>`;
         if (element.kind === "video") return `<video controls preload="metadata" src="${escapeAttr(element.value)}" onerror="reportMediaError(this)"></video>`;
+        if (element.kind === "document" || (element.kind === "embed" && isStoredDocumentUrl(element.value))) {
+          return `<div class="slide-document-card"><strong>Document joint</strong><span>Ce format ne peut pas être affiché directement par le navigateur.</span><a class="btn primary" href="${escapeAttr(element.value)}" target="_blank" rel="noreferrer" onclick="event.stopPropagation()">Ouvrir le document</a></div>`;
+        }
+        if (element.kind === "pdf") return `<iframe src="${toEmbedUrl(element.value)}" title="Document PDF"></iframe>`;
         return `<iframe src="${toEmbedUrl(element.value)}"></iframe>`;
       }
 
@@ -2583,7 +2617,11 @@
             ? { mime_type: file.type || "", content_url: await readFileAsDataUrl(file) }
             : await window.ServerAPI.upload(file);
           const mimeType = uploaded.mime_type || file.type || "";
-          const kind = mimeType.startsWith("image/") ? "image" : mimeType.startsWith("audio/") ? "audio" : mimeType.startsWith("video/") ? "video" : "embed";
+          const kind = mimeType.startsWith("image/") ? "image"
+            : mimeType.startsWith("audio/") ? "audio"
+            : mimeType.startsWith("video/") ? "video"
+            : mimeType === "application/pdf" ? "pdf"
+            : "document";
           const slide = selectedSlide();
           document.querySelector("#slideStrip").insertAdjacentHTML("beforeend", renderStudioElement({ id: uid("el"), kind, x: 100, y: 90, w: 520, h: 300, value: uploaded.content_url }, Number(slide.dataset.slideIndex || 0)));
           initStudioDrag();
@@ -3736,6 +3774,7 @@
           const recoveredWorkspace = await window.ServerAPI.replayOfflineDraft(workspace).catch(() => null);
           const effectiveWorkspace = recoveredWorkspace || workspace;
           state = Object.keys(effectiveWorkspace.content || {}).length ? ensureDemoData(effectiveWorkspace.content) : ensureDemoData(seedData());
+          await classifyStoredSlideElements().catch(() => null);
           storageInfo = await window.ServerAPI.storage().catch(() => null);
           markStateConfirmed();
         } catch {
