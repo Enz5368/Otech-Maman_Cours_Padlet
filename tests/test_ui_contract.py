@@ -271,7 +271,8 @@ def test_export_pptx_embarque_les_medias_et_produit_un_zip_windows_valide() -> N
     assert "zipDosDateTime(new Date())" in APP_JS
     assert "appendStoredFilesToExport(files)" in APP_JS
     assert "collectActivityMediaExportFiles(activity, activityFolder)" in APP_JS
-    assert "`${activityFolder}/medias/${String(index + 1).padStart(2, \"0\")}-${element.kind}.${extension}`" in APP_JS
+    assert "`${activityFolder}/${String(index + 1).padStart(2, \"0\")}-${element.kind}.${extension}`" in APP_JS
+    assert "`${activityFolder}/medias/" not in APP_JS
     assert 'path: `medias/${String(index + 1).padStart(3, "0")}-${baseName}${extension}`' in APP_JS
     assert "exportSlug(classe.title, 14)" in APP_JS
     assert "exportSlug(sequence.title, 14)" in APP_JS
