@@ -3104,6 +3104,7 @@
 
       async function exportZip() {
         if (!requireLogin()) return;
+        exportMediaFetchCache = new Map();
         try {
           const files = await buildExportFiles();
           const blob = new Blob([makeZip(files)], { type: "application/zip" });
@@ -3116,10 +3117,13 @@
         } catch (error) {
           console.error("Export ZIP impossible", error);
           toast(`Export impossible : ${error.message || "un média n'a pas pu être intégré"}.`);
+        } finally {
+          exportMediaFetchCache.clear();
         }
       }
 
       async function buildExportFiles() {
+        const activityMediaJobs = [];
         const files = [{
           path: "donnees-completes.json",
           content: JSON.stringify(state, null, 2)
@@ -3143,6 +3147,7 @@
                 files.push({ path: `${activityFolder}/presentation.json`, content: JSON.stringify(activity, null, 2) });
                 files.push({ path: `${activityFolder}/resume.txt`, content: presentationSummary(classe, sequence, lesson, activity) });
                 files.push({ path: `${activityFolder}/${activitySlug}.pptx`, content: makePptx(activity), binary: true });
+                activityMediaJobs.push(collectActivityMediaExportFiles(activity, activityFolder));
               });
             });
           });
@@ -3160,11 +3165,30 @@
         files.push({ path: "outils/roue-compteurs.json", content: JSON.stringify(state.tools?.wheelCounts || {}, null, 2) });
         files.push({ path: "outils/roue-reglages.json", content: JSON.stringify(state.tools?.wheelLimits || {}, null, 2) });
         files.push({ path: "outils/roue-absents.json", content: JSON.stringify(state.tools?.wheelAbsences || {}, null, 2) });
+        files.push(...(await Promise.all(activityMediaJobs)).flat());
         await appendStoredFilesToExport(files);
         await Promise.all(files.map(async (file) => {
           if (file.content instanceof Promise) file.content = await file.content;
         }));
         return files;
+      }
+
+      async function collectActivityMediaExportFiles(activity, activityFolder) {
+        const supported = new Set(["image", "audio", "video"]);
+        const elements = (activity.slides || []).flatMap((slide) => slide.elements || []);
+        const uniqueElements = [...new Map(elements
+          .filter((element) => supported.has(element.kind) && element.value)
+          .map((element) => [element.value, element])).values()];
+        return Promise.all(uniqueElements.map(async (element, index) => {
+          const downloaded = await fetchExportMedia(element.value);
+          const mimeType = downloaded.mimeType || mimeFromDataUrl(element.value) || defaultMediaMime(element.kind);
+          const extension = mediaExtension(mimeType, element.kind);
+          return {
+            path: `${activityFolder}/medias/${String(index + 1).padStart(2, "0")}-${element.kind}.${extension}`,
+            content: downloaded.bytes,
+            binary: true
+          };
+        }));
       }
 
       function exportSlug(value, maxLength = 14) {
@@ -3180,13 +3204,12 @@
           if (page.length < 200) break;
         }
         const downloads = await Promise.all(storedFiles.map(async (item, index) => {
-          const response = await fetch(item.content_url, { credentials: "include" });
-          if (!response.ok) throw new Error(`le fichier ${item.original_name || index + 1} est inaccessible (HTTP ${response.status})`);
+          const downloaded = await fetchExportMedia(item.content_url);
           const extension = safeFileExtension(item.original_name);
           const baseName = exportSlug(String(item.original_name || `fichier-${index + 1}`).replace(/\.[^.]+$/, ""));
           return {
             path: `medias/${String(index + 1).padStart(3, "0")}-${baseName}${extension}`,
-            content: new Uint8Array(await response.arrayBuffer()),
+            content: downloaded.bytes,
             binary: true
           };
         }));
@@ -3353,15 +3376,13 @@
         const results = await Promise.all((slide.elements || []).map(async (element, elementIndex) => {
           if (!supported.has(element.kind) || !element.value) return null;
           try {
-            const response = await fetch(element.value, { credentials: "include" });
-            if (!response.ok) throw new Error(`HTTP ${response.status}`);
-            const blob = await response.blob();
-            const mimeType = blob.type || mimeFromDataUrl(element.value) || defaultMediaMime(element.kind);
+            const downloaded = await fetchExportMedia(element.value);
+            const mimeType = downloaded.mimeType || mimeFromDataUrl(element.value) || defaultMediaMime(element.kind);
             const extension = mediaExtension(mimeType, element.kind);
             return {
               elementIndex,
               kind: element.kind,
-              bytes: new Uint8Array(await blob.arrayBuffer()),
+              bytes: downloaded.bytes,
               mimeType,
               extension,
               fileName: `media-${slideIndex + 1}-${elementIndex + 1}.${extension}`
@@ -3376,6 +3397,19 @@
           playbackRelId: `rId${index * 3 + 3}`,
           previewRelId: `rId${index * 3 + 4}`
         }));
+      }
+
+      let exportMediaFetchCache = new Map();
+
+      function fetchExportMedia(url) {
+        if (!exportMediaFetchCache.has(url)) {
+          exportMediaFetchCache.set(url, fetch(url, { credentials: "include" }).then(async (response) => {
+            if (!response.ok) throw new Error(`média inaccessible (HTTP ${response.status})`);
+            const blob = await response.blob();
+            return { bytes: new Uint8Array(await blob.arrayBuffer()), mimeType: blob.type || "" };
+          }));
+        }
+        return exportMediaFetchCache.get(url);
       }
 
       function pptxSlideRels(media) {
