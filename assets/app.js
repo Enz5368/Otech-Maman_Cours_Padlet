@@ -3184,7 +3184,7 @@
           const mimeType = downloaded.mimeType || mimeFromDataUrl(element.value) || defaultMediaMime(element.kind);
           const extension = mediaExtension(mimeType, element.kind);
           return {
-            path: `${activityFolder}/medias/${String(index + 1).padStart(2, "0")}-${element.kind}.${extension}`,
+            path: `${activityFolder}/${String(index + 1).padStart(2, "0")}-${element.kind}.${extension}`,
             content: downloaded.bytes,
             binary: true
           };
