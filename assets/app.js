@@ -3138,7 +3138,7 @@
               const lessonFolder = `${sequenceFolder}/seances/${String(lessonIndex + 1).padStart(2, "0")}-${exportSlug(lesson.title, 14)}`;
               files.push({ path: `${lessonFolder}/seance.json`, content: JSON.stringify(lesson, null, 2) });
               (lesson.activities || []).forEach((activity, activityIndex) => {
-                const activitySlug = exportSlug(activity.title, 20);
+                const activitySlug = exportSlug(activity.title, 14);
                 const activityFolder = `${lessonFolder}/presentations/${String(activityIndex + 1).padStart(2, "0")}-${activitySlug}`;
                 files.push({ path: `${activityFolder}/presentation.json`, content: JSON.stringify(activity, null, 2) });
                 files.push({ path: `${activityFolder}/resume.txt`, content: presentationSummary(classe, sequence, lesson, activity) });
@@ -3148,7 +3148,7 @@
           });
         });
         (state.studentClasses || []).forEach((classe, index) => {
-          const folder = `mes-classes/${String(index + 1).padStart(2, "0")}-${exportSlug(classe.title, 20)}`;
+          const folder = `mes-classes/${String(index + 1).padStart(2, "0")}-${exportSlug(classe.title, 14)}`;
           files.push({ path: `${folder}/classe.json`, content: JSON.stringify(classe, null, 2) });
           files.push({ path: `${folder}/eleves.txt`, content: (classe.students || []).join("\n") });
           files.push({ path: `${folder}/historique-roue.json`, content: JSON.stringify((state.tools?.wheelHistory || {})[classe.id] || [], null, 2) });
@@ -3167,8 +3167,8 @@
         return files;
       }
 
-      function exportSlug(value, maxLength = 36) {
-        return (slugify(value) || "sans-titre").slice(0, maxLength).replace(/-+$/g, "") || "sans-titre";
+      function exportSlug(value, maxLength = 14) {
+        return (slugify(value) || "sans-titre").slice(-maxLength).replace(/^-+|-+$/g, "") || "sans-titre";
       }
 
       async function appendStoredFilesToExport(files) {
