@@ -256,6 +256,11 @@ def test_export_pptx_embarque_les_medias_et_produit_un_zip_windows_valide() -> N
     assert "pptxSlideRels(slideMedia[index])" in APP_JS
     assert "relationships/media" in APP_JS
     assert 'item.kind === "video" ? "video" : item.kind === "audio" ? "audio" : "image"' in APP_JS
+    assert '"ppt/slideMasters/slideMaster1.xml"' in APP_JS
+    assert '"ppt/slideLayouts/slideLayout1.xml"' in APP_JS
+    assert '"ppt/theme/theme1.xml"' in APP_JS
+    assert "pptxSlideMasterRels()" in APP_JS
+    assert "pptxSlideLayoutRels()" in APP_JS
     assert "zipDosDateTime(new Date())" in APP_JS
     assert "appendStoredFilesToExport(files)" in APP_JS
     assert 'path: `medias/${String(index + 1).padStart(3, "0")}-${baseName}${extension}`' in APP_JS
