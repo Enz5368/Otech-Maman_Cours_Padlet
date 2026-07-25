@@ -257,6 +257,9 @@ def test_export_pptx_embarque_les_medias_et_produit_un_zip_windows_valide() -> N
     assert "relationships/media" in APP_JS
     assert 'item.kind === "video" ? "video" : item.kind === "audio" ? "audio" : "image"' in APP_JS
     assert "zipDosDateTime(new Date())" in APP_JS
+    assert "appendStoredFilesToExport(files)" in APP_JS
+    assert 'path: `medias/${String(index + 1).padStart(3, "0")}-${baseName}${extension}`' in APP_JS
+    assert '.slice(0, 36)' in APP_JS
 
 
 def test_studio_confirme_visiblement_la_sauvegarde_et_recharge_les_medias() -> None:
