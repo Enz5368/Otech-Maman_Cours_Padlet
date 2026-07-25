@@ -292,6 +292,17 @@ def test_studio_confirme_visiblement_la_sauvegarde_et_recharge_les_medias() -> N
     assert "reportMediaError(this)" in APP_JS
 
 
+def test_documents_bureautiques_ne_declenchent_pas_de_telechargement_automatique() -> None:
+    assert 'mimeType === "application/pdf" ? "pdf"' in APP_JS
+    assert ': "document";' in APP_JS
+    assert "isStoredDocumentUrl(element.value)" in APP_JS
+    assert 'class="slide-document-card"' in APP_JS
+    assert "Ouvrir le document" in APP_JS
+    assert 'element.kind === "pdf"' in APP_JS
+    assert "classifyStoredSlideElements()" in APP_JS
+    assert "mimeByUrl" in APP_JS
+
+
 def test_identite_mon_espace_pro_est_affichee() -> None:
     assert "<title>MON ESPACE PROF · Cartable numérique</title>" in INDEX
     assert "<h1>MON ESPACE PROF</h1>" in INDEX
