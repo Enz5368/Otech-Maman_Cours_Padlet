@@ -248,6 +248,17 @@ def test_import_accepte_les_exports_zip_et_attend_le_serveur() -> None:
     assert "Elle remplacera les données actuelles de ce compte" in APP_JS
 
 
+def test_export_pptx_embarque_les_medias_et_produit_un_zip_windows_valide() -> None:
+    assert "const files = await buildExportFiles();" in APP_JS
+    assert 'const supported = new Set(["image", "audio", "video"]);' in APP_JS
+    assert 'fetch(element.value, { credentials: "include" })' in APP_JS
+    assert '"ppt/media/media-placeholder.png"' in APP_JS
+    assert "pptxSlideRels(slideMedia[index])" in APP_JS
+    assert "relationships/media" in APP_JS
+    assert 'item.kind === "video" ? "video" : item.kind === "audio" ? "audio" : "image"' in APP_JS
+    assert "zipDosDateTime(new Date())" in APP_JS
+
+
 def test_studio_confirme_visiblement_la_sauvegarde_et_recharge_les_medias() -> None:
     assert "saveStudio('${activity.id}',false,this)" in APP_JS
     assert 'id="studioSaveStatus" role="status"' in APP_JS

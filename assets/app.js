@@ -3104,17 +3104,22 @@
 
       async function exportZip() {
         if (!requireLogin()) return;
-        const files = buildExportFiles();
-        const blob = new Blob([makeZip(files)], { type: "application/zip" });
-        const link = document.createElement("a");
-        link.href = URL.createObjectURL(blob);
-        link.download = `in-viaggio-export-${new Date().toISOString().slice(0, 10)}.zip`;
-        link.click();
-        URL.revokeObjectURL(link.href);
-        toast("ZIP exporte.");
+        try {
+          const files = await buildExportFiles();
+          const blob = new Blob([makeZip(files)], { type: "application/zip" });
+          const link = document.createElement("a");
+          link.href = URL.createObjectURL(blob);
+          link.download = `in-viaggio-export-${new Date().toISOString().slice(0, 10)}.zip`;
+          link.click();
+          URL.revokeObjectURL(link.href);
+          toast("ZIP exporté avec les présentations et leurs médias.");
+        } catch (error) {
+          console.error("Export ZIP impossible", error);
+          toast(`Export impossible : ${error.message || "un média n'a pas pu être intégré"}.`);
+        }
       }
 
-      function buildExportFiles() {
+      async function buildExportFiles() {
         const files = [{
           path: "donnees-completes.json",
           content: JSON.stringify(state, null, 2)
@@ -3154,6 +3159,9 @@
         files.push({ path: "outils/roue-compteurs.json", content: JSON.stringify(state.tools?.wheelCounts || {}, null, 2) });
         files.push({ path: "outils/roue-reglages.json", content: JSON.stringify(state.tools?.wheelLimits || {}, null, 2) });
         files.push({ path: "outils/roue-absents.json", content: JSON.stringify(state.tools?.wheelAbsences || {}, null, 2) });
+        await Promise.all(files.map(async (file) => {
+          if (file.content instanceof Promise) file.content = await file.content;
+        }));
         return files;
       }
 
@@ -3170,22 +3178,32 @@
         ].join("\n");
       }
 
-      function makePptx(activity) {
+      async function makePptx(activity) {
         const slides = (activity.slides || []).length ? activity.slides : [{ elements: [] }];
+        const slideMedia = await Promise.all(slides.map((slide, slideIndex) => collectSlideMedia(slide, slideIndex)));
+        const media = slideMedia.flat();
         const files = [
-          { path: "[Content_Types].xml", content: pptxContentTypes(slides.length) },
+          { path: "[Content_Types].xml", content: pptxContentTypes(slides.length, media) },
           { path: "_rels/.rels", content: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="ppt/presentation.xml"/></Relationships>` },
           { path: "ppt/presentation.xml", content: pptxPresentation(slides.length) },
-          { path: "ppt/_rels/presentation.xml.rels", content: pptxPresentationRels(slides.length) }
+          { path: "ppt/_rels/presentation.xml.rels", content: pptxPresentationRels(slides.length) },
+          { path: "ppt/media/media-placeholder.png", content: mediaPlaceholderPng(), binary: true }
         ];
         slides.forEach((slide, index) => {
-          files.push({ path: `ppt/slides/slide${index + 1}.xml`, content: pptxSlide(activity, slide, index) });
+          files.push({ path: `ppt/slides/slide${index + 1}.xml`, content: pptxSlide(activity, slide, index, slideMedia[index]) });
+          if (slideMedia[index].length) {
+            files.push({ path: `ppt/slides/_rels/slide${index + 1}.xml.rels`, content: pptxSlideRels(slideMedia[index]) });
+          }
         });
+        media.forEach((item) => files.push({ path: `ppt/media/${item.fileName}`, content: item.bytes, binary: true }));
         return makeZip(files);
       }
 
-      function pptxContentTypes(count) {
-        return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/ppt/presentation.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.presentation.main+xml"/>${Array.from({ length: count }, (_, i) => `<Override PartName="/ppt/slides/slide${i + 1}.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slide+xml"/>`).join("")}</Types>`;
+      function pptxContentTypes(count, media) {
+        const mediaTypes = new Map([["png", "image/png"]]);
+        media.forEach((item) => mediaTypes.set(item.extension, item.mimeType));
+        const defaults = [...mediaTypes].map(([extension, mimeType]) => `<Default Extension="${xmlEscape(extension)}" ContentType="${xmlEscape(mimeType)}"/>`).join("");
+        return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/>${defaults}<Override PartName="/ppt/presentation.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.presentation.main+xml"/>${Array.from({ length: count }, (_, i) => `<Override PartName="/ppt/slides/slide${i + 1}.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slide+xml"/>`).join("")}</Types>`;
       }
 
       function pptxPresentation(count) {
@@ -3197,12 +3215,92 @@
         return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">${Array.from({ length: count }, (_, i) => `<Relationship Id="rId${i + 1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slide" Target="slides/slide${i + 1}.xml"/>`).join("")}</Relationships>`;
       }
 
-      function pptxSlide(activity, slide, index) {
+      function pptxSlide(activity, slide, index, media) {
         const shapes = [
           pptxTextShape(`title-${index}`, activity.title || "Presentation", 50, 24, 860, 54, 28, true),
-          ...(slide.elements || []).map((element, elementIndex) => pptxElementShape(element, `${index}-${elementIndex}`))
+          ...(slide.elements || []).map((element, elementIndex) => {
+            const asset = media.find((item) => item.elementIndex === elementIndex);
+            return asset ? pptxMediaShape(element, `${index}-${elementIndex}`, asset) : pptxElementShape(element, `${index}-${elementIndex}`);
+          })
         ].join("");
         return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><p:sld xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main"><p:cSld><p:bg><p:bgPr><a:solidFill><a:srgbClr val="FFFDF9"/></a:solidFill><a:effectLst/></p:bgPr></p:bg><p:spTree><p:nvGrpSpPr><p:cNvPr id="1" name=""/><p:cNvGrpSpPr/><p:nvPr/></p:nvGrpSpPr><p:grpSpPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="0" cy="0"/><a:chOff x="0" y="0"/><a:chExt cx="0" cy="0"/></a:xfrm></p:grpSpPr>${shapes}</p:spTree></p:cSld><p:clrMapOvr><a:masterClrMapping/></p:clrMapOvr></p:sld>`;
+      }
+
+      async function collectSlideMedia(slide, slideIndex) {
+        const supported = new Set(["image", "audio", "video"]);
+        const results = await Promise.all((slide.elements || []).map(async (element, elementIndex) => {
+          if (!supported.has(element.kind) || !element.value) return null;
+          try {
+            const response = await fetch(element.value, { credentials: "include" });
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            const blob = await response.blob();
+            const mimeType = blob.type || mimeFromDataUrl(element.value) || defaultMediaMime(element.kind);
+            const extension = mediaExtension(mimeType, element.kind);
+            return {
+              elementIndex,
+              kind: element.kind,
+              bytes: new Uint8Array(await blob.arrayBuffer()),
+              mimeType,
+              extension,
+              fileName: `media-${slideIndex + 1}-${elementIndex + 1}.${extension}`
+            };
+          } catch (error) {
+            throw new Error(`le média ${elementIndex + 1} de la diapositive ${slideIndex + 1} est inaccessible (${error.message || "erreur inconnue"})`);
+          }
+        }));
+        return results.filter(Boolean).map((item, index) => ({
+          ...item,
+          mediaRelId: `rId${index * 3 + 1}`,
+          playbackRelId: `rId${index * 3 + 2}`,
+          previewRelId: `rId${index * 3 + 3}`
+        }));
+      }
+
+      function pptxSlideRels(media) {
+        const relationships = media.map((item) => {
+          const playbackType = item.kind === "video" ? "video" : item.kind === "audio" ? "audio" : "image";
+          if (item.kind === "image") {
+            return `<Relationship Id="${item.mediaRelId}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="../media/${xmlEscape(item.fileName)}"/>`;
+          }
+          return `<Relationship Id="${item.mediaRelId}" Type="http://schemas.microsoft.com/office/2007/relationships/media" Target="../media/${xmlEscape(item.fileName)}"/><Relationship Id="${item.playbackRelId}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/${playbackType}" Target="../media/${xmlEscape(item.fileName)}"/><Relationship Id="${item.previewRelId}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="../media/media-placeholder.png"/>`;
+        }).join("");
+        return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">${relationships}</Relationships>`;
+      }
+
+      function pptxMediaShape(element, id, asset) {
+        const shapeId = 1000 + Math.abs(String(id).split("").reduce((sum, char) => sum + char.charCodeAt(0), 10));
+        const px = 12700;
+        const x = Math.round(Number(element.x || 0) * px);
+        const y = Math.round(Number(element.y || 0) * px);
+        const w = Math.round(Number(element.w || 320) * px);
+        const h = Math.round(Number(element.h || 180) * px);
+        if (asset.kind === "image") {
+          return `<p:pic><p:nvPicPr><p:cNvPr id="${shapeId}" name="Image ${shapeId}"/><p:cNvPicPr/><p:nvPr/></p:nvPicPr><p:blipFill><a:blip r:embed="${asset.mediaRelId}"/><a:stretch><a:fillRect/></a:stretch></p:blipFill><p:spPr><a:xfrm><a:off x="${x}" y="${y}"/><a:ext cx="${w}" cy="${h}"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></p:spPr></p:pic>`;
+        }
+        const mediaTag = asset.kind === "video" ? "videoFile" : "audioFile";
+        return `<p:pic><p:nvPicPr><p:cNvPr id="${shapeId}" name="${asset.kind === "video" ? "Vidéo" : "Audio"} ${shapeId}"/><p:cNvPicPr/><p:nvPr><a:${mediaTag} r:link="${asset.playbackRelId}"/><p:extLst><p:ext uri="{DAA4B4D4-6D71-4841-9C94-3DE7FC82D49A}"><p14:media xmlns:p14="http://schemas.microsoft.com/office/powerpoint/2010/main" r:embed="${asset.mediaRelId}"/></p:ext></p:extLst></p:nvPr></p:nvPicPr><p:blipFill><a:blip r:embed="${asset.previewRelId}"/><a:stretch><a:fillRect/></a:stretch></p:blipFill><p:spPr><a:xfrm><a:off x="${x}" y="${y}"/><a:ext cx="${w}" cy="${h}"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></p:spPr></p:pic>`;
+      }
+
+      function mimeFromDataUrl(value) {
+        return /^data:([^;,]+)/i.exec(String(value || ""))?.[1] || "";
+      }
+
+      function defaultMediaMime(kind) {
+        return kind === "image" ? "image/png" : kind === "audio" ? "audio/mpeg" : "video/mp4";
+      }
+
+      function mediaExtension(mimeType, kind) {
+        const extensions = {
+          "image/jpeg": "jpg", "image/png": "png", "image/gif": "gif", "image/webp": "webp",
+          "audio/mpeg": "mp3", "audio/mp4": "m4a", "audio/wav": "wav", "audio/ogg": "ogg",
+          "video/mp4": "mp4", "video/webm": "webm", "video/ogg": "ogv", "video/quicktime": "mov"
+        };
+        return extensions[String(mimeType || "").split(";")[0].toLowerCase()] || (kind === "image" ? "png" : kind === "audio" ? "mp3" : "mp4");
+      }
+
+      function mediaPlaceholderPng() {
+        const binary = atob("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M/wHwAF/gL+AvzZAAAAAElFTkSuQmCC");
+        return Uint8Array.from(binary, (char) => char.charCodeAt(0));
       }
 
       function pptxElementShape(element, id) {
@@ -3233,19 +3331,20 @@
         const encoder = new TextEncoder();
         const localParts = [];
         const centralParts = [];
+        const { dosTime, dosDate } = zipDosDateTime(new Date());
         let offset = 0;
         files.forEach((file) => {
           const name = encoder.encode(file.path.replace(/\\/g, "/"));
           const data = file.binary ? file.content : encoder.encode(file.content);
           const crc = crc32(data);
           const local = zipHeader(0x04034b50, [
-            [2, 20], [2, 0], [2, 0], [2, 0], [2, 0],
+            [2, 20], [2, 0], [2, 0], [2, dosTime], [2, dosDate],
             [4, crc], [4, data.length], [4, data.length],
             [2, name.length], [2, 0]
           ]);
           localParts.push(local, name, data);
           const central = zipHeader(0x02014b50, [
-            [2, 20], [2, 20], [2, 0], [2, 0], [2, 0], [2, 0],
+            [2, 20], [2, 20], [2, 0], [2, 0], [2, dosTime], [2, dosDate],
             [4, crc], [4, data.length], [4, data.length],
             [2, name.length], [2, 0], [2, 0], [2, 0], [2, 0],
             [4, 0], [4, offset]
@@ -3259,6 +3358,14 @@
           [4, centralSize], [4, offset], [2, 0]
         ]);
         return concatUint8([...localParts, ...centralParts, end]);
+      }
+
+      function zipDosDateTime(date) {
+        const year = Math.max(1980, date.getFullYear());
+        return {
+          dosTime: (date.getHours() << 11) | (date.getMinutes() << 5) | Math.floor(date.getSeconds() / 2),
+          dosDate: ((year - 1980) << 9) | ((date.getMonth() + 1) << 5) | date.getDate()
+        };
       }
 
       function zipHeader(signature, fields) {
