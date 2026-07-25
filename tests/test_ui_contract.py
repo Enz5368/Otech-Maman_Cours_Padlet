@@ -252,7 +252,8 @@ def test_import_accepte_les_exports_zip_et_attend_le_serveur() -> None:
 def test_export_pptx_embarque_les_medias_et_produit_un_zip_windows_valide() -> None:
     assert "const files = await buildExportFiles();" in APP_JS
     assert 'const supported = new Set(["image", "audio", "video"]);' in APP_JS
-    assert 'fetch(element.value, { credentials: "include" })' in APP_JS
+    assert 'fetch(url, { credentials: "include" })' in APP_JS
+    assert "exportMediaFetchCache" in APP_JS
     assert '"ppt/media/media-placeholder.png"' in APP_JS
     assert "pptxSlideRels(slideMedia[index])" in APP_JS
     assert "relationships/media" in APP_JS
@@ -269,6 +270,8 @@ def test_export_pptx_embarque_les_medias_et_produit_un_zip_windows_valide() -> N
         assert "ppt/theme/theme1.xml" in template.namelist()
     assert "zipDosDateTime(new Date())" in APP_JS
     assert "appendStoredFilesToExport(files)" in APP_JS
+    assert "collectActivityMediaExportFiles(activity, activityFolder)" in APP_JS
+    assert "`${activityFolder}/medias/${String(index + 1).padStart(2, \"0\")}-${element.kind}.${extension}`" in APP_JS
     assert 'path: `medias/${String(index + 1).padStart(3, "0")}-${baseName}${extension}`' in APP_JS
     assert "exportSlug(classe.title, 14)" in APP_JS
     assert "exportSlug(sequence.title, 14)" in APP_JS
