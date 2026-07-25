@@ -3129,25 +3129,26 @@
         }];
 
         state.classes.forEach((classe, classIndex) => {
-          const classFolder = `classes/${String(classIndex + 1).padStart(2, "0")}-${slugify(classe.title)}`;
+          const classFolder = `classes/${String(classIndex + 1).padStart(2, "0")}-${exportSlug(classe.title)}`;
           files.push({ path: `${classFolder}/classe.json`, content: JSON.stringify(classe, null, 2) });
           (classe.sequences || []).forEach((sequence, sequenceIndex) => {
-            const sequenceFolder = `${classFolder}/sequences/${String(sequenceIndex + 1).padStart(2, "0")}-${slugify(sequence.title)}`;
+            const sequenceFolder = `${classFolder}/sequences/${String(sequenceIndex + 1).padStart(2, "0")}-${exportSlug(sequence.title)}`;
             files.push({ path: `${sequenceFolder}/sequence.json`, content: JSON.stringify(sequence, null, 2) });
             (sequence.lessons || []).forEach((lesson, lessonIndex) => {
-              const lessonFolder = `${sequenceFolder}/seances/${String(lessonIndex + 1).padStart(2, "0")}-${slugify(lesson.title)}`;
+              const lessonFolder = `${sequenceFolder}/seances/${String(lessonIndex + 1).padStart(2, "0")}-${exportSlug(lesson.title)}`;
               files.push({ path: `${lessonFolder}/seance.json`, content: JSON.stringify(lesson, null, 2) });
               (lesson.activities || []).forEach((activity, activityIndex) => {
-                const activityFolder = `${lessonFolder}/presentations/${String(activityIndex + 1).padStart(2, "0")}-${slugify(activity.title)}`;
+                const activitySlug = exportSlug(activity.title);
+                const activityFolder = `${lessonFolder}/presentations/${String(activityIndex + 1).padStart(2, "0")}-${activitySlug}`;
                 files.push({ path: `${activityFolder}/presentation.json`, content: JSON.stringify(activity, null, 2) });
                 files.push({ path: `${activityFolder}/resume.txt`, content: presentationSummary(classe, sequence, lesson, activity) });
-                files.push({ path: `${activityFolder}/${slugify(activity.title)}.pptx`, content: makePptx(activity), binary: true });
+                files.push({ path: `${activityFolder}/${activitySlug}.pptx`, content: makePptx(activity), binary: true });
               });
             });
           });
         });
         (state.studentClasses || []).forEach((classe, index) => {
-          const folder = `mes-classes/${String(index + 1).padStart(2, "0")}-${slugify(classe.title)}`;
+          const folder = `mes-classes/${String(index + 1).padStart(2, "0")}-${exportSlug(classe.title)}`;
           files.push({ path: `${folder}/classe.json`, content: JSON.stringify(classe, null, 2) });
           files.push({ path: `${folder}/eleves.txt`, content: (classe.students || []).join("\n") });
           files.push({ path: `${folder}/historique-roue.json`, content: JSON.stringify((state.tools?.wheelHistory || {})[classe.id] || [], null, 2) });
@@ -3159,10 +3160,42 @@
         files.push({ path: "outils/roue-compteurs.json", content: JSON.stringify(state.tools?.wheelCounts || {}, null, 2) });
         files.push({ path: "outils/roue-reglages.json", content: JSON.stringify(state.tools?.wheelLimits || {}, null, 2) });
         files.push({ path: "outils/roue-absents.json", content: JSON.stringify(state.tools?.wheelAbsences || {}, null, 2) });
+        await appendStoredFilesToExport(files);
         await Promise.all(files.map(async (file) => {
           if (file.content instanceof Promise) file.content = await file.content;
         }));
         return files;
+      }
+
+      function exportSlug(value) {
+        return (slugify(value) || "sans-titre").slice(0, 36).replace(/-+$/g, "") || "sans-titre";
+      }
+
+      async function appendStoredFilesToExport(files) {
+        if (isLocalFileMode() || !window.ServerAPI?.files) return;
+        const storedFiles = [];
+        for (let offset = 0; ; offset += 200) {
+          const page = await window.ServerAPI.files(offset, 200);
+          storedFiles.push(...page);
+          if (page.length < 200) break;
+        }
+        const downloads = await Promise.all(storedFiles.map(async (item, index) => {
+          const response = await fetch(item.content_url, { credentials: "include" });
+          if (!response.ok) throw new Error(`le fichier ${item.original_name || index + 1} est inaccessible (HTTP ${response.status})`);
+          const extension = safeFileExtension(item.original_name);
+          const baseName = exportSlug(String(item.original_name || `fichier-${index + 1}`).replace(/\.[^.]+$/, ""));
+          return {
+            path: `medias/${String(index + 1).padStart(3, "0")}-${baseName}${extension}`,
+            content: new Uint8Array(await response.arrayBuffer()),
+            binary: true
+          };
+        }));
+        files.push(...downloads);
+      }
+
+      function safeFileExtension(fileName) {
+        const match = /\.([a-z0-9]{1,10})$/i.exec(String(fileName || ""));
+        return match ? `.${match[1].toLowerCase()}` : "";
       }
 
       function presentationSummary(classe, sequence, lesson, activity) {

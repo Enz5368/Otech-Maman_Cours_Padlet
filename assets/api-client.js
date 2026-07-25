@@ -137,6 +137,10 @@
       const body = new FormData();
       body.append("upload", file);
       return request("/files", { method: "POST", body });
+    },
+
+    files(offset = 0, limit = 200) {
+      return request(`/files?offset=${encodeURIComponent(offset)}&limit=${encodeURIComponent(limit)}`);
     }
   };
 
