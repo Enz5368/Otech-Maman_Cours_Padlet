@@ -3215,23 +3215,18 @@
         const slides = (activity.slides || []).length ? activity.slides : [{ elements: [] }];
         const slideMedia = await Promise.all(slides.map((slide, slideIndex) => collectSlideMedia(slide, slideIndex)));
         const media = slideMedia.flat();
-        const files = [
+        const templateFiles = await loadPptxTemplateFiles();
+        const preservedTemplatePaths = /^(ppt\/slideMasters\/|ppt\/slideLayouts\/|ppt\/theme\/|ppt\/presProps\.xml$|ppt\/viewProps\.xml$|ppt\/tableStyles\.xml$)/;
+        const files = templateFiles.filter((file) => preservedTemplatePaths.test(file.path));
+        files.push(
           { path: "[Content_Types].xml", content: pptxContentTypes(slides.length, media) },
           { path: "_rels/.rels", content: pptxRootRels() },
           { path: "docProps/app.xml", content: pptxAppProperties(slides.length) },
           { path: "docProps/core.xml", content: pptxCoreProperties(activity.title) },
           { path: "ppt/presentation.xml", content: pptxPresentation(slides.length) },
           { path: "ppt/_rels/presentation.xml.rels", content: pptxPresentationRels(slides.length) },
-          { path: "ppt/presProps.xml", content: pptxPresProps() },
-          { path: "ppt/viewProps.xml", content: pptxViewProps() },
-          { path: "ppt/tableStyles.xml", content: pptxTableStyles() },
-          { path: "ppt/slideMasters/slideMaster1.xml", content: pptxSlideMaster() },
-          { path: "ppt/slideMasters/_rels/slideMaster1.xml.rels", content: pptxSlideMasterRels() },
-          { path: "ppt/slideLayouts/slideLayout1.xml", content: pptxSlideLayout() },
-          { path: "ppt/slideLayouts/_rels/slideLayout1.xml.rels", content: pptxSlideLayoutRels() },
-          { path: "ppt/theme/theme1.xml", content: pptxTheme() },
           { path: "ppt/media/media-placeholder.png", content: mediaPlaceholderPng(), binary: true }
-        ];
+        );
         slides.forEach((slide, index) => {
           files.push({ path: `ppt/slides/slide${index + 1}.xml`, content: pptxSlide(activity, slide, index, slideMedia[index]) });
           files.push({ path: `ppt/slides/_rels/slide${index + 1}.xml.rels`, content: pptxSlideRels(slideMedia[index]) });
@@ -3244,7 +3239,48 @@
         const mediaTypes = new Map([["png", "image/png"]]);
         media.forEach((item) => mediaTypes.set(item.extension, item.mimeType));
         const defaults = [...mediaTypes].map(([extension, mimeType]) => `<Default Extension="${xmlEscape(extension)}" ContentType="${xmlEscape(mimeType)}"/>`).join("");
-        return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/>${defaults}<Override PartName="/docProps/app.xml" ContentType="application/vnd.openxmlformats-officedocument.extended-properties+xml"/><Override PartName="/docProps/core.xml" ContentType="application/vnd.openxmlformats-package.core-properties+xml"/><Override PartName="/ppt/presentation.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.presentation.main+xml"/><Override PartName="/ppt/presProps.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.presProps+xml"/><Override PartName="/ppt/viewProps.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.viewProps+xml"/><Override PartName="/ppt/tableStyles.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.tableStyles+xml"/><Override PartName="/ppt/slideMasters/slideMaster1.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slideMaster+xml"/><Override PartName="/ppt/slideLayouts/slideLayout1.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slideLayout+xml"/><Override PartName="/ppt/theme/theme1.xml" ContentType="application/vnd.openxmlformats-officedocument.theme+xml"/>${Array.from({ length: count }, (_, i) => `<Override PartName="/ppt/slides/slide${i + 1}.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slide+xml"/>`).join("")}</Types>`;
+        const layouts = Array.from({ length: 11 }, (_, i) => `<Override PartName="/ppt/slideLayouts/slideLayout${i + 1}.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slideLayout+xml"/>`).join("");
+        return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/>${defaults}<Override PartName="/docProps/app.xml" ContentType="application/vnd.openxmlformats-officedocument.extended-properties+xml"/><Override PartName="/docProps/core.xml" ContentType="application/vnd.openxmlformats-package.core-properties+xml"/><Override PartName="/ppt/presentation.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.presentation.main+xml"/><Override PartName="/ppt/presProps.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.presProps+xml"/><Override PartName="/ppt/viewProps.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.viewProps+xml"/><Override PartName="/ppt/tableStyles.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.tableStyles+xml"/><Override PartName="/ppt/slideMasters/slideMaster1.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slideMaster+xml"/>${layouts}<Override PartName="/ppt/theme/theme1.xml" ContentType="application/vnd.openxmlformats-officedocument.theme+xml"/>${Array.from({ length: count }, (_, i) => `<Override PartName="/ppt/slides/slide${i + 1}.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slide+xml"/>`).join("")}</Types>`;
+      }
+
+      let pptxTemplateFilesPromise = null;
+
+      function loadPptxTemplateFiles() {
+        if (!pptxTemplateFilesPromise) {
+          pptxTemplateFilesPromise = fetch("assets/pptx-template.pptx?v=1")
+            .then((response) => {
+              if (!response.ok) throw new Error(`modèle PowerPoint inaccessible (HTTP ${response.status})`);
+              return response.arrayBuffer();
+            })
+            .then((buffer) => readStoredZipFiles(new Uint8Array(buffer)));
+        }
+        return pptxTemplateFilesPromise.then((files) => files.map((file) => ({ ...file, content: file.content.slice() })));
+      }
+
+      function readStoredZipFiles(bytes) {
+        const decoder = new TextDecoder();
+        const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+        const files = [];
+        let cursor = 0;
+        while (cursor + 30 <= bytes.length && view.getUint32(cursor, true) === 0x04034b50) {
+          const method = view.getUint16(cursor + 8, true);
+          const compressedSize = view.getUint32(cursor + 18, true);
+          const nameLength = view.getUint16(cursor + 26, true);
+          const extraLength = view.getUint16(cursor + 28, true);
+          if (method !== 0) throw new Error("le modèle PowerPoint doit utiliser des entrées ZIP non compressées");
+          const nameStart = cursor + 30;
+          const dataStart = nameStart + nameLength + extraLength;
+          const dataEnd = dataStart + compressedSize;
+          if (dataEnd > bytes.length) throw new Error("modèle PowerPoint tronqué");
+          files.push({
+            path: decoder.decode(bytes.subarray(nameStart, nameStart + nameLength)),
+            content: bytes.slice(dataStart, dataEnd),
+            binary: true
+          });
+          cursor = dataEnd;
+        }
+        if (!files.length) throw new Error("modèle PowerPoint invalide");
+        return files;
       }
 
       function pptxPresentation(count) {
@@ -3385,7 +3421,7 @@
       }
 
       function mediaPlaceholderPng() {
-        const binary = atob("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M/wHwAF/gL+AvzZAAAAAElFTkSuQmCC");
+        const binary = atob("iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAAgElEQVR4nOXOQQEAIBCAMKSTJQxnZY1xD5Zg6+7zCJM4iZM4iZM4iZM4iZM4iZM4iZM4iZM4iZM4iZM4iZM4iZM4iZM4iZM4iZM4iZM4iZM4iZM4iZM4iZM4iZM4iZM4iZM4iZM4iZM4iZM4iZM4iZM4iZM4iXM6MO0D1gsCjEiXvU4AAAAASUVORK5CYII=");
         return Uint8Array.from(binary, (char) => char.charCodeAt(0));
       }
 
