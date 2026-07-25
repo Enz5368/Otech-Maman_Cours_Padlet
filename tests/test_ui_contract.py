@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import re
+import zipfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -256,11 +257,16 @@ def test_export_pptx_embarque_les_medias_et_produit_un_zip_windows_valide() -> N
     assert "pptxSlideRels(slideMedia[index])" in APP_JS
     assert "relationships/media" in APP_JS
     assert 'item.kind === "video" ? "video" : item.kind === "audio" ? "audio" : "image"' in APP_JS
-    assert '"ppt/slideMasters/slideMaster1.xml"' in APP_JS
-    assert '"ppt/slideLayouts/slideLayout1.xml"' in APP_JS
-    assert '"ppt/theme/theme1.xml"' in APP_JS
-    assert "pptxSlideMasterRels()" in APP_JS
-    assert "pptxSlideLayoutRels()" in APP_JS
+    assert "ppt/slideMasters/" in APP_JS
+    assert "ppt/slideLayouts/" in APP_JS
+    assert "ppt/theme/" in APP_JS
+    assert 'fetch("assets/pptx-template.pptx?v=1")' in APP_JS
+    assert "readStoredZipFiles" in APP_JS
+    with zipfile.ZipFile(ROOT / "assets" / "pptx-template.pptx") as template:
+        assert template.testzip() is None
+        assert "ppt/slideMasters/slideMaster1.xml" in template.namelist()
+        assert "ppt/slideLayouts/slideLayout1.xml" in template.namelist()
+        assert "ppt/theme/theme1.xml" in template.namelist()
     assert "zipDosDateTime(new Date())" in APP_JS
     assert "appendStoredFilesToExport(files)" in APP_JS
     assert 'path: `medias/${String(index + 1).padStart(3, "0")}-${baseName}${extension}`' in APP_JS
