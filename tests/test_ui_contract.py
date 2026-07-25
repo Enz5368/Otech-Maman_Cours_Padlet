@@ -301,6 +301,10 @@ def test_documents_bureautiques_ne_declenchent_pas_de_telechargement_automatique
     assert 'element.kind === "pdf"' in APP_JS
     assert "classifyStoredSlideElements()" in APP_JS
     assert "mimeByUrl" in APP_JS
+    assert "hydrateDocumentPreviews()" in APP_JS
+    assert '"word/document.xml"' in APP_JS
+    assert "docxXmlToHtml" in APP_JS
+    assert 'classList.add("loaded")' in APP_JS
 
 
 def test_identite_mon_espace_pro_est_affichee() -> None:

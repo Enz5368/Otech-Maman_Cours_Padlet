@@ -2396,7 +2396,7 @@
         if (element.kind === "audio") return `<audio controls preload="metadata" src="${escapeAttr(element.value)}" onerror="reportMediaError(this)"></audio>`;
         if (element.kind === "video") return `<video controls preload="metadata" src="${escapeAttr(element.value)}" onerror="reportMediaError(this)"></video>`;
         if (element.kind === "document" || (element.kind === "embed" && isStoredDocumentUrl(element.value))) {
-          return `<div class="slide-document-card"><strong>Document joint</strong><span>Ce format ne peut pas être affiché directement par le navigateur.</span><a class="btn primary" href="${escapeAttr(element.value)}" target="_blank" rel="noreferrer" onclick="event.stopPropagation()">Ouvrir le document</a></div>`;
+          return `<div class="slide-document-card" data-document-preview="${escapeAttr(element.value)}"><span class="document-preview-status">Chargement du document…</span><div class="document-preview-content"></div><div class="document-preview-fallback" hidden><strong>Document joint</strong><span>L’aperçu de ce format n’est pas disponible.</span><a class="btn primary" href="${escapeAttr(element.value)}" target="_blank" rel="noreferrer" onclick="event.stopPropagation()">Ouvrir le document</a></div></div>`;
         }
         if (element.kind === "pdf") return `<iframe src="${toEmbedUrl(element.value)}" title="Document PDF"></iframe>`;
         return `<iframe src="${toEmbedUrl(element.value)}"></iframe>`;
@@ -2926,6 +2926,45 @@
         `;
         fitBoardSlide();
         updateTimerDisplay();
+        hydrateDocumentPreviews();
+      }
+
+      async function hydrateDocumentPreviews() {
+        const previews = [...document.querySelectorAll("[data-document-preview]:not([data-preview-loaded])")];
+        await Promise.all(previews.map(async (preview) => {
+          preview.dataset.previewLoaded = "true";
+          const status = preview.querySelector(".document-preview-status");
+          const content = preview.querySelector(".document-preview-content");
+          const fallback = preview.querySelector(".document-preview-fallback");
+          try {
+            const response = await fetch(preview.dataset.documentPreview, { credentials: "include" });
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            const documentXml = await extractZipEntry(await response.arrayBuffer(), "word/document.xml");
+            content.innerHTML = docxXmlToHtml(new TextDecoder("utf-8").decode(documentXml));
+            preview.classList.add("loaded");
+            status.hidden = true;
+          } catch (error) {
+            console.warn("Aperçu du document indisponible", error);
+            status.hidden = true;
+            fallback.hidden = false;
+          }
+        }));
+      }
+
+      function docxXmlToHtml(xmlText) {
+        const xml = new DOMParser().parseFromString(xmlText, "application/xml");
+        if (xml.querySelector("parsererror")) throw new Error("document Word invalide");
+        const paragraphs = [...xml.getElementsByTagNameNS("*", "p")];
+        const html = paragraphs.map((paragraph) => {
+          const parts = [];
+          [...paragraph.querySelectorAll("*")].filter((node) => ["t", "tab", "br"].includes(node.localName)).forEach((node) => {
+            if (node.localName === "tab") parts.push("&emsp;");
+            else if (node.localName === "br") parts.push("<br>");
+            else parts.push(escapeHtml(node.textContent || ""));
+          });
+          return `<p>${parts.join("") || "&nbsp;"}</p>`;
+        }).join("");
+        return html || "<p>Ce document ne contient aucun texte affichable.</p>";
       }
 
       function elementsForBoardSlide(activity, slideIndex) {
