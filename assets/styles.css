@@ -1177,7 +1177,7 @@
       }
       .document-preview-content { width: 100%; color: #252022; line-height: 1.5; }
       .document-preview-content p { margin: 0 0 .8em; white-space: pre-wrap; }
-      .pptx-preview { display: grid; gap: 18px; }
+      .pptx-preview { display: block; }
       .pptx-preview-slide {
         min-height: 180px;
         padding: 20px;
@@ -1186,6 +1186,7 @@
         background: #fffdf9;
         box-shadow: 0 4px 12px rgba(90, 34, 48, .08);
       }
+      .pptx-preview-slide[hidden] { display: none; }
       .pptx-preview-slide > strong { display: block; margin-bottom: 14px; }
       .pptx-preview-image {
         display: block;
@@ -1193,6 +1194,17 @@
         max-height: 320px;
         margin: 0 auto 14px;
         object-fit: contain;
+      }
+      .pptx-preview-controls {
+        position: sticky;
+        bottom: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+        padding: 12px;
+        background: rgba(255, 255, 255, .94);
+        border-top: 1px solid #dec9ce;
       }
       .document-preview-fallback {
         display: flex;

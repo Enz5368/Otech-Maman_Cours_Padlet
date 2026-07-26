@@ -2981,10 +2981,31 @@
             if (xml.querySelector("parsererror")) throw new Error("diapositive PowerPoint invalide");
             const text = [...xml.getElementsByTagNameNS("*", "t")].map((node) => node.textContent || "").filter(Boolean);
             const images = await pptxSlidePreviewImages(arrayBuffer, name, xml);
-            return `<section class="pptx-preview-slide"><strong>Diapositive ${index + 1}</strong>${images.map((src) => `<img class="pptx-preview-image" src="${src}" alt="">`).join("")}${text.map((value) => `<p>${escapeHtml(value)}</p>`).join("") || "<p>Aucun texte sur cette diapositive.</p>"}</section>`;
+            return `<section class="pptx-preview-slide" data-pptx-slide="${index}" ${index ? "hidden" : ""}><strong>Diapositive ${index + 1}</strong>${images.map((src) => `<img class="pptx-preview-image" src="${src}" alt="">`).join("")}${text.map((value) => `<p>${escapeHtml(value)}</p>`).join("") || "<p>Aucun texte sur cette diapositive.</p>"}</section>`;
           }));
-          return `<div class="pptx-preview">${slides.join("")}</div>`;
+          const controls = slides.length > 1
+            ? `<div class="pptx-preview-controls"><button class="btn" disabled onclick="changePptxPreviewSlide(this,-1,event)">Précédente</button><span>1 / ${slides.length}</span><button class="btn" onclick="changePptxPreviewSlide(this,1,event)">Suivante</button></div>`
+            : "";
+          return `<div class="pptx-preview" data-pptx-index="0">${slides.join("")}${controls}</div>`;
         }
+      }
+
+      function changePptxPreviewSlide(button, direction, event) {
+        event?.stopPropagation();
+        const preview = button.closest(".pptx-preview");
+        if (!preview) return;
+        const slides = [...preview.querySelectorAll(".pptx-preview-slide")];
+        const current = Number(preview.dataset.pptxIndex || 0);
+        const next = Math.max(0, Math.min(slides.length - 1, current + direction));
+        preview.dataset.pptxIndex = String(next);
+        slides.forEach((slide, index) => slide.hidden = index !== next);
+        const buttons = preview.querySelectorAll(".pptx-preview-controls button");
+        if (buttons[0]) buttons[0].disabled = next === 0;
+        if (buttons[1]) buttons[1].disabled = next === slides.length - 1;
+        const counter = preview.querySelector(".pptx-preview-controls span");
+        if (counter) counter.textContent = `${next + 1} / ${slides.length}`;
+        const scroller = preview.closest(".slide-document-card");
+        if (scroller) scroller.scrollTop = 0;
       }
 
       async function pptxSlidePreviewImages(arrayBuffer, slideName, slideXml) {
