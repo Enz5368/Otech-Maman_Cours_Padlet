@@ -305,6 +305,16 @@ def test_documents_bureautiques_ne_declenchent_pas_de_telechargement_automatique
     assert '"word/document.xml"' in APP_JS
     assert "docxXmlToHtml" in APP_JS
     assert 'classList.add("loaded")' in APP_JS
+    assert "officeDocumentToHtml" in APP_JS
+    assert "listZipEntryNames" in APP_JS
+    assert 'class="pptx-preview-slide"' in APP_JS
+    assert "pptxSlidePreviewImages" in APP_JS
+    assert 'class="pptx-preview-image"' in APP_JS
+
+
+def test_retour_presentation_rouvre_la_seance_correspondante() -> None:
+    assert "const result = activityId ? findActivity(activityId) : null;" in APP_JS
+    assert "openLessonPage(result.classe.id, result.sequence.id, result.lesson.id)" in APP_JS
 
 
 def test_identite_mon_espace_pro_est_affichee() -> None:
