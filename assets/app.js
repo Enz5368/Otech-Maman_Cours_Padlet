@@ -161,13 +161,22 @@
         setTimeout(() => document.querySelector("input[name='username']")?.focus(), 50);
       }
 
-      function openFreeExample() {
+      async function openFreeExample() {
         if (!isLocalFileMode()) window.ServerAPI.logout().catch(() => {});
         sessionStorage.removeItem(localSessionKey);
         authenticatedUser = null;
         storageInfo = null;
         freeExampleOpen = true;
-        state = ensureDemoData(seedData());
+        try {
+          const response = await fetch("assets/free-example/data.json?v=2026-07-26", { cache: "no-store" });
+          if (!response.ok) throw new Error(`HTTP ${response.status}`);
+          state = ensureDemoData(await response.json());
+          await convertFreeOfficeDocuments();
+        } catch (error) {
+          console.error("Chargement de l’exemple gratuit impossible", error);
+          state = ensureDemoData(seedData());
+          toast("Le fichier d’exemple n’a pas pu être chargé. L’exemple de secours est utilisé.");
+        }
         markStateConfirmed();
         currentView = "dashboard";
         currentPage = { type: "classes" };
@@ -689,28 +698,44 @@
 
       async function convertStoredPptxElements(storedFiles) {
         const pptxMime = "application/vnd.openxmlformats-officedocument.presentationml.presentation";
-        const pptxByUrl = new Map(storedFiles
-          .filter((file) => file.mime_type === pptxMime || /\.pptx$/i.test(file.original_name || file.filename || ""))
+        const docxMime = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+        const officeByUrl = new Map(storedFiles
+          .filter((file) => [pptxMime, docxMime].includes(file.mime_type) || /\.(pptx|docx)$/i.test(file.original_name || file.filename || ""))
           .map((file) => [file.content_url, file]));
         let changed = false;
         for (const classe of state.classes) for (const sequence of classe.sequences || []) {
           for (const lesson of sequence.lessons || []) for (const activity of lesson.activities || []) {
-            for (let slideIndex = 0; slideIndex < (activity.slides || []).length; slideIndex += 1) {
-              const slide = activity.slides[slideIndex];
-              const pptxElement = (slide.elements || []).find((element) => pptxByUrl.has(element.value));
-              if (!pptxElement) continue;
-              const response = await fetch(pptxElement.value, { credentials: "include" });
-              if (!response.ok) continue;
-              const metadata = pptxByUrl.get(pptxElement.value);
-              const file = new File([await response.arrayBuffer()], metadata.original_name || "presentation.pptx", { type: pptxMime });
-              const importedSlides = await importPptxAsSiteSlides(file);
-              if (!importedSlides.length) continue;
-              const otherElements = (slide.elements || []).filter((element) => element !== pptxElement);
-              importedSlides[0].elements.unshift(...otherElements);
-              activity.slides.splice(slideIndex, 1, ...importedSlides);
-              slideIndex += importedSlides.length - 1;
-              changed = true;
+            const rebuiltSlides = [];
+            for (const slide of activity.slides || []) {
+              const officeElements = (slide.elements || []).filter((element) => officeByUrl.has(element.value));
+              if (!officeElements.length) {
+                rebuiltSlides.push(slide);
+                continue;
+              }
+              const otherElements = (slide.elements || []).filter((element) => !officeElements.includes(element));
+              const insertionStart = rebuiltSlides.length;
+              let convertedAny = false;
+              for (const officeElement of officeElements) {
+                const response = await fetch(officeElement.value, { credentials: "include" });
+                if (!response.ok) {
+                  rebuiltSlides.push({ id: uid("slide"), elements: [officeElement] });
+                  continue;
+                }
+                const metadata = officeByUrl.get(officeElement.value);
+                const file = new File([await response.arrayBuffer()], metadata.original_name || "document.docx", { type: metadata.mime_type || "" });
+                const importedSlides = await importOfficeAsSiteSlides(file);
+                if (!importedSlides.length) {
+                  rebuiltSlides.push({ id: uid("slide"), elements: [officeElement] });
+                  continue;
+                }
+                if (!convertedAny) importedSlides[0].elements.unshift(...otherElements);
+                rebuiltSlides.push(...importedSlides);
+                convertedAny = true;
+                changed = true;
+              }
+              if (!convertedAny && otherElements.length) rebuiltSlides.splice(insertionStart, 0, { id: uid("slide"), elements: otherElements });
             }
+            activity.slides = rebuiltSlides;
           }
         }
         return changed;
@@ -2801,14 +2826,92 @@
         return imported;
       }
 
+      async function importDocxAsSiteSlides(file) {
+        const arrayBuffer = await file.arrayBuffer();
+        const documentBytes = await extractZipEntry(arrayBuffer, "word/document.xml");
+        const xml = new DOMParser().parseFromString(new TextDecoder("utf-8").decode(documentBytes), "application/xml");
+        if (xml.querySelector("parsererror")) throw new Error("document Word invalide");
+        const paragraphs = [...xml.getElementsByTagNameNS("*", "p")]
+          .map((paragraph) => [...paragraph.getElementsByTagNameNS("*", "t")].map((node) => node.textContent || "").join(""))
+          .filter((value) => value.trim());
+        const pages = paginateImportedElements([{
+          kind: "text",
+          x: 55,
+          y: 35,
+          w: 850,
+          h: 470,
+          value: paragraphs.join("\n"),
+          fontSize: 26
+        }]).map((elements) => ({ id: uid("slide"), elements }));
+        const imageNames = listZipEntryNames(arrayBuffer).filter((name) => /^word\/media\/.+\.(png|jpe?g|gif|webp)$/i.test(name));
+        for (const imageName of imageNames) {
+          const bytes = await extractZipEntry(arrayBuffer, imageName);
+          const extension = imageName.split(".").pop().toLowerCase();
+          const mimeType = extension === "jpg" || extension === "jpeg" ? "image/jpeg" : `image/${extension}`;
+          const value = usesServerStorage()
+            ? (await window.ServerAPI.upload(new File([bytes], `image-word.${extension}`, { type: mimeType }))).content_url
+            : bytesToDataUrl(bytes, mimeType);
+          pages.push({
+            id: uid("slide"),
+            elements: [{ id: uid("el"), kind: "image", x: 80, y: 35, w: 800, h: 470, value }]
+          });
+        }
+        return pages.length ? pages : [{ id: uid("slide"), elements: [] }];
+      }
+
+      async function importOfficeAsSiteSlides(file) {
+        if (/\.pptx$/i.test(file.name || "")) return importPptxAsSiteSlides(file);
+        if (/\.docx$/i.test(file.name || "")) return importDocxAsSiteSlides(file);
+        return [];
+      }
+
+      async function convertFreeOfficeDocuments() {
+        for (const classe of state.classes || []) for (const sequence of classe.sequences || []) {
+          for (const lesson of sequence.lessons || []) for (const activity of lesson.activities || []) {
+            const convertedSlides = [];
+            for (const slide of activity.slides || []) {
+              const officeElements = (slide.elements || []).filter((element) =>
+                element.kind === "document" && /\.(pptx|docx)(?:\?|#|$)/i.test(element.value || "")
+              );
+              if (!officeElements.length) {
+                convertedSlides.push(slide);
+                continue;
+              }
+              const otherElements = (slide.elements || []).filter((element) => !officeElements.includes(element));
+              let firstImported = true;
+              for (const element of officeElements) {
+                try {
+                  const response = await fetch(element.value, { cache: "force-cache" });
+                  if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                  const fileName = decodeURIComponent(new URL(element.value, window.location.href).pathname.split("/").pop());
+                  const file = new File([await response.arrayBuffer()], fileName);
+                  const imported = await importOfficeAsSiteSlides(file);
+                  if (!imported.length) throw new Error("format non convertible");
+                  if (firstImported) imported[0].elements.unshift(...otherElements);
+                  convertedSlides.push(...imported);
+                  firstImported = false;
+                } catch (error) {
+                  console.warn("Document de l’exemple non convertible", element.value, error);
+                  convertedSlides.push({ id: uid("slide"), elements: [element] });
+                }
+              }
+            }
+            activity.slides = convertedSlides;
+          }
+        }
+      }
+
       async function addFileElement(activityId, file) {
         if (!file) return;
         const finishUploadLock = beginSaveLock(null);
         try {
-          if (/\.pptx$/i.test(file.name || "") || file.type === "application/vnd.openxmlformats-officedocument.presentationml.presentation") {
+          if (/\.(pptx|docx)$/i.test(file.name || "") || [
+            "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+          ].includes(file.type)) {
             if (!await saveStudio(activityId, false, null, false)) return;
             const activity = findItem("activity", activityId);
-            const importedSlides = await importPptxAsSiteSlides(file);
+            const importedSlides = await importOfficeAsSiteSlides(file);
             const onlyBlankSlide = activity.slides.length === 1 && !(activity.slides[0]?.elements || []).length;
             activity.slides = onlyBlankSlide ? importedSlides : [...activity.slides, ...importedSlides];
             activity.updatedAt = new Date().toISOString();
@@ -2816,7 +2919,7 @@
             openActivityStudio(activityId);
             currentStudioSlideIndex = onlyBlankSlide ? 0 : activity.slides.length - importedSlides.length;
             selectStudioSlide(currentStudioSlideIndex);
-            toast(`${importedSlides.length} diapositive(s) PowerPoint convertie(s) en diapos du site.`);
+            toast(`${importedSlides.length} diapositive(s) du document convertie(s) en diapos du site.`);
             return;
           }
           const uploaded = isLocalFileMode() || freeExampleOpen

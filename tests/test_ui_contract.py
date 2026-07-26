@@ -405,3 +405,15 @@ def test_tutoriel_est_remplace_par_une_aide_differee() -> None:
     assert 'data-view="tutorial"' not in INDEX
     assert 'id="buttonHelpTooltip"' in INDEX
     assert "}, 1500);" in APP_JS
+
+
+def test_zip_fourni_est_la_base_de_la_version_gratuite() -> None:
+    example = ROOT / "assets" / "free-example"
+    assert (example / "data.json").is_file()
+    data = json.loads((example / "data.json").read_text(encoding="utf-8"))
+    assert len(data["classes"]) == 9
+    assert "assets/free-example/data.json?v=2026-07-26" in APP_JS
+    assert "/api/v1/files/" not in json.dumps(data)
+    assert any(path.suffix == ".mp4" for path in example.iterdir())
+    assert "convertFreeOfficeDocuments()" in APP_JS
+    assert "importDocxAsSiteSlides" in APP_JS
