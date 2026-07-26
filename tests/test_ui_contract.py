@@ -411,18 +411,30 @@ def test_zip_fourni_est_la_base_de_la_version_gratuite() -> None:
     example = ROOT / "assets" / "free-example"
     assert (example / "data.json").is_file()
     data = json.loads((example / "data.json").read_text(encoding="utf-8"))
-    assert len(data["classes"]) == 9
-    assert "assets/free-example/data.json?v=2026-07-26" in APP_JS
+    assert len(data["classes"]) == 1
+    assert "assets/free-example/data.json?v=2026-07-26-2" in APP_JS
     assert "/api/v1/files/" not in json.dumps(data)
     assert any(path.suffix == ".mp4" for path in example.iterdir())
-    assert "convertFreeOfficeDocuments()" in APP_JS
-    assert "importDocxAsSiteSlides" in APP_JS
+    assert "convertFreePptxDocuments()" in APP_JS
 
 
-def test_migration_office_payante_detecte_le_contenu_et_continue_apres_une_erreur() -> None:
+def test_migration_pptx_payante_detecte_le_contenu_et_continue_apres_une_erreur() -> None:
     assert "officeExtensionFromArrayBuffer(bytes)" in APP_JS
-    assert 'element.kind === "document" && officeByUrl.has(element.value)' in APP_JS
+    assert 'if (detectedExtension !== "pptx")' in APP_JS
     assert 'console.warn("Conversion Office ignorée pour ce fichier"' in APP_JS
+
+
+def test_word_reste_un_document_et_n_est_jamais_converti_en_diapos() -> None:
+    assert "importDocxAsSiteSlides" not in APP_JS
+    assert 'element.kind === "document" && /\\.pptx' in APP_JS
+    assert 'file.type === "application/vnd.openxmlformats-officedocument.presentationml.presentation"' in APP_JS
+    assert "/\\.(pptx|docx)$/i.test(file.name" not in APP_JS
+
+
+def test_anciens_liens_404_connus_sont_restaures_dans_tous_les_comptes() -> None:
+    assert "const recoveredExportFiles" in APP_JS
+    assert "recoverKnownExportFileUrls()" in APP_JS
+    assert '"6eaac43f-3a48-482c-9152-1a18408e63c4"' in APP_JS
 
 
 def test_export_zip_continue_si_un_media_retourne_404() -> None:

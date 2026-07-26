@@ -168,10 +168,10 @@
         storageInfo = null;
         freeExampleOpen = true;
         try {
-          const response = await fetch("assets/free-example/data.json?v=2026-07-26", { cache: "no-store" });
+          const response = await fetch("assets/free-example/data.json?v=2026-07-26-2", { cache: "no-store" });
           if (!response.ok) throw new Error(`HTTP ${response.status}`);
           state = ensureDemoData(await response.json());
-          await convertFreeOfficeDocuments();
+          await convertFreePptxDocuments();
         } catch (error) {
           console.error("Chargement de l’exemple gratuit impossible", error);
           state = ensureDemoData(seedData());
@@ -669,8 +669,43 @@
         return /^\/api\/v1\/files\/[^/]+\/content(?:\?|#|$)/i.test(String(url || ""));
       }
 
+      const recoveredExportFiles = {
+        "6eaac43f-3a48-482c-9152-1a18408e63c4": "assets/free-example/007-arole-italiane.pptx",
+        "7142e77b-9600-4ccb-a24f-372998b826f3": "assets/free-example/017-ancais-italien.docx",
+        "e15eab29-d8b6-4ebd-bd42-ab66cc08d02f": "assets/free-example/017-ancais-italien.docx",
+        "6574efd1-b6d4-4070-84a2-9b11cca9bf73": "assets/free-example/019-banger6-1.mp4",
+        "f445283c-1437-4f2d-916e-c99acb0797a9": "assets/free-example/020-ichier-importe.docx"
+      };
+
+      function recoverKnownExportFileUrls() {
+        let changed = false;
+        const recover = (value) => {
+          const match = /^\/api\/v1\/files\/([^/]+)\/content(?:\?|#|$)/i.exec(String(value || ""));
+          return match && recoveredExportFiles[match[1]] ? recoveredExportFiles[match[1]] : value;
+        };
+        const visit = (node) => {
+          if (!node || typeof node !== "object") return;
+          if (Array.isArray(node)) {
+            node.forEach(visit);
+            return;
+          }
+          ["value", "url"].forEach((key) => {
+            if (typeof node[key] !== "string") return;
+            const recovered = recover(node[key]);
+            if (recovered !== node[key]) {
+              node[key] = recovered;
+              changed = true;
+            }
+          });
+          Object.values(node).forEach(visit);
+        };
+        visit(state);
+        return changed;
+      }
+
       async function classifyStoredSlideElements() {
-        if (!window.ServerAPI?.files) return false;
+        let changed = recoverKnownExportFileUrls();
+        if (!window.ServerAPI?.files) return changed;
         const storedFiles = [];
         for (let offset = 0; ; offset += 200) {
           const page = await window.ServerAPI.files(offset, 200);
@@ -678,7 +713,6 @@
           if (page.length < 200) break;
         }
         const mimeByUrl = new Map(storedFiles.map((file) => [file.content_url, file.mime_type || ""]));
-        let changed = false;
         for (const classe of state.classes) for (const sequence of classe.sequences || []) {
           for (const lesson of sequence.lessons || []) for (const activity of lesson.activities || []) {
             for (const slide of activity.slides || []) for (const element of slide.elements || []) {
@@ -704,37 +738,45 @@
             const rebuiltSlides = [];
             for (const slide of activity.slides || []) {
               const officeElements = (slide.elements || []).filter((element) =>
-                element.kind === "document" && officeByUrl.has(element.value)
+                element.kind === "document" && element.value
               );
               if (!officeElements.length) {
                 rebuiltSlides.push(slide);
                 continue;
               }
               const otherElements = (slide.elements || []).filter((element) => !officeElements.includes(element));
-              const insertionStart = rebuiltSlides.length;
-              let convertedAny = false;
+              const retainedOfficeElements = [];
+              const importedGroups = [];
               for (const officeElement of officeElements) {
                 try {
                   const response = await fetch(officeElement.value, { credentials: "include" });
                   if (!response.ok) throw new Error(`HTTP ${response.status}`);
-                  const metadata = officeByUrl.get(officeElement.value);
+                  const metadata = officeByUrl.get(officeElement.value) || {};
                   const bytes = await response.arrayBuffer();
                   const originalName = metadata.original_name || metadata.filename || "document";
                   const detectedExtension = officeExtensionFromArrayBuffer(bytes);
-                  const fileName = /\.(pptx|docx)$/i.test(originalName) ? originalName : `${originalName}.${detectedExtension}`;
+                  if (detectedExtension !== "pptx") {
+                    retainedOfficeElements.push(officeElement);
+                    continue;
+                  }
+                  const fileName = /\.pptx$/i.test(originalName) ? originalName : `${originalName}.pptx`;
                   const file = new File([bytes], fileName, { type: metadata.mime_type || "" });
-                  const importedSlides = await importOfficeAsSiteSlides(file);
+                  const importedSlides = await importPptxAsSiteSlides(file);
                   if (!importedSlides.length) throw new Error("aucune diapositive convertible");
-                  if (!convertedAny) importedSlides[0].elements.unshift(...otherElements);
-                  rebuiltSlides.push(...importedSlides);
-                  convertedAny = true;
-                  changed = true;
+                  importedGroups.push(importedSlides);
                 } catch (error) {
                   console.warn("Conversion Office ignorée pour ce fichier", officeElement.value, error);
-                  rebuiltSlides.push({ id: uid("slide"), elements: [officeElement] });
+                  retainedOfficeElements.push(officeElement);
                 }
               }
-              if (!convertedAny && otherElements.length) rebuiltSlides.splice(insertionStart, 0, { id: uid("slide"), elements: otherElements });
+              if (!importedGroups.length) {
+                rebuiltSlides.push(slide);
+                continue;
+              }
+              const retainedElements = [...otherElements, ...retainedOfficeElements];
+              if (retainedElements.length) rebuiltSlides.push({ id: slide.id || uid("slide"), elements: retainedElements });
+              importedGroups.forEach((group) => rebuiltSlides.push(...group));
+              changed = true;
             }
             activity.slides = rebuiltSlides;
           }
@@ -2827,39 +2869,6 @@
         return imported;
       }
 
-      async function importDocxAsSiteSlides(file) {
-        const arrayBuffer = await file.arrayBuffer();
-        const documentBytes = await extractZipEntry(arrayBuffer, "word/document.xml");
-        const xml = new DOMParser().parseFromString(new TextDecoder("utf-8").decode(documentBytes), "application/xml");
-        if (xml.querySelector("parsererror")) throw new Error("document Word invalide");
-        const paragraphs = [...xml.getElementsByTagNameNS("*", "p")]
-          .map((paragraph) => [...paragraph.getElementsByTagNameNS("*", "t")].map((node) => node.textContent || "").join(""))
-          .filter((value) => value.trim());
-        const pages = paginateImportedElements([{
-          kind: "text",
-          x: 55,
-          y: 35,
-          w: 850,
-          h: 470,
-          value: paragraphs.join("\n"),
-          fontSize: 26
-        }]).map((elements) => ({ id: uid("slide"), elements }));
-        const imageNames = listZipEntryNames(arrayBuffer).filter((name) => /^word\/media\/.+\.(png|jpe?g|gif|webp)$/i.test(name));
-        for (const imageName of imageNames) {
-          const bytes = await extractZipEntry(arrayBuffer, imageName);
-          const extension = imageName.split(".").pop().toLowerCase();
-          const mimeType = extension === "jpg" || extension === "jpeg" ? "image/jpeg" : `image/${extension}`;
-          const value = usesServerStorage()
-            ? (await window.ServerAPI.upload(new File([bytes], `image-word.${extension}`, { type: mimeType }))).content_url
-            : bytesToDataUrl(bytes, mimeType);
-          pages.push({
-            id: uid("slide"),
-            elements: [{ id: uid("el"), kind: "image", x: 80, y: 35, w: 800, h: 470, value }]
-          });
-        }
-        return pages.length ? pages : [{ id: uid("slide"), elements: [] }];
-      }
-
       function officeExtensionFromArrayBuffer(arrayBuffer) {
         try {
           const names = listZipEntryNames(arrayBuffer);
@@ -2871,19 +2880,13 @@
         return "";
       }
 
-      async function importOfficeAsSiteSlides(file) {
-        if (/\.pptx$/i.test(file.name || "")) return importPptxAsSiteSlides(file);
-        if (/\.docx$/i.test(file.name || "")) return importDocxAsSiteSlides(file);
-        return [];
-      }
-
-      async function convertFreeOfficeDocuments() {
+      async function convertFreePptxDocuments() {
         for (const classe of state.classes || []) for (const sequence of classe.sequences || []) {
           for (const lesson of sequence.lessons || []) for (const activity of lesson.activities || []) {
             const convertedSlides = [];
             for (const slide of activity.slides || []) {
               const officeElements = (slide.elements || []).filter((element) =>
-                element.kind === "document" && /\.(pptx|docx)(?:\?|#|$)/i.test(element.value || "")
+                element.kind === "document" && /\.pptx(?:\?|#|$)/i.test(element.value || "")
               );
               if (!officeElements.length) {
                 convertedSlides.push(slide);
@@ -2897,7 +2900,7 @@
                   if (!response.ok) throw new Error(`HTTP ${response.status}`);
                   const fileName = decodeURIComponent(new URL(element.value, window.location.href).pathname.split("/").pop());
                   const file = new File([await response.arrayBuffer()], fileName);
-                  const imported = await importOfficeAsSiteSlides(file);
+                  const imported = await importPptxAsSiteSlides(file);
                   if (!imported.length) throw new Error("format non convertible");
                   if (firstImported) imported[0].elements.unshift(...otherElements);
                   convertedSlides.push(...imported);
@@ -2917,13 +2920,10 @@
         if (!file) return;
         const finishUploadLock = beginSaveLock(null);
         try {
-          if (/\.(pptx|docx)$/i.test(file.name || "") || [
-            "application/vnd.openxmlformats-officedocument.presentationml.presentation",
-            "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-          ].includes(file.type)) {
+          if (/\.pptx$/i.test(file.name || "") || file.type === "application/vnd.openxmlformats-officedocument.presentationml.presentation") {
             if (!await saveStudio(activityId, false, null, false)) return;
             const activity = findItem("activity", activityId);
-            const importedSlides = await importOfficeAsSiteSlides(file);
+            const importedSlides = await importPptxAsSiteSlides(file);
             const onlyBlankSlide = activity.slides.length === 1 && !(activity.slides[0]?.elements || []).length;
             activity.slides = onlyBlankSlide ? importedSlides : [...activity.slides, ...importedSlides];
             activity.updatedAt = new Date().toISOString();
