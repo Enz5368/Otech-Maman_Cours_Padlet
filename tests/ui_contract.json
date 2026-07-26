@@ -1,6 +1,6 @@
 {
-  "root_ids": ["loginPage", "appPage", "boardPage", "content", "editorModal", "tourOverlay", "notice"],
-  "views": ["dashboard", "classes", "tree", "studentClasses", "tools", "search", "tutorial", "settings"],
+  "root_ids": ["loginPage", "appPage", "boardPage", "content", "editorModal", "buttonHelpTooltip", "notice"],
+  "views": ["dashboard", "classes", "tree", "studentClasses", "tools", "search", "settings"],
   "slide_size": {"width": 960, "height": 540, "gap": 36},
   "required_texts": [
     "Cours par niveau à projeter",
