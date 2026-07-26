@@ -417,3 +417,16 @@ def test_zip_fourni_est_la_base_de_la_version_gratuite() -> None:
     assert any(path.suffix == ".mp4" for path in example.iterdir())
     assert "convertFreeOfficeDocuments()" in APP_JS
     assert "importDocxAsSiteSlides" in APP_JS
+
+
+def test_migration_office_payante_detecte_le_contenu_et_continue_apres_une_erreur() -> None:
+    assert "officeExtensionFromArrayBuffer(bytes)" in APP_JS
+    assert 'element.kind === "document" && officeByUrl.has(element.value)' in APP_JS
+    assert 'console.warn("Conversion Office ignorée pour ce fichier"' in APP_JS
+
+
+def test_export_zip_continue_si_un_media_retourne_404() -> None:
+    assert 'path: "RAPPORT-MEDIAS-MANQUANTS.txt"' in APP_JS
+    assert "recordExportWarning" in APP_JS
+    assert "return null;" in APP_JS
+    assert "downloads.filter(Boolean)" in APP_JS

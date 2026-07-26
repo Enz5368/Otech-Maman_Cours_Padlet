@@ -697,17 +697,15 @@
       }
 
       async function convertStoredPptxElements(storedFiles) {
-        const pptxMime = "application/vnd.openxmlformats-officedocument.presentationml.presentation";
-        const docxMime = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
-        const officeByUrl = new Map(storedFiles
-          .filter((file) => [pptxMime, docxMime].includes(file.mime_type) || /\.(pptx|docx)$/i.test(file.original_name || file.filename || ""))
-          .map((file) => [file.content_url, file]));
+        const officeByUrl = new Map(storedFiles.map((file) => [file.content_url, file]));
         let changed = false;
         for (const classe of state.classes) for (const sequence of classe.sequences || []) {
           for (const lesson of sequence.lessons || []) for (const activity of lesson.activities || []) {
             const rebuiltSlides = [];
             for (const slide of activity.slides || []) {
-              const officeElements = (slide.elements || []).filter((element) => officeByUrl.has(element.value));
+              const officeElements = (slide.elements || []).filter((element) =>
+                element.kind === "document" && officeByUrl.has(element.value)
+              );
               if (!officeElements.length) {
                 rebuiltSlides.push(slide);
                 continue;
@@ -716,22 +714,25 @@
               const insertionStart = rebuiltSlides.length;
               let convertedAny = false;
               for (const officeElement of officeElements) {
-                const response = await fetch(officeElement.value, { credentials: "include" });
-                if (!response.ok) {
+                try {
+                  const response = await fetch(officeElement.value, { credentials: "include" });
+                  if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                  const metadata = officeByUrl.get(officeElement.value);
+                  const bytes = await response.arrayBuffer();
+                  const originalName = metadata.original_name || metadata.filename || "document";
+                  const detectedExtension = officeExtensionFromArrayBuffer(bytes);
+                  const fileName = /\.(pptx|docx)$/i.test(originalName) ? originalName : `${originalName}.${detectedExtension}`;
+                  const file = new File([bytes], fileName, { type: metadata.mime_type || "" });
+                  const importedSlides = await importOfficeAsSiteSlides(file);
+                  if (!importedSlides.length) throw new Error("aucune diapositive convertible");
+                  if (!convertedAny) importedSlides[0].elements.unshift(...otherElements);
+                  rebuiltSlides.push(...importedSlides);
+                  convertedAny = true;
+                  changed = true;
+                } catch (error) {
+                  console.warn("Conversion Office ignorée pour ce fichier", officeElement.value, error);
                   rebuiltSlides.push({ id: uid("slide"), elements: [officeElement] });
-                  continue;
                 }
-                const metadata = officeByUrl.get(officeElement.value);
-                const file = new File([await response.arrayBuffer()], metadata.original_name || "document.docx", { type: metadata.mime_type || "" });
-                const importedSlides = await importOfficeAsSiteSlides(file);
-                if (!importedSlides.length) {
-                  rebuiltSlides.push({ id: uid("slide"), elements: [officeElement] });
-                  continue;
-                }
-                if (!convertedAny) importedSlides[0].elements.unshift(...otherElements);
-                rebuiltSlides.push(...importedSlides);
-                convertedAny = true;
-                changed = true;
               }
               if (!convertedAny && otherElements.length) rebuiltSlides.splice(insertionStart, 0, { id: uid("slide"), elements: otherElements });
             }
@@ -2859,6 +2860,17 @@
         return pages.length ? pages : [{ id: uid("slide"), elements: [] }];
       }
 
+      function officeExtensionFromArrayBuffer(arrayBuffer) {
+        try {
+          const names = listZipEntryNames(arrayBuffer);
+          if (names.includes("ppt/presentation.xml")) return "pptx";
+          if (names.includes("word/document.xml")) return "docx";
+        } catch {
+          // Ce n’est pas une archive Office lisible.
+        }
+        return "";
+      }
+
       async function importOfficeAsSiteSlides(file) {
         if (/\.pptx$/i.test(file.name || "")) return importPptxAsSiteSlides(file);
         if (/\.docx$/i.test(file.name || "")) return importDocxAsSiteSlides(file);
@@ -3606,6 +3618,7 @@
       async function exportZip() {
         if (!requireLogin()) return;
         exportMediaFetchCache = new Map();
+        exportWarnings = [];
         try {
           const files = await buildExportFiles();
           const blob = new Blob([makeZip(files)], { type: "application/zip" });
@@ -3614,7 +3627,9 @@
           link.download = `in-viaggio-export-${new Date().toISOString().slice(0, 10)}.zip`;
           link.click();
           URL.revokeObjectURL(link.href);
-          toast("ZIP exporté avec les présentations et leurs médias.");
+          toast(exportWarnings.length
+            ? `ZIP exporté. ${exportWarnings.length} média(s) introuvable(s) sont indiqués dans le rapport.`
+            : "ZIP exporté avec les présentations et leurs médias.");
         } catch (error) {
           console.error("Export ZIP impossible", error);
           toast(`Export impossible : ${error.message || "un média n'a pas pu être intégré"}.`);
@@ -3671,6 +3686,17 @@
         await Promise.all(files.map(async (file) => {
           if (file.content instanceof Promise) file.content = await file.content;
         }));
+        if (exportWarnings.length) {
+          files.push({
+            path: "RAPPORT-MEDIAS-MANQUANTS.txt",
+            content: [
+              "Certains médias référencés par les données n’étaient plus accessibles lors de l’export.",
+              "Le reste de la sauvegarde a bien été exporté.",
+              "",
+              ...exportWarnings
+            ].join("\n")
+          });
+        }
         return files;
       }
 
@@ -3681,15 +3707,20 @@
           .filter((element) => supported.has(element.kind) && element.value)
           .map((element) => [element.value, element])).values()];
         return Promise.all(uniqueElements.map(async (element, index) => {
-          const downloaded = await fetchExportMedia(element.value);
-          const mimeType = downloaded.mimeType || mimeFromDataUrl(element.value) || defaultMediaMime(element.kind);
-          const extension = mediaExtension(mimeType, element.kind);
-          return {
-            path: `${activityFolder}/${String(index + 1).padStart(2, "0")}-${element.kind}.${extension}`,
-            content: downloaded.bytes,
-            binary: true
-          };
-        }));
+          try {
+            const downloaded = await fetchExportMedia(element.value);
+            const mimeType = downloaded.mimeType || mimeFromDataUrl(element.value) || defaultMediaMime(element.kind);
+            const extension = mediaExtension(mimeType, element.kind);
+            return {
+              path: `${activityFolder}/${String(index + 1).padStart(2, "0")}-${element.kind}.${extension}`,
+              content: downloaded.bytes,
+              binary: true
+            };
+          } catch (error) {
+            recordExportWarning(`Média de la présentation « ${activity.title || "sans titre"} »`, element.value, error);
+            return null;
+          }
+        })).then((items) => items.filter(Boolean));
       }
 
       function exportSlug(value, maxLength = 14) {
@@ -3705,16 +3736,21 @@
           if (page.length < 200) break;
         }
         const downloads = await Promise.all(storedFiles.map(async (item, index) => {
-          const downloaded = await fetchExportMedia(item.content_url);
-          const extension = safeFileExtension(item.original_name);
-          const baseName = exportSlug(String(item.original_name || `fichier-${index + 1}`).replace(/\.[^.]+$/, ""));
-          return {
-            path: `medias/${String(index + 1).padStart(3, "0")}-${baseName}${extension}`,
-            content: downloaded.bytes,
-            binary: true
-          };
+          try {
+            const downloaded = await fetchExportMedia(item.content_url);
+            const extension = safeFileExtension(item.original_name);
+            const baseName = exportSlug(String(item.original_name || `fichier-${index + 1}`).replace(/\.[^.]+$/, ""));
+            return {
+              path: `medias/${String(index + 1).padStart(3, "0")}-${baseName}${extension}`,
+              content: downloaded.bytes,
+              binary: true
+            };
+          } catch (error) {
+            recordExportWarning(`Fichier stocké « ${item.original_name || item.id} »`, item.content_url, error);
+            return null;
+          }
         }));
-        files.push(...downloads);
+        files.push(...downloads.filter(Boolean));
       }
 
       function safeFileExtension(fileName) {
@@ -3889,7 +3925,8 @@
               fileName: `media-${slideIndex + 1}-${elementIndex + 1}.${extension}`
             };
           } catch (error) {
-            throw new Error(`le média ${elementIndex + 1} de la diapositive ${slideIndex + 1} est inaccessible (${error.message || "erreur inconnue"})`);
+            recordExportWarning(`Média ${elementIndex + 1} de la diapositive ${slideIndex + 1}`, element.value, error);
+            return null;
           }
         }));
         return results.filter(Boolean).map((item, index) => ({
@@ -3901,6 +3938,12 @@
       }
 
       let exportMediaFetchCache = new Map();
+      let exportWarnings = [];
+
+      function recordExportWarning(context, url, error) {
+        const warning = `${context} : ${url || "adresse inconnue"} — ${error?.message || "média inaccessible"}`;
+        if (!exportWarnings.includes(warning)) exportWarnings.push(warning);
+      }
 
       function fetchExportMedia(url) {
         if (!exportMediaFetchCache.has(url)) {
