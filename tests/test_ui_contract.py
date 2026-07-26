@@ -310,6 +310,9 @@ def test_documents_bureautiques_ne_declenchent_pas_de_telechargement_automatique
     assert 'class="pptx-preview-slide"' in APP_JS
     assert "pptxSlidePreviewImages" in APP_JS
     assert 'class="pptx-preview-image"' in APP_JS
+    assert "changePptxPreviewSlide" in APP_JS
+    assert 'data-pptx-index="0"' in APP_JS
+    assert '${index ? "hidden" : ""}' in APP_JS
 
 
 def test_retour_presentation_rouvre_la_seance_correspondante() -> None:
