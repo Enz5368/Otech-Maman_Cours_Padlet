@@ -168,7 +168,7 @@
         storageInfo = null;
         freeExampleOpen = true;
         try {
-          const response = await fetch("assets/free-example/data.json?v=2026-07-26-2", { cache: "no-store" });
+          const response = await fetch("assets/free-example/data.json?v=2026-07-26-3", { cache: "no-store" });
           if (!response.ok) throw new Error(`HTTP ${response.status}`);
           state = ensureDemoData(await response.json());
           await convertFreePptxDocuments();
@@ -673,13 +673,16 @@
         "6eaac43f-3a48-482c-9152-1a18408e63c4": "assets/free-example/007-arole-italiane.pptx",
         "7142e77b-9600-4ccb-a24f-372998b826f3": "assets/free-example/017-ancais-italien.docx",
         "e15eab29-d8b6-4ebd-bd42-ab66cc08d02f": "assets/free-example/017-ancais-italien.docx",
-        "6574efd1-b6d4-4070-84a2-9b11cca9bf73": "assets/free-example/019-banger6-1.mp4",
+        "6574efd1-b6d4-4070-84a2-9b11cca9bf73": "assets/free-example/001-nda-ninna-nann.mp4",
         "f445283c-1437-4f2d-916e-c99acb0797a9": "assets/free-example/020-ichier-importe.docx"
       };
 
       function recoverKnownExportFileUrls() {
         let changed = false;
         const recover = (value) => {
+          if (value === "assets/free-example/019-banger6-1.mp4") {
+            return "assets/free-example/001-nda-ninna-nann.mp4";
+          }
           const match = /^\/api\/v1\/files\/([^/]+)\/content(?:\?|#|$)/i.exec(String(value || ""));
           return match && recoveredExportFiles[match[1]] ? recoveredExportFiles[match[1]] : value;
         };

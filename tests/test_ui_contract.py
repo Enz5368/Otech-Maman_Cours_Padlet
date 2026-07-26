@@ -412,7 +412,7 @@ def test_zip_fourni_est_la_base_de_la_version_gratuite() -> None:
     assert (example / "data.json").is_file()
     data = json.loads((example / "data.json").read_text(encoding="utf-8"))
     assert len(data["classes"]) == 1
-    assert "assets/free-example/data.json?v=2026-07-26-2" in APP_JS
+    assert "assets/free-example/data.json?v=2026-07-26-3" in APP_JS
     assert "/api/v1/files/" not in json.dumps(data)
     assert any(path.suffix == ".mp4" for path in example.iterdir())
     assert "convertFreePptxDocuments()" in APP_JS
@@ -435,6 +435,18 @@ def test_anciens_liens_404_connus_sont_restaures_dans_tous_les_comptes() -> None
     assert "const recoveredExportFiles" in APP_JS
     assert "recoverKnownExportFileUrls()" in APP_JS
     assert '"6eaac43f-3a48-482c-9152-1a18408e63c4"' in APP_JS
+
+
+def test_video_interdite_est_absente_et_remplacee_par_ninna_nanna() -> None:
+    example = ROOT / "assets" / "free-example"
+    assert not any("banger" in path.name.lower() for path in example.iterdir())
+    safe_video = example / "001-nda-ninna-nann.mp4"
+    assert safe_video.is_file()
+    assert safe_video.stat().st_size == 11_981_688
+    data = (example / "data.json").read_text(encoding="utf-8")
+    assert "banger" not in data.lower()
+    assert "assets/free-example/001-nda-ninna-nann.mp4" in data
+    assert '"6574efd1-b6d4-4070-84a2-9b11cca9bf73": "assets/free-example/001-nda-ninna-nann.mp4"' in APP_JS
 
 
 def test_export_zip_continue_si_un_media_retourne_404() -> None:
