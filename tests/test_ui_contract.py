@@ -388,3 +388,20 @@ def test_arbre_permet_d_imprimer_une_seance_complete() -> None:
     assert "Imprimer la séance" in APP_JS
     assert "Imprimer toute la séance" in APP_JS
     assert "Toutes les activités et leurs diapositives" in APP_JS
+def test_import_pptx_devient_des_diapos_natives_du_site() -> None:
+    assert "importPptxAsSiteSlides(file)" in APP_JS
+    assert "pptxShapeBounds" in APP_JS
+    assert "paginateImportedElements(elements)" in APP_JS
+    assert "activity.slides = onlyBlankSlide ? importedSlides" in APP_JS
+
+
+def test_version_gratuite_est_editable_sans_ecriture_serveur() -> None:
+    assert "return isLoggedIn() || freeExampleOpen;" in APP_JS
+    assert "if (!freeExampleOpen)" in APP_JS
+    assert "isLocalFileMode() || freeExampleOpen" in APP_JS
+
+
+def test_tutoriel_est_remplace_par_une_aide_differee() -> None:
+    assert 'data-view="tutorial"' not in INDEX
+    assert 'id="buttonHelpTooltip"' in INDEX
+    assert "}, 1500);" in APP_JS

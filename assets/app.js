@@ -132,16 +132,20 @@
         return isLoggedIn() && !isLocalFileMode();
       }
 
+      function canEdit() {
+        return isLoggedIn() || freeExampleOpen;
+      }
+
       function isLoggedIn() {
         return Boolean(currentUsername());
       }
 
       function editOnly(html) {
-        return isLoggedIn() ? html : "";
+        return canEdit() ? html : "";
       }
 
       function requireLogin() {
-        if (isLoggedIn()) return true;
+        if (canEdit()) return true;
         toast("Connectez-vous pour modifier.");
         return false;
       }
@@ -169,7 +173,7 @@
         currentPage = { type: "classes" };
         currentTableauPage = { type: "classes" };
         render();
-        setTimeout(startFreeExampleTutorial, 180);
+        toast("Mode gratuit : toutes les fonctions sont disponibles, sans aucun enregistrement sur le serveur.");
       }
 
       function currentCacheKey() {
@@ -428,10 +432,12 @@
       }
 
       async function saveData(message, triggerButton) {
-        localStorage.setItem(currentCacheKey(), JSON.stringify({ ...state, cachedAt: new Date().toISOString() }));
+        if (!freeExampleOpen) {
+          localStorage.setItem(currentCacheKey(), JSON.stringify({ ...state, cachedAt: new Date().toISOString() }));
+        }
         if (!usesServerStorage()) {
           markStateConfirmed();
-          if (message) toast(message);
+          if (message) toast(freeExampleOpen ? "Modification appliquée pour cette visite uniquement." : message);
           render();
           return true;
         }
@@ -655,7 +661,7 @@
       }
 
       async function classifyStoredSlideElements() {
-        if (!window.ServerAPI?.files) return;
+        if (!window.ServerAPI?.files) return false;
         const storedFiles = [];
         for (let offset = 0; ; offset += 200) {
           const page = await window.ServerAPI.files(offset, 200);
@@ -663,6 +669,7 @@
           if (page.length < 200) break;
         }
         const mimeByUrl = new Map(storedFiles.map((file) => [file.content_url, file.mime_type || ""]));
+        let changed = false;
         for (const classe of state.classes) for (const sequence of classe.sequences || []) {
           for (const lesson of sequence.lessons || []) for (const activity of lesson.activities || []) {
             for (const slide of activity.slides || []) for (const element of slide.elements || []) {
@@ -673,9 +680,40 @@
                 : mimeType.startsWith("video/") ? "video"
                 : mimeType === "application/pdf" ? "pdf"
                 : "document";
+              changed = true;
             }
           }
         }
+        return (await convertStoredPptxElements(storedFiles)) || changed;
+      }
+
+      async function convertStoredPptxElements(storedFiles) {
+        const pptxMime = "application/vnd.openxmlformats-officedocument.presentationml.presentation";
+        const pptxByUrl = new Map(storedFiles
+          .filter((file) => file.mime_type === pptxMime || /\.pptx$/i.test(file.original_name || file.filename || ""))
+          .map((file) => [file.content_url, file]));
+        let changed = false;
+        for (const classe of state.classes) for (const sequence of classe.sequences || []) {
+          for (const lesson of sequence.lessons || []) for (const activity of lesson.activities || []) {
+            for (let slideIndex = 0; slideIndex < (activity.slides || []).length; slideIndex += 1) {
+              const slide = activity.slides[slideIndex];
+              const pptxElement = (slide.elements || []).find((element) => pptxByUrl.has(element.value));
+              if (!pptxElement) continue;
+              const response = await fetch(pptxElement.value, { credentials: "include" });
+              if (!response.ok) continue;
+              const metadata = pptxByUrl.get(pptxElement.value);
+              const file = new File([await response.arrayBuffer()], metadata.original_name || "presentation.pptx", { type: pptxMime });
+              const importedSlides = await importPptxAsSiteSlides(file);
+              if (!importedSlides.length) continue;
+              const otherElements = (slide.elements || []).filter((element) => element !== pptxElement);
+              importedSlides[0].elements.unshift(...otherElements);
+              activity.slides.splice(slideIndex, 1, ...importedSlides);
+              slideIndex += importedSlides.length - 1;
+              changed = true;
+            }
+          }
+        }
+        return changed;
       }
 
       function setView(view) {
@@ -733,17 +771,25 @@
       }
 
       function openViewInNewTab(view) {
+        if (freeExampleOpen) {
+          setView(view);
+          return;
+        }
         openUrlInNewTabAfterSave(appUrl({ view }), `in-viaggio-view-${slugify(view)}`);
       }
 
       function openBoardInNewTab(activityId, slideIndex = 0) {
+        if (freeExampleOpen) {
+          showBoard(activityId, slideIndex);
+          return;
+        }
         openUrlInNewTabAfterSave(appUrl({ board: activityId, slide: slideIndex }), `in-viaggio-board-${slugify(activityId)}`);
       }
 
       function applyInitialRoute() {
         const params = new URLSearchParams(window.location.search);
         const view = params.get("view");
-        if (view && ["dashboard", "classes", "tree", "studentClasses", "tools", "search", "tutorial", "settings"].includes(view)) {
+        if (view && ["dashboard", "classes", "tree", "studentClasses", "tools", "search", "settings"].includes(view)) {
           currentView = view;
         }
       }
@@ -799,7 +845,6 @@
           studentClasses: ["Groupes Classes", "Groupes réels et listes d'élèves."],
           tools: ["Roue de la fortune et chrono", "Tirages et minuteur de classe."],
           search: ["Recherche ressource ou activité", "Retrouver rapidement une activité ou une ressource."],
-          tutorial: ["Tutoriel", "Visite guidée de toutes les parties du site."],
           settings: ["Réglages", "Configuration locale du site HTML."]
         };
         const selectedNavButton = document.querySelector(`.nav-button[data-view="${currentView}"]`);
@@ -820,7 +865,6 @@
         if (currentView === "studentClasses") renderStudentClasses();
         if (currentView === "tools") renderTools();
         if (currentView === "search") renderSearch();
-        if (currentView === "tutorial") renderTutorial();
         if (currentView === "settings") renderSettings();
       }
 
@@ -2153,6 +2197,7 @@
         tourRunning = false;
         activeTutorialSteps = null;
         const overlay = document.querySelector("#tourOverlay");
+        if (!overlay) return;
         overlay.hidden = true;
         overlay.innerHTML = "";
       }
@@ -2160,20 +2205,21 @@
       function renderSettings() {
         const formatBytes = (value) => `${(Number(value || 0) / (1024 * 1024)).toLocaleString("fr-FR", { maximumFractionDigits: 1 })} Mo`;
         const localMode = isLoggedIn() && isLocalFileMode();
+        const freeMode = freeExampleOpen && !isLoggedIn();
         const isAdmin = authenticatedUser?.role === "admin" && !localMode;
         document.querySelector("#content").innerHTML = `
           <div class="grid two">
             <section class="card">
               <h2>Compte et sécurité</h2>
               <p class="muted">Compte connecté : <strong>${isLoggedIn() ? escapeHtml(currentUsername()) : "visiteur public"}</strong></p>
-              <p class="small muted">${localMode ? "Mode local autonome : les données restent dans ce navigateur et ne sont pas envoyées au serveur." : isLoggedIn() ? "Votre mot de passe protège vos cours et vos données enregistrées sur le serveur." : "Vous pouvez consulter les exemples sans identifiant. Connectez-vous pour modifier, exporter ou importer des données."}</p>
+              <p class="small muted">${freeMode ? "Version gratuite : vous pouvez tout essayer. Les changements restent seulement en mémoire pendant cette visite et rien n’est envoyé au serveur." : localMode ? "Mode local autonome : les données restent dans ce navigateur et ne sont pas envoyées au serveur." : isLoggedIn() ? "Votre mot de passe protège vos cours et vos données enregistrées sur le serveur." : "Ouvrez l’exemple gratuit pour essayer toutes les fonctions sans sauvegarde serveur."}</p>
               ${isLoggedIn() && !localMode ? '<button class="btn primary" onclick="offerPasswordChange()">Changer mon mot de passe</button>' : ""}
             </section>
             <section class="card">
               <h2>Données</h2>
-              <p class="muted">${localMode ? "Mode local activé : vos modifications sont enregistrées uniquement dans le stockage de ce navigateur. Pensez à utiliser Exporter ZIP pour conserver une sauvegarde." : isLoggedIn() ? "Mode serveur activé : vos données sont enregistrées sur le NAS et disponibles depuis tous vos appareils. Utilisez Exporter ZIP ou Exporter pour conserver une copie supplémentaire." : "Mode consultation uniquement."}</p>
+              <p class="muted">${freeMode ? "Fichier d’exemple temporaire : toutes les fonctions sont actives, mais aucune modification ne sera enregistrée sur le serveur ni conservée après fermeture." : localMode ? "Mode local activé : vos modifications sont enregistrées uniquement dans le stockage de ce navigateur. Pensez à utiliser Exporter ZIP pour conserver une sauvegarde." : isLoggedIn() ? "Mode serveur activé : vos données sont enregistrées sur le NAS et disponibles depuis tous vos appareils. Utilisez Exporter ZIP ou Exporter pour conserver une copie supplémentaire." : "Ouvrez l’exemple gratuit pour tester le site."}</p>
               ${isLoggedIn() && storageInfo ? `<p class="small muted">Espace serveur : ${formatBytes(storageInfo.used_bytes)} utilisés sur ${formatBytes(storageInfo.quota_bytes)}. Images : ${formatBytes(storageInfo.categories?.images)} · Vidéos : ${formatBytes(storageInfo.categories?.videos)} · Documents : ${formatBytes(storageInfo.categories?.documents)} · Sauvegardes : ${formatBytes(storageInfo.categories?.backups)}</p>` : ""}
-              ${isLoggedIn() ? `<div class="row wrap" style="margin-top:12px">
+              ${canEdit() ? `<div class="row wrap" style="margin-top:12px">
                 <button class="btn" onclick="exportData()">Exporter</button>
                 <button class="btn primary" onclick="exportZip()">Exporter ZIP</button>
                 <button class="btn" id="importDataBtn" type="button" onclick="document.querySelector('#importDataInput').click()">Importer ZIP ou JSON</button>
@@ -2285,7 +2331,7 @@
       async function fileToDataUrl(file) {
         if (!file) return;
         const field = document.querySelector("input[name='url']");
-        if (isLocalFileMode()) {
+        if (isLocalFileMode() || freeExampleOpen) {
           field.value = await readFileAsDataUrl(file);
           toast("Fichier chargé localement. Enregistrez la ressource.");
           return;
@@ -2609,11 +2655,171 @@
         if (await saveStudio(activityId, false, triggerButton, false)) openActivityPrintPreview(activityId);
       }
 
+      function pptxNodeNumber(node, localName, attribute) {
+        const target = [...node.getElementsByTagNameNS("*", localName)][0];
+        return Number(target?.getAttribute(attribute) || 0);
+      }
+
+      function pptxShapeBounds(node, scaleX, scaleY) {
+        const transform = [...node.getElementsByTagNameNS("*", "xfrm")][0];
+        if (!transform) return { x: 40, y: 40, w: 400, h: 120 };
+        return {
+          x: Math.round(pptxNodeNumber(transform, "off", "x") * scaleX),
+          y: Math.round(pptxNodeNumber(transform, "off", "y") * scaleY),
+          w: Math.max(20, Math.round(pptxNodeNumber(transform, "ext", "cx") * scaleX)),
+          h: Math.max(20, Math.round(pptxNodeNumber(transform, "ext", "cy") * scaleY))
+        };
+      }
+
+      function paginateImportedElements(elements) {
+        const pages = [[]];
+        const add = (pageIndex, element) => {
+          while (!pages[pageIndex]) pages.push([]);
+          pages[pageIndex].push({ id: uid("el"), ...element });
+        };
+        elements.forEach((element) => {
+          const basePage = Math.max(0, Math.floor(Number(element.y || 0) / slideSize.height));
+          const localY = Math.max(0, Number(element.y || 0) % slideSize.height);
+          if (element.kind !== "text") {
+            add(basePage, { ...element, y: localY, h: Math.min(Number(element.h || 160), slideSize.height - localY) });
+            return;
+          }
+          const fontSize = Math.max(12, Number(element.fontSize || 28));
+          const lineHeight = Math.ceil(fontSize * 1.25);
+          const sourceLines = String(element.value || "").split(/\r?\n/);
+          const charactersPerLine = Math.max(8, Math.floor(Number(element.w || 320) / (fontSize * 0.55)));
+          const visualLines = sourceLines.flatMap((line) => {
+            if (!line) return [""];
+            const chunks = [];
+            for (let cursor = 0; cursor < line.length; cursor += charactersPerLine) chunks.push(line.slice(cursor, cursor + charactersPerLine));
+            return chunks;
+          });
+          let pageIndex = basePage;
+          let y = localY;
+          let cursor = 0;
+          while (cursor < visualLines.length || (cursor === 0 && !visualLines.length)) {
+            const availableLines = Math.max(1, Math.floor((slideSize.height - y - 18) / lineHeight));
+            const chunk = visualLines.slice(cursor, cursor + availableLines);
+            add(pageIndex, { ...element, y, h: Math.max(lineHeight, chunk.length * lineHeight + 8), value: chunk.join("\n") });
+            cursor += Math.max(1, chunk.length);
+            pageIndex += 1;
+            y = 24;
+          }
+        });
+        return pages.filter((page) => page.length);
+      }
+
+      async function pptxRelationshipMap(arrayBuffer, slideName) {
+        const fileName = slideName.split("/").pop();
+        try {
+          const bytes = await extractZipEntry(arrayBuffer, `ppt/slides/_rels/${fileName}.rels`);
+          const xml = new DOMParser().parseFromString(new TextDecoder("utf-8").decode(bytes), "application/xml");
+          return new Map([...xml.getElementsByTagNameNS("*", "Relationship")]
+            .map((node) => [node.getAttribute("Id"), node.getAttribute("Target") || ""]));
+        } catch {
+          return new Map();
+        }
+      }
+
+      async function pptxImportedMedia(arrayBuffer, slideName, target) {
+        const normalized = normalizeZipPath(`ppt/slides/${target}`);
+        const bytes = await extractZipEntry(arrayBuffer, normalized);
+        const extension = (normalized.split(".").pop() || "png").toLowerCase();
+        const mimeTypes = {
+          jpg: "image/jpeg", jpeg: "image/jpeg", png: "image/png", gif: "image/gif", webp: "image/webp",
+          mp4: "video/mp4", webm: "video/webm", mov: "video/quicktime",
+          mp3: "audio/mpeg", wav: "audio/wav", ogg: "audio/ogg"
+        };
+        const mimeType = mimeTypes[extension] || "application/octet-stream";
+        if (usesServerStorage()) {
+          const upload = new File([bytes], `media-importe.${extension}`, { type: mimeType });
+          return (await window.ServerAPI.upload(upload)).content_url;
+        }
+        return bytesToDataUrl(bytes, mimeType);
+      }
+
+      function pptxMediaContainer(node) {
+        let current = node;
+        while (current && !["pic", "sp"].includes(current.localName)) current = current.parentElement;
+        return current;
+      }
+
+      async function importPptxAsSiteSlides(file) {
+        const arrayBuffer = await file.arrayBuffer();
+        const presentationBytes = await extractZipEntry(arrayBuffer, "ppt/presentation.xml");
+        const presentationXml = new DOMParser().parseFromString(new TextDecoder("utf-8").decode(presentationBytes), "application/xml");
+        const slideSizeNode = [...presentationXml.getElementsByTagNameNS("*", "sldSz")][0];
+        const sourceWidth = Number(slideSizeNode?.getAttribute("cx") || 12192000);
+        const sourceHeight = Number(slideSizeNode?.getAttribute("cy") || 6858000);
+        const scaleX = slideSize.width / sourceWidth;
+        const scaleY = slideSize.height / sourceHeight;
+        const slideNames = listZipEntryNames(arrayBuffer)
+          .filter((name) => /^ppt\/slides\/slide\d+\.xml$/i.test(name))
+          .sort((a, b) => Number(a.match(/\d+/)?.[0]) - Number(b.match(/\d+/)?.[0]));
+        if (!slideNames.length) throw new Error("ce PowerPoint ne contient aucune diapositive");
+        const imported = [];
+        for (const slideName of slideNames) {
+          const bytes = await extractZipEntry(arrayBuffer, slideName);
+          const xml = new DOMParser().parseFromString(new TextDecoder("utf-8").decode(bytes), "application/xml");
+          if (xml.querySelector("parsererror")) throw new Error("une diapositive PowerPoint est invalide");
+          const relations = await pptxRelationshipMap(arrayBuffer, slideName);
+          const elements = [];
+          for (const shape of [...xml.getElementsByTagNameNS("*", "sp")]) {
+            const value = [...shape.getElementsByTagNameNS("*", "p")]
+              .map((paragraph) => [...paragraph.getElementsByTagNameNS("*", "t")].map((node) => node.textContent || "").join(""))
+              .filter(Boolean)
+              .join("\n");
+            if (!value) continue;
+            const runProperties = [...shape.getElementsByTagNameNS("*", "rPr"), ...shape.getElementsByTagNameNS("*", "defRPr")][0];
+            const fontSize = Math.max(12, Math.round(Number(runProperties?.getAttribute("sz") || 2800) / 100));
+            elements.push({ kind: "text", ...pptxShapeBounds(shape, scaleX, scaleY), value, fontSize });
+          }
+          const mediaContainers = new Set();
+          for (const mediaNode of [...xml.getElementsByTagNameNS("*", "videoFile"), ...xml.getElementsByTagNameNS("*", "audioFile")]) {
+            const relationId = mediaNode.getAttributeNS("http://schemas.openxmlformats.org/officeDocument/2006/relationships", "link")
+              || mediaNode.getAttributeNS("http://schemas.openxmlformats.org/officeDocument/2006/relationships", "embed");
+            const target = relations.get(relationId);
+            const container = pptxMediaContainer(mediaNode);
+            if (!target || !container) continue;
+            mediaContainers.add(container);
+            elements.push({
+              kind: mediaNode.localName === "videoFile" ? "video" : "audio",
+              ...pptxShapeBounds(container, scaleX, scaleY),
+              value: await pptxImportedMedia(arrayBuffer, slideName, target)
+            });
+          }
+          for (const picture of [...xml.getElementsByTagNameNS("*", "pic")]) {
+            if (mediaContainers.has(picture)) continue;
+            const blip = [...picture.getElementsByTagNameNS("*", "blip")][0];
+            const relationId = blip?.getAttributeNS("http://schemas.openxmlformats.org/officeDocument/2006/relationships", "embed");
+            const target = relations.get(relationId);
+            if (!target || !/\.(png|jpe?g|gif|webp)$/i.test(target)) continue;
+            elements.push({ kind: "image", ...pptxShapeBounds(picture, scaleX, scaleY), value: await pptxImportedMedia(arrayBuffer, slideName, target) });
+          }
+          paginateImportedElements(elements).forEach((page) => imported.push({ id: uid("slide"), elements: page }));
+        }
+        return imported;
+      }
+
       async function addFileElement(activityId, file) {
         if (!file) return;
         const finishUploadLock = beginSaveLock(null);
         try {
-          const uploaded = isLocalFileMode()
+          if (/\.pptx$/i.test(file.name || "") || file.type === "application/vnd.openxmlformats-officedocument.presentationml.presentation") {
+            if (!await saveStudio(activityId, false, null, false)) return;
+            const activity = findItem("activity", activityId);
+            const importedSlides = await importPptxAsSiteSlides(file);
+            const onlyBlankSlide = activity.slides.length === 1 && !(activity.slides[0]?.elements || []).length;
+            activity.slides = onlyBlankSlide ? importedSlides : [...activity.slides, ...importedSlides];
+            activity.updatedAt = new Date().toISOString();
+            await saveData(`${importedSlides.length} diapositive(s) importée(s).`);
+            openActivityStudio(activityId);
+            currentStudioSlideIndex = onlyBlankSlide ? 0 : activity.slides.length - importedSlides.length;
+            selectStudioSlide(currentStudioSlideIndex);
+            toast(`${importedSlides.length} diapositive(s) PowerPoint convertie(s) en diapos du site.`);
+            return;
+          }
+          const uploaded = isLocalFileMode() || freeExampleOpen
             ? { mime_type: file.type || "", content_url: await readFileAsDataUrl(file) }
             : await window.ServerAPI.upload(file);
           const mimeType = uploaded.mime_type || file.type || "";
@@ -3864,6 +4070,77 @@
         return `<p class="empty">${text}</p>`;
       }
 
+      let buttonHelpTimer = null;
+      let buttonHelpTarget = null;
+
+      function buttonHelpText(button) {
+        if (button.dataset.help) return button.dataset.help;
+        const label = (button.getAttribute("aria-label") || button.title || button.textContent || "").replace(/\s+/g, " ").trim();
+        const normalized = label.toLowerCase();
+        const explanations = [
+          [/^retour$/, "Revenir à la séance associée à cette présentation."],
+          [/pr[ée]c[ée]dent/, "Afficher la diapositive précédente."],
+          [/suivant/, "Afficher la diapositive suivante."],
+          [/plein [ée]cran/, "Afficher la présentation sur tout l’écran."],
+          [/enregistrer/, "Valider les modifications en cours."],
+          [/annuler|fermer|^x$/, "Fermer cette fenêtre sans continuer."],
+          [/ajouter une classe/, "Créer un nouveau niveau ou groupe de cours."],
+          [/ajouter une s[ée]quence/, "Créer une séquence dans cette classe."],
+          [/ajouter une s[ée]ance/, "Créer une séance dans cette séquence."],
+          [/ajouter une (activit[ée]|pr[ée]sentation)/, "Créer une nouvelle présentation dans cette séance."],
+          [/\+ fichier/, "Importer une image, un son, une vidéo, un PDF ou un PowerPoint. Un PowerPoint devient des diapos du site."],
+          [/\+ texte/, "Ajouter une zone de texte à la diapositive."],
+          [/\+ url/, "Ajouter un média ou un lien depuis une adresse internet."],
+          [/exporter zip/, "Télécharger une sauvegarde complète avec les présentations et leurs médias."],
+          [/^exporter$/, "Télécharger les données de l’espace au format JSON."],
+          [/importer/, "Restaurer un export ZIP ou JSON."],
+          [/r[ée]initialiser/, "Repartir du fichier d’exemple initial."],
+          [/mode tableau/, "Ouvrir une présentation en mode projection."],
+          [/modifier/, "Modifier cet élément."],
+          [/supprimer/, "Supprimer définitivement cet élément après confirmation."],
+          [/connexion|se connecter/, "Ouvrir la connexion à un espace professeur enregistré."],
+          [/d[ée]connexion/, "Fermer la session professeur actuelle."]
+        ];
+        return explanations.find(([pattern]) => pattern.test(normalized))?.[1] || (label ? `Action : ${label}.` : "Utiliser cette commande.");
+      }
+
+      function hideButtonHelp() {
+        clearTimeout(buttonHelpTimer);
+        buttonHelpTimer = null;
+        buttonHelpTarget = null;
+        const tooltip = document.querySelector("#buttonHelpTooltip");
+        if (tooltip) tooltip.hidden = true;
+      }
+
+      function scheduleButtonHelp(button) {
+        hideButtonHelp();
+        if (!button || button.disabled) return;
+        buttonHelpTarget = button;
+        buttonHelpTimer = setTimeout(() => {
+          if (buttonHelpTarget !== button || !button.isConnected) return;
+          const tooltip = document.querySelector("#buttonHelpTooltip");
+          if (!tooltip) return;
+          tooltip.textContent = buttonHelpText(button);
+          tooltip.hidden = false;
+          const rect = button.getBoundingClientRect();
+          const left = Math.max(12, Math.min(window.innerWidth - tooltip.offsetWidth - 12, rect.left + rect.width / 2 - tooltip.offsetWidth / 2));
+          const above = rect.top - tooltip.offsetHeight - 10;
+          tooltip.style.left = `${left}px`;
+          tooltip.style.top = `${above >= 12 ? above : Math.min(window.innerHeight - tooltip.offsetHeight - 12, rect.bottom + 10)}px`;
+        }, 1500);
+      }
+
+      document.addEventListener("mouseover", (event) => {
+        const button = event.target.closest("button, label.btn");
+        if (button && !button.contains(event.relatedTarget)) scheduleButtonHelp(button);
+      });
+      document.addEventListener("mouseout", (event) => {
+        const button = event.target.closest("button, label.btn");
+        if (button && !button.contains(event.relatedTarget)) hideButtonHelp();
+      });
+      document.addEventListener("mousedown", hideButtonHelp);
+      document.addEventListener("scroll", hideButtonHelp, true);
+
       document.querySelector("#loginForm").addEventListener("submit", async (event) => {
         event.preventDefault();
         const form = new FormData(event.currentTarget);
@@ -3898,7 +4175,7 @@
       });
       window.addEventListener("resize", () => {
         fitBoardSlide();
-        if (tourRunning) renderTutorialOverlay(tutorialSteps[tourIndex]);
+        hideButtonHelp();
       });
       window.addEventListener("beforeunload", (event) => {
         if (activeSaveLocks === 0) return;
@@ -3928,7 +4205,11 @@
           const recoveredWorkspace = await window.ServerAPI.replayOfflineDraft(workspace).catch(() => null);
           const effectiveWorkspace = recoveredWorkspace || workspace;
           state = Object.keys(effectiveWorkspace.content || {}).length ? ensureDemoData(effectiveWorkspace.content) : ensureDemoData(seedData());
-          await classifyStoredSlideElements().catch(() => null);
+          const migratedOfficeDocuments = await classifyStoredSlideElements().catch(() => false);
+          if (migratedOfficeDocuments) {
+            const savedWorkspace = await window.ServerAPI.saveWorkspace(state, true);
+            if (savedWorkspace?.content) state = ensureDemoData(savedWorkspace.content);
+          }
           storageInfo = await window.ServerAPI.storage().catch(() => null);
           markStateConfirmed();
         } catch {
