@@ -2939,8 +2939,7 @@
           try {
             const response = await fetch(preview.dataset.documentPreview, { credentials: "include" });
             if (!response.ok) throw new Error(`HTTP ${response.status}`);
-            const documentXml = await extractZipEntry(await response.arrayBuffer(), "word/document.xml");
-            content.innerHTML = docxXmlToHtml(new TextDecoder("utf-8").decode(documentXml));
+            content.innerHTML = await officeDocumentToHtml(await response.arrayBuffer());
             preview.classList.add("loaded");
             status.hidden = true;
           } catch (error) {
@@ -2965,6 +2964,98 @@
           return `<p>${parts.join("") || "&nbsp;"}</p>`;
         }).join("");
         return html || "<p>Ce document ne contient aucun texte affichable.</p>";
+      }
+
+      async function officeDocumentToHtml(arrayBuffer) {
+        try {
+          const documentXml = await extractZipEntry(arrayBuffer, "word/document.xml");
+          return docxXmlToHtml(new TextDecoder("utf-8").decode(documentXml));
+        } catch {
+          const slideNames = listZipEntryNames(arrayBuffer)
+            .filter((name) => /^ppt\/slides\/slide\d+\.xml$/i.test(name))
+            .sort((a, b) => Number(a.match(/\d+/)?.[0]) - Number(b.match(/\d+/)?.[0]));
+          if (!slideNames.length) throw new Error("format Office non prévisualisable");
+          const slides = await Promise.all(slideNames.map(async (name, index) => {
+            const bytes = await extractZipEntry(arrayBuffer, name);
+            const xml = new DOMParser().parseFromString(new TextDecoder("utf-8").decode(bytes), "application/xml");
+            if (xml.querySelector("parsererror")) throw new Error("diapositive PowerPoint invalide");
+            const text = [...xml.getElementsByTagNameNS("*", "t")].map((node) => node.textContent || "").filter(Boolean);
+            const images = await pptxSlidePreviewImages(arrayBuffer, name, xml);
+            return `<section class="pptx-preview-slide"><strong>Diapositive ${index + 1}</strong>${images.map((src) => `<img class="pptx-preview-image" src="${src}" alt="">`).join("")}${text.map((value) => `<p>${escapeHtml(value)}</p>`).join("") || "<p>Aucun texte sur cette diapositive.</p>"}</section>`;
+          }));
+          return `<div class="pptx-preview">${slides.join("")}</div>`;
+        }
+      }
+
+      async function pptxSlidePreviewImages(arrayBuffer, slideName, slideXml) {
+        const fileName = slideName.split("/").pop();
+        const relsName = `ppt/slides/_rels/${fileName}.rels`;
+        let relsBytes;
+        try {
+          relsBytes = await extractZipEntry(arrayBuffer, relsName);
+        } catch {
+          return [];
+        }
+        const relsXml = new DOMParser().parseFromString(new TextDecoder("utf-8").decode(relsBytes), "application/xml");
+        const targets = new Map([...relsXml.getElementsByTagNameNS("*", "Relationship")]
+          .map((node) => [node.getAttribute("Id"), node.getAttribute("Target") || ""]));
+        const relationIds = [...slideXml.getElementsByTagNameNS("*", "blip")]
+          .map((node) => node.getAttributeNS("http://schemas.openxmlformats.org/officeDocument/2006/relationships", "embed"))
+          .filter(Boolean);
+        return Promise.all(relationIds.map(async (relationId) => {
+          const target = targets.get(relationId);
+          if (!target || !/\.(png|jpe?g|gif|webp)$/i.test(target)) return "";
+          const normalized = normalizeZipPath(`ppt/slides/${target}`);
+          const bytes = await extractZipEntry(arrayBuffer, normalized);
+          const extension = normalized.split(".").pop().toLowerCase();
+          const mimeType = extension === "jpg" || extension === "jpeg" ? "image/jpeg" : `image/${extension}`;
+          return bytesToDataUrl(bytes, mimeType);
+        })).then((sources) => sources.filter(Boolean));
+      }
+
+      function normalizeZipPath(path) {
+        const parts = [];
+        String(path).split("/").forEach((part) => {
+          if (!part || part === ".") return;
+          if (part === "..") parts.pop();
+          else parts.push(part);
+        });
+        return parts.join("/");
+      }
+
+      function bytesToDataUrl(bytes, mimeType) {
+        let binary = "";
+        for (let offset = 0; offset < bytes.length; offset += 8192) {
+          binary += String.fromCharCode(...bytes.subarray(offset, offset + 8192));
+        }
+        return `data:${mimeType};base64,${btoa(binary)}`;
+      }
+
+      function listZipEntryNames(arrayBuffer) {
+        const bytes = new Uint8Array(arrayBuffer);
+        const view = new DataView(arrayBuffer);
+        const minimumEocdOffset = Math.max(0, bytes.length - 65_557);
+        let eocdOffset = -1;
+        for (let offset = bytes.length - 22; offset >= minimumEocdOffset; offset--) {
+          if (view.getUint32(offset, true) === 0x06054b50) {
+            eocdOffset = offset;
+            break;
+          }
+        }
+        if (eocdOffset < 0) throw new Error("archive Office invalide");
+        const entryCount = view.getUint16(eocdOffset + 10, true);
+        let cursor = view.getUint32(eocdOffset + 16, true);
+        const decoder = new TextDecoder("utf-8");
+        const names = [];
+        for (let index = 0; index < entryCount; index++) {
+          if (cursor + 46 > bytes.length || view.getUint32(cursor, true) !== 0x02014b50) throw new Error("archive Office invalide");
+          const nameLength = view.getUint16(cursor + 28, true);
+          const extraLength = view.getUint16(cursor + 30, true);
+          const commentLength = view.getUint16(cursor + 32, true);
+          names.push(decoder.decode(bytes.slice(cursor + 46, cursor + 46 + nameLength)).replace(/\\/g, "/"));
+          cursor += 46 + nameLength + extraLength + commentLength;
+        }
+        return names;
       }
 
       function elementsForBoardSlide(activity, slideIndex) {
@@ -2999,8 +3090,11 @@
       }
 
       function hideBoard() {
+        const activityId = document.querySelector("#boardPage").dataset.activityId;
+        const result = activityId ? findActivity(activityId) : null;
         document.querySelector("#boardPage").hidden = true;
         document.querySelector("#appPage").hidden = false;
+        if (result) openLessonPage(result.classe.id, result.sequence.id, result.lesson.id);
       }
 
       function findLessonContext(lessonId) {
