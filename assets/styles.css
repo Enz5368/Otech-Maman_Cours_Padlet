@@ -1080,6 +1080,22 @@
         flex-wrap: wrap;
         gap: 8px;
       }
+      .studio-text-format {
+        display: inline-flex;
+        align-items: stretch;
+        gap: 3px;
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        background: var(--paper);
+        padding: 3px;
+      }
+      .studio-text-format .format-button {
+        min-width: 34px;
+        padding: 6px 8px;
+        border: 0;
+        background: transparent;
+      }
+      .studio-text-format .format-button:hover { background: white; }
       .studio-tool-picker {
         display: grid;
         gap: 3px;
