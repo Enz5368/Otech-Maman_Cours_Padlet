@@ -1030,10 +1030,46 @@
             <p class="muted small">${sequence.lessons.length} séance(s)</p>
           </div>
           <div class="row wrap">
+            ${sequenceHookDocumentControl(sequence)}
             <button class="btn" onclick="openTableauSubtree('sequence','${classe.id}','${sequence.id}')">Arbre</button>
             <button class="btn primary" onclick="openTableauSequence('${classe.id}','${sequence.id}')">Ouvrir</button>
           </div>
         </article>`;
+      }
+
+      function sequenceHookDocumentControl(sequence) {
+        const document = sequence?.hookDocument;
+        if (document?.url) {
+          return `<span class="sequence-hook-control">
+            <a class="btn sequence-hook-document" href="${escapeAttr(document.url)}" target="_blank" rel="noopener noreferrer" title="Ouvrir ${escapeAttr(document.name || "le document d’accroche")}">📎 Document d’accroche</a>
+            ${isLoggedIn() ? `<label class="sequence-hook-replace" title="Remplacer le document d’accroche" aria-label="Remplacer le document d’accroche">↻<input type="file" hidden onchange="setSequenceHookDocument('${escapeAttr(sequence.id)}',this.files[0],this);this.value=''" /></label>` : ""}
+          </span>`;
+        }
+        if (!isLoggedIn()) return `<span class="btn sequence-hook-document empty" aria-disabled="true">📎 Document d’accroche</span>`;
+        return `<label class="btn sequence-hook-document empty">＋ Document d’accroche<input type="file" hidden onchange="setSequenceHookDocument('${escapeAttr(sequence.id)}',this.files[0],this);this.value=''" /></label>`;
+      }
+
+      async function setSequenceHookDocument(sequenceId, file, control) {
+        if (!file || !requireLogin()) return;
+        const sequence = findItem("sequence", sequenceId);
+        if (!sequence) return;
+        const finishUploadLock = beginSaveLock(control);
+        try {
+          const uploaded = isLocalFileMode() || freeExampleOpen
+            ? { mime_type: file.type || "", content_url: await readFileAsDataUrl(file) }
+            : await window.ServerAPI.upload(file);
+          sequence.hookDocument = {
+            name: file.name || "Document d’accroche",
+            url: uploaded.content_url,
+            mimeType: uploaded.mime_type || file.type || ""
+          };
+          sequence.updatedAt = new Date().toISOString();
+          if (await saveData("Document d’accroche enregistré.")) render();
+        } catch (error) {
+          toast(`Ajout du document impossible : ${error.message || "erreur serveur"}.`);
+        } finally {
+          finishUploadLock();
+        }
       }
 
       function renderTableauSequence(classId, sequenceId) {
@@ -2501,7 +2537,10 @@
       function renderStudioElement(element, slideIndex = 0) {
         const globalTop = slideIndex * (slideSize.height + slideSize.gap) + Number(element.y || 80);
         return `<div class="slide-el" data-el-id="${element.id}" data-kind="${element.kind}" data-value="${escapeAttr(element.value || "")}" style="left:${Number(element.x || 80)}px;top:${globalTop}px;width:${Number(element.w || 320)}px;height:${Number(element.h || 160)}px">
-          ${renderElementContent(element, true)}
+          <button class="slide-move-handle" type="button" aria-label="Déplacer l’objet" title="Déplacer l’objet">✥</button>
+          <span class="slide-size-indicator" aria-hidden="true"></span>
+          <div class="slide-element-content">${renderElementContent(element, true)}</div>
+          ${["nw", "n", "ne", "e", "se", "s", "sw", "w"].map((direction) => `<span class="slide-resize-handle ${direction}" data-resize="${direction}" role="button" aria-label="Redimensionner vers ${direction}"></span>`).join("")}
         </div>`;
       }
 
@@ -2566,7 +2605,8 @@
 
       function refreshStudioTool(elementId) {
         const node = document.querySelector(`.studio .slide-el[data-el-id="${elementId}"]`);
-        if (node) node.innerHTML = renderSlideTool(node.dataset.value, true, elementId);
+        const content = node?.querySelector(".slide-element-content");
+        if (content) content.innerHTML = renderSlideTool(node.dataset.value, true, elementId);
       }
 
       function configureSlideWheel(control, event) {
@@ -3037,26 +3077,98 @@
 
       function initStudioDrag() {
         document.querySelectorAll(".slide-el").forEach((node) => {
-          node.onpointerdown = (event) => {
-            if (event.target.closest("button,input,select,label")) return;
-            if (event.target.closest(".slide-text") && event.detail > 1) return;
+          if (node.dataset.interactionsReady === "true") return;
+          node.dataset.interactionsReady = "true";
+          node.tabIndex = 0;
+          const select = () => {
             document.querySelectorAll(".slide-el").forEach((item) => item.classList.remove("selected"));
-            node.classList.add("selected", "dragging");
+            node.classList.add("selected");
+            const slideStep = slideSize.height + slideSize.gap;
+            const elementTop = parseFloat(node.style.top) || 0;
+            selectStudioSlide(Math.max(0, Math.floor(elementTop / slideStep)));
+          };
+          node.addEventListener("pointerdown", (event) => {
+            select();
+            const handle = event.target.closest(".slide-move-handle, .slide-resize-handle");
+            if (!handle) return;
+            event.preventDefault();
+            event.stopPropagation();
             const startX = event.clientX;
             const startY = event.clientY;
             const left = parseFloat(node.style.left) || 0;
             const top = parseFloat(node.style.top) || 0;
-            node.setPointerCapture(event.pointerId);
-            node.onpointermove = (move) => {
-              node.style.left = `${Math.max(0, left + move.clientX - startX)}px`;
-              node.style.top = `${Math.max(0, top + move.clientY - startY)}px`;
+            const width = node.offsetWidth;
+            const height = node.offsetHeight;
+            const slideStep = slideSize.height + slideSize.gap;
+            const slideIndex = Math.max(0, Math.min(document.querySelectorAll(".slide-frame").length - 1, Math.floor((top + height / 2) / slideStep)));
+            const slideTop = slideIndex * slideStep;
+            const direction = handle.dataset.resize || "";
+            const moving = handle.classList.contains("slide-move-handle");
+            const minimumWidth = 60;
+            const minimumHeight = 40;
+            node.classList.add(moving ? "dragging" : "resizing");
+            handle.setPointerCapture(event.pointerId);
+            const showSize = () => {
+              const indicator = node.querySelector(".slide-size-indicator");
+              if (indicator) indicator.textContent = `${Math.round(node.offsetWidth)} × ${Math.round(node.offsetHeight)}`;
             };
-            node.onpointerup = () => {
-              node.classList.remove("dragging");
-              node.onpointermove = null;
-              node.onpointerup = null;
+            const onMove = (move) => {
+              const dx = move.clientX - startX;
+              const dy = move.clientY - startY;
+              if (moving) {
+                node.style.left = `${Math.min(slideSize.width - width, Math.max(0, left + dx))}px`;
+                node.style.top = `${Math.min(slideTop + slideSize.height - height, Math.max(slideTop, top + dy))}px`;
+                return;
+              }
+              let nextLeft = left;
+              let nextTop = top;
+              let nextWidth = width;
+              let nextHeight = height;
+              if (direction.includes("e")) nextWidth = Math.min(slideSize.width - left, Math.max(minimumWidth, width + dx));
+              if (direction.includes("s")) nextHeight = Math.min(slideTop + slideSize.height - top, Math.max(minimumHeight, height + dy));
+              if (direction.includes("w")) {
+                nextLeft = Math.min(left + width - minimumWidth, Math.max(0, left + dx));
+                nextWidth = width + left - nextLeft;
+              }
+              if (direction.includes("n")) {
+                nextTop = Math.min(top + height - minimumHeight, Math.max(slideTop, top + dy));
+                nextHeight = height + top - nextTop;
+              }
+              node.style.left = `${nextLeft}px`;
+              node.style.top = `${nextTop}px`;
+              node.style.width = `${nextWidth}px`;
+              node.style.height = `${nextHeight}px`;
+              showSize();
             };
-          };
+            const finish = () => {
+              node.classList.remove("dragging", "resizing");
+              handle.removeEventListener("pointermove", onMove);
+              handle.removeEventListener("pointerup", finish);
+              handle.removeEventListener("pointercancel", finish);
+            };
+            handle.addEventListener("pointermove", onMove);
+            handle.addEventListener("pointerup", finish);
+            handle.addEventListener("pointercancel", finish);
+          });
+          node.addEventListener("keydown", (event) => {
+            if (!node.classList.contains("selected") || event.target.closest("input,select,[contenteditable=true]")) return;
+            if (event.key === "Delete" || event.key === "Backspace") {
+              event.preventDefault();
+              node.remove();
+              return;
+            }
+            const directions = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] };
+            if (!directions[event.key]) return;
+            event.preventDefault();
+            const amount = event.shiftKey ? 10 : 1;
+            const [dx, dy] = directions[event.key];
+            const slideStep = slideSize.height + slideSize.gap;
+            const top = parseFloat(node.style.top) || 0;
+            const slideIndex = Math.floor((top + node.offsetHeight / 2) / slideStep);
+            const slideTop = slideIndex * slideStep;
+            node.style.left = `${Math.min(slideSize.width - node.offsetWidth, Math.max(0, (parseFloat(node.style.left) || 0) + dx * amount))}px`;
+            node.style.top = `${Math.min(slideTop + slideSize.height - node.offsetHeight, Math.max(slideTop, top + dy * amount))}px`;
+          });
         });
       }
 

@@ -760,6 +760,24 @@
       .stack { display: grid; gap: 12px; }
       .row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
       .wrap { flex-wrap: wrap; }
+      .sequence-hook-control { display: inline-flex; align-items: stretch; gap: 5px; }
+      .sequence-hook-document { border-color: rgba(116, 24, 42, .2); background: linear-gradient(180deg, #fffdf8, #f8eee4); }
+      .sequence-hook-document.empty { border-style: dashed; color: var(--muted); cursor: pointer; }
+      .sequence-hook-document[aria-disabled="true"] { cursor: default; opacity: .72; }
+      .sequence-hook-replace {
+        display: grid;
+        place-items: center;
+        width: 36px;
+        min-height: 36px;
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        background: white;
+        color: var(--wine-700);
+        font-size: 18px;
+        font-weight: 900;
+        cursor: pointer;
+      }
+      .sequence-hook-replace:hover { border-color: var(--wine-700); background: var(--paper-2); }
 
       .btn {
         position: relative;
@@ -1123,9 +1141,78 @@
         border: 1px solid rgba(116, 24, 42, 0.22);
         border-radius: 6px;
         background: white;
-        overflow: auto;
-        resize: both;
+        overflow: visible;
+        resize: none;
         box-shadow: 0 10px 20px rgba(59, 13, 22, 0.08);
+        touch-action: none;
+      }
+
+      .slide-element-content {
+        width: 100%;
+        height: 100%;
+        overflow: auto;
+      }
+      .slide-element-content > * {
+        max-width: 100%;
+        max-height: 100%;
+      }
+      .slide-move-handle {
+        position: absolute;
+        z-index: 20;
+        left: 50%;
+        top: -18px;
+        display: grid;
+        place-items: center;
+        width: 42px;
+        height: 30px;
+        padding: 0;
+        transform: translateX(-50%);
+        border: 2px solid white;
+        border-radius: 9px;
+        background: var(--wine-700);
+        color: white;
+        box-shadow: 0 3px 10px rgba(59, 13, 22, .25);
+        cursor: grab;
+        font-size: 19px;
+        line-height: 1;
+        opacity: 0;
+        pointer-events: none;
+        touch-action: none;
+      }
+      .slide-move-handle:active { cursor: grabbing; }
+      .slide-resize-handle {
+        position: absolute;
+        z-index: 21;
+        display: none;
+        width: 14px;
+        height: 14px;
+        border: 2px solid white;
+        border-radius: 50%;
+        background: var(--wine-700);
+        box-shadow: 0 1px 5px rgba(59, 13, 22, .3);
+        touch-action: none;
+      }
+      .slide-resize-handle.nw { left: -8px; top: -8px; cursor: nwse-resize; }
+      .slide-resize-handle.n { left: calc(50% - 7px); top: -8px; cursor: ns-resize; }
+      .slide-resize-handle.ne { right: -8px; top: -8px; cursor: nesw-resize; }
+      .slide-resize-handle.e { right: -8px; top: calc(50% - 7px); cursor: ew-resize; }
+      .slide-resize-handle.se { right: -8px; bottom: -8px; cursor: nwse-resize; }
+      .slide-resize-handle.s { left: calc(50% - 7px); bottom: -8px; cursor: ns-resize; }
+      .slide-resize-handle.sw { left: -8px; bottom: -8px; cursor: nesw-resize; }
+      .slide-resize-handle.w { left: -8px; top: calc(50% - 7px); cursor: ew-resize; }
+      .slide-size-indicator {
+        position: absolute;
+        z-index: 22;
+        right: 4px;
+        bottom: 4px;
+        display: none;
+        border-radius: 5px;
+        background: rgba(59, 13, 22, .82);
+        color: white;
+        padding: 3px 6px;
+        font-size: 11px;
+        font-weight: 800;
+        pointer-events: none;
       }
 
       .board-slide-inner .slide-el {
@@ -1142,6 +1229,9 @@
         outline: 3px solid var(--wine-700);
         outline-offset: 2px;
       }
+      .slide-el.selected .slide-move-handle { opacity: 1; pointer-events: auto; }
+      .slide-el.selected .slide-resize-handle { display: block; }
+      .slide-el.resizing .slide-size-indicator { display: block; }
       .slide-el.dragging {
         opacity: 0.78;
       }

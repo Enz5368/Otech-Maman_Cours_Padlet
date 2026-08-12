@@ -147,6 +147,15 @@ def test_la_vue_a_projeter_propose_l_arbre_de_chaque_item() -> None:
     assert "projectTreeActivityNode" in APP_JS
     assert "openTableauSubtree('class'" in APP_JS
     assert "openTableauSubtree('sequence'" in APP_JS
+
+
+def test_chaque_sequence_propose_un_document_d_accroche_avant_l_arbre() -> None:
+    card_start = APP_JS.index("function tableauSequenceCard")
+    card_end = APP_JS.index("function renderTableauSequence", card_start)
+    card = APP_JS[card_start:card_end]
+    assert card.index("sequenceHookDocumentControl(sequence)") < card.index("openTableauSubtree('sequence'")
+    assert "async function setSequenceHookDocument" in APP_JS
+    assert "sequence.hookDocument =" in APP_JS
     assert "openTableauSubtree('lesson'" in APP_JS
 
 
