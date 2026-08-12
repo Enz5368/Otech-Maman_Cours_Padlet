@@ -2558,6 +2558,7 @@
         const globalTop = slideIndex * (slideSize.height + slideSize.gap) + Number(element.y || 80);
         return `<div class="slide-el" data-el-id="${element.id}" data-kind="${element.kind}" data-value="${escapeAttr(element.value || "")}" data-max-font-size="${Number(element.fontSize || 34)}" style="left:${Number(element.x || 80)}px;top:${globalTop}px;width:${Number(element.w || 320)}px;height:${Number(element.h || 160)}px">
           <button class="slide-move-handle" type="button" aria-label="Déplacer l’objet" title="Déplacer l’objet">✥</button>
+          <button class="slide-delete-handle" type="button" aria-label="Supprimer l’objet" title="Supprimer l’objet" onclick="deleteStudioElement(this,event)">×</button>
           <span class="slide-size-indicator" aria-hidden="true"></span>
           <div class="slide-element-content">${renderElementContent(element, true)}</div>
           ${["nw", "n", "ne", "e", "se", "s", "sw", "w"].map((direction) => `<span class="slide-resize-handle ${direction}" data-resize="${direction}" role="button" aria-label="Redimensionner vers ${direction}"></span>`).join("")}
@@ -2565,7 +2566,7 @@
       }
 
       function renderElementContent(element, editable) {
-        if (element.kind === "text") return `<div class="slide-text" contenteditable="${editable ? "true" : "false"}" style="font-size:${Number(element.fontSize || 34)}px">${element.html ? sanitizeRichText(element.html) : escapeHtml(element.value || "Texte")}</div>`;
+        if (element.kind === "text") return `<div class="slide-text" contenteditable="${editable ? "true" : "false"}" ${editable ? 'data-placeholder="Écrivez ici…"' : ""} style="font-size:${Number(element.fontSize || 34)}px">${element.html ? sanitizeRichText(element.html) : escapeHtml(element.value || "")}</div>`;
         if (element.kind === "tool") return renderSlideTool(element.value, editable, element.id);
         if (element.kind === "youtube" || youtubeId(element.value)) return youtubeCard(element.value);
         if (element.kind === "image") return `<img src="${escapeAttr(element.value)}" alt="">`;
@@ -2587,12 +2588,14 @@
       }
 
       function insertStudioText(text, slideIndex, x = 90, y = 90) {
-        const value = String(text || "Nouveau texte").replace(/\r\n/g, "\n");
+        const value = String(text ?? "").replace(/\r\n/g, "\n");
         document.querySelector("#slideStrip")?.insertAdjacentHTML("beforeend", renderStudioElement({
           id: uid("el"), kind: "text", x, y, w: Math.min(520, slideSize.width - x), h: 150, value, fontSize: 38
         }, slideIndex));
         initStudioDrag();
         const node = [...document.querySelectorAll(".studio .slide-el")].at(-1);
+        document.querySelectorAll(".studio .slide-el.selected").forEach((item) => item.classList.remove("selected"));
+        node?.classList.add("selected");
         fitStudioText(node);
         node?.querySelector(".slide-text")?.focus();
       }
@@ -2628,7 +2631,7 @@
           const slide = event.target.closest(".slide-frame");
           if (!slide) return;
           const point = studioPointOnSlide(event, slide);
-          insertStudioText("Nouveau texte", Number(slide.dataset.slideIndex || 0), point.x, point.y);
+          insertStudioText("", Number(slide.dataset.slideIndex || 0), point.x, point.y);
         });
         studio.addEventListener("paste", async (event) => {
           if (event.target.closest(".slide-text,input,textarea,[contenteditable=true]")) return;
@@ -2853,8 +2856,7 @@
       function addTextElement(activityId) {
         const slide = selectedSlide();
         if (!slide) return;
-        document.querySelector("#slideStrip").insertAdjacentHTML("beforeend", renderStudioElement({ id: uid("el"), kind: "text", x: 90, y: 90, w: 420, h: 150, value: "Nouveau texte", fontSize: 38 }, Number(slide.dataset.slideIndex || 0)));
-        initStudioDrag();
+        insertStudioText("", Number(slide.dataset.slideIndex || 0));
       }
 
       function addUrlElement(activityId) {
@@ -3308,6 +3310,12 @@
       function deleteSelectedElement() {
         const selected = document.querySelector(".slide-el.selected");
         if (selected) selected.remove();
+      }
+
+      function deleteStudioElement(button, event) {
+        event?.preventDefault();
+        event?.stopPropagation();
+        button.closest(".slide-el")?.remove();
       }
 
       async function saveEditor(event, type, id) {
