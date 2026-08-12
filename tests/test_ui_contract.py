@@ -156,6 +156,23 @@ def test_chaque_sequence_propose_un_document_d_accroche_avant_l_arbre() -> None:
     assert card.index("sequenceHookDocumentControl(sequence)") < card.index("openTableauSubtree('sequence'")
     assert "async function setSequenceHookDocument" in APP_JS
     assert "sequence.hookDocument =" in APP_JS
+    editable_start = APP_JS.index("function sequenceCard")
+    editable_end = APP_JS.index("function renderSequencePage", editable_start)
+    editable_card = APP_JS[editable_start:editable_end]
+    assert editable_card.index("sequenceHookDocumentControl(sequence)") < editable_card.index("openEditableSubtree")
+
+
+def test_le_studio_accepte_collage_double_clic_et_texte_auto_ajuste() -> None:
+    assert 'studio.addEventListener("paste"' in APP_JS
+    assert 'studio.addEventListener("dblclick"' in APP_JS
+    assert "insertStudioClipboardImage" in APP_JS
+    assert "function fitStudioText" in APP_JS
+    assert "while (size > 8" in APP_JS
+
+
+def test_les_liens_en_nouvel_onglet_reutilisent_trois_emplacements() -> None:
+    assert 'event.target.closest("a[target=\'_blank\']")' in APP_JS
+    assert 'Number(localStorage.getItem(key) || 0) % 3' in APP_JS
     assert "openTableauSubtree('lesson'" in APP_JS
 
 

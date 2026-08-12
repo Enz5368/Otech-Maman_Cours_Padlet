@@ -1037,11 +1037,18 @@
         </article>`;
       }
 
+      function openManagedLink(url, event) {
+        event?.preventDefault();
+        event?.stopPropagation();
+        openUrlInNewTabAfterSave(url, "in-viaggio-link");
+        return false;
+      }
+
       function sequenceHookDocumentControl(sequence) {
         const document = sequence?.hookDocument;
         if (document?.url) {
           return `<span class="sequence-hook-control">
-            <a class="btn sequence-hook-document" href="${escapeAttr(document.url)}" target="_blank" rel="noopener noreferrer" title="Ouvrir ${escapeAttr(document.name || "le document d’accroche")}">📎 Document d’accroche</a>
+            <a class="btn sequence-hook-document" href="${escapeAttr(document.url)}" target="_blank" rel="noopener noreferrer" onclick="return openManagedLink(this.href,event)" title="Ouvrir ${escapeAttr(document.name || "le document d’accroche")}">📎 Document d’accroche</a>
             ${isLoggedIn() ? `<label class="sequence-hook-replace" title="Remplacer le document d’accroche" aria-label="Remplacer le document d’accroche">↻<input type="file" hidden onchange="setSequenceHookDocument('${escapeAttr(sequence.id)}',this.files[0],this);this.value=''" /></label>` : ""}
           </span>`;
         }
@@ -1307,18 +1314,19 @@
         return children.length ? `<ul class="tree-level">${children.join("")}</ul>` : "";
       }
 
-      function openEditableSubtree(classId) {
+      function openEditableSubtree(classId, sequenceId = "") {
         const classe = findItem("class", classId);
         if (!classe) return;
+        const sequence = sequenceId ? findItem("sequence", sequenceId) : null;
         const modal = document.querySelector("#editorModal");
         modal.hidden = false;
         modal.innerHTML = `<section class="subtree-dialog">
           <header class="subtree-head">
-            <div><p class="small">Arbre des cours modifiables</p><h2>${escapeHtml(classe.title)}</h2></div>
+            <div><p class="small">Arbre des cours modifiables</p><h2>${escapeHtml(sequence?.title || classe.title)}</h2></div>
             <button class="btn icon" onclick="closeEditor()">X</button>
           </header>
           <div class="subtree-body course-tree-scroll" aria-label="Cours modifiables de ${escapeAttr(classe.title)}">
-            <div class="course-tree subtree-course-tree"><ul class="tree-level tree-classes">${treeClassNode(classe)}</ul></div>
+            <div class="course-tree subtree-course-tree"><ul class="tree-level tree-classes">${sequence ? treeSequenceNode(classe, sequence) : treeClassNode(classe)}</ul></div>
           </div>
         </section>`;
       }
@@ -1977,6 +1985,8 @@
             <p class="muted small">${escapeHtml(sequence.description)}</p>
           </div>
           <div class="row wrap">
+            ${sequenceHookDocumentControl(sequence)}
+            <button class="btn" onclick="openEditableSubtree('${classe.id}','${sequence.id}')">Arbre</button>
             <span class="pill">${sequence.lessons.length} séance(s)</span>
             <span class="pill">Tâche finale${sequence.finalTask ? ` : ${escapeHtml(sequence.finalTask)}` : ""}</span>
             <span class="pill">${activityCount} activité(s)</span>
@@ -2527,16 +2537,17 @@
           </section>
         `;
         initStudioDrag();
+        initStudioCanvasInput();
       }
 
       function renderStudioSlide(slide, index) {
         const top = index * (slideSize.height + slideSize.gap);
-        return `<article class="slide-frame ${index === currentStudioSlideIndex ? "current" : ""}" data-slide-id="${slide.id}" data-slide-index="${index}" data-label="Diapo ${index + 1}" onclick="selectStudioSlide(${index})" style="position:absolute;left:0;top:${top}px"></article>`;
+        return `<article class="slide-frame ${index === currentStudioSlideIndex ? "current" : ""}" data-slide-id="${slide.id}" data-slide-index="${index}" data-label="Diapo ${index + 1}" tabindex="0" onclick="selectStudioSlide(${index})" style="position:absolute;left:0;top:${top}px"></article>`;
       }
 
       function renderStudioElement(element, slideIndex = 0) {
         const globalTop = slideIndex * (slideSize.height + slideSize.gap) + Number(element.y || 80);
-        return `<div class="slide-el" data-el-id="${element.id}" data-kind="${element.kind}" data-value="${escapeAttr(element.value || "")}" style="left:${Number(element.x || 80)}px;top:${globalTop}px;width:${Number(element.w || 320)}px;height:${Number(element.h || 160)}px">
+        return `<div class="slide-el" data-el-id="${element.id}" data-kind="${element.kind}" data-value="${escapeAttr(element.value || "")}" data-max-font-size="${Number(element.fontSize || 34)}" style="left:${Number(element.x || 80)}px;top:${globalTop}px;width:${Number(element.w || 320)}px;height:${Number(element.h || 160)}px">
           <button class="slide-move-handle" type="button" aria-label="Déplacer l’objet" title="Déplacer l’objet">✥</button>
           <span class="slide-size-indicator" aria-hidden="true"></span>
           <div class="slide-element-content">${renderElementContent(element, true)}</div>
@@ -2552,10 +2563,90 @@
         if (element.kind === "audio") return `<audio controls preload="metadata" src="${escapeAttr(element.value)}" onerror="reportMediaError(this)"></audio>`;
         if (element.kind === "video") return `<video controls preload="metadata" src="${escapeAttr(element.value)}" onerror="reportMediaError(this)"></video>`;
         if (element.kind === "document" || (element.kind === "embed" && isStoredDocumentUrl(element.value))) {
-          return `<div class="slide-document-card" data-document-preview="${escapeAttr(element.value)}"><span class="document-preview-status">Chargement du document…</span><div class="document-preview-content"></div><div class="document-preview-fallback" hidden><strong>Document joint</strong><span>L’aperçu de ce format n’est pas disponible.</span><a class="btn primary" href="${escapeAttr(element.value)}" target="_blank" rel="noreferrer" onclick="event.stopPropagation()">Ouvrir le document</a></div></div>`;
+          return `<div class="slide-document-card" data-document-preview="${escapeAttr(element.value)}"><span class="document-preview-status">Chargement du document…</span><div class="document-preview-content"></div><div class="document-preview-fallback" hidden><strong>Document joint</strong><span>L’aperçu de ce format n’est pas disponible.</span><a class="btn primary" href="${escapeAttr(element.value)}" target="_blank" rel="noreferrer" onclick="return openManagedLink(this.href,event)">Ouvrir le document</a></div></div>`;
         }
         if (element.kind === "pdf") return `<iframe src="${toEmbedUrl(element.value)}" title="Document PDF"></iframe>`;
         return `<iframe src="${toEmbedUrl(element.value)}"></iframe>`;
+      }
+
+      function studioPointOnSlide(event, slide) {
+        const rect = slide.getBoundingClientRect();
+        return {
+          x: Math.max(0, Math.min(slideSize.width - 60, event.clientX - rect.left)),
+          y: Math.max(0, Math.min(slideSize.height - 40, event.clientY - rect.top))
+        };
+      }
+
+      function insertStudioText(text, slideIndex, x = 90, y = 90) {
+        const value = String(text || "Nouveau texte").replace(/\r\n/g, "\n");
+        document.querySelector("#slideStrip")?.insertAdjacentHTML("beforeend", renderStudioElement({
+          id: uid("el"), kind: "text", x, y, w: Math.min(520, slideSize.width - x), h: 150, value, fontSize: 38
+        }, slideIndex));
+        initStudioDrag();
+        const node = [...document.querySelectorAll(".studio .slide-el")].at(-1);
+        fitStudioText(node);
+        node?.querySelector(".slide-text")?.focus();
+      }
+
+      async function insertStudioClipboardImage(file, slideIndex, x = 100, y = 90) {
+        const finishUploadLock = beginSaveLock(null);
+        try {
+          const uploaded = isLocalFileMode() || freeExampleOpen
+            ? { content_url: await readFileAsDataUrl(file) }
+            : await window.ServerAPI.upload(file);
+          document.querySelector("#slideStrip")?.insertAdjacentHTML("beforeend", renderStudioElement({
+            id: uid("el"), kind: "image", x, y, w: Math.min(520, slideSize.width - x), h: 300, value: uploaded.content_url
+          }, slideIndex));
+          initStudioDrag();
+          toast("Image collée dans la diapo. Pensez à enregistrer.");
+        } catch (error) {
+          toast(`Collage de l’image impossible : ${error.message || "erreur serveur"}.`);
+        } finally {
+          finishUploadLock();
+        }
+      }
+
+      function initStudioCanvasInput() {
+        const studio = document.querySelector(".studio");
+        if (!studio || studio.dataset.canvasInputReady === "true") return;
+        studio.dataset.canvasInputReady = "true";
+        studio.addEventListener("dblclick", (event) => {
+          if (event.target.closest(".slide-el,button,input,select,label,a")) return;
+          const slide = event.target.closest(".slide-frame");
+          if (!slide) return;
+          const point = studioPointOnSlide(event, slide);
+          insertStudioText("Nouveau texte", Number(slide.dataset.slideIndex || 0), point.x, point.y);
+        });
+        studio.addEventListener("paste", async (event) => {
+          if (event.target.closest(".slide-text,input,textarea,[contenteditable=true]")) return;
+          const slide = selectedSlide();
+          if (!slide) return;
+          const items = [...(event.clipboardData?.items || [])];
+          const image = items.find((item) => item.kind === "file" && item.type.startsWith("image/"))?.getAsFile();
+          const text = event.clipboardData?.getData("text/plain") || "";
+          if (!image && !text) return;
+          event.preventDefault();
+          const slideIndex = Number(slide.dataset.slideIndex || 0);
+          if (image) await insertStudioClipboardImage(image, slideIndex);
+          else insertStudioText(text, slideIndex);
+        });
+        document.querySelectorAll(".studio .slide-text").forEach((text) => text.addEventListener("input", () => fitStudioText(text.closest(".slide-el"))));
+        document.querySelectorAll(".studio .slide-el[data-kind='text']").forEach(fitStudioText);
+      }
+
+      function fitStudioText(node) {
+        const text = node?.querySelector(".slide-text");
+        if (!text) return;
+        const maximum = Math.max(8, Number(node.dataset.maxFontSize || parseFloat(text.style.fontSize) || 34));
+        let size = maximum;
+        text.style.fontSize = `${size}px`;
+        text.style.overflow = "hidden";
+        while (size > 8 && (text.scrollHeight > text.clientHeight + 1 || text.scrollWidth > text.clientWidth + 1)) {
+          size -= 1;
+          text.style.fontSize = `${size}px`;
+        }
+        const stillOverflows = text.scrollHeight > text.clientHeight + 1 || text.scrollWidth > text.clientWidth + 1;
+        text.style.overflow = size <= 8 && stillOverflows ? "auto" : "hidden";
       }
 
       function renderSlideTool(value, editable, elementId) {
@@ -3080,6 +3171,8 @@
           if (node.dataset.interactionsReady === "true") return;
           node.dataset.interactionsReady = "true";
           node.tabIndex = 0;
+          const editableText = node.querySelector(".slide-text");
+          editableText?.addEventListener("input", () => fitStudioText(node));
           const select = () => {
             document.querySelectorAll(".slide-el").forEach((item) => item.classList.remove("selected"));
             node.classList.add("selected");
@@ -3138,10 +3231,12 @@
               node.style.top = `${nextTop}px`;
               node.style.width = `${nextWidth}px`;
               node.style.height = `${nextHeight}px`;
+              fitStudioText(node);
               showSize();
             };
             const finish = () => {
               node.classList.remove("dragging", "resizing");
+              fitStudioText(node);
               handle.removeEventListener("pointermove", onMove);
               handle.removeEventListener("pointerup", finish);
               handle.removeEventListener("pointercancel", finish);
@@ -4401,6 +4496,12 @@
       });
       document.addEventListener("mousedown", hideButtonHelp);
       document.addEventListener("scroll", hideButtonHelp, true);
+      document.addEventListener("click", (event) => {
+        if (event.defaultPrevented || event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
+        const link = event.target.closest("a[target='_blank']");
+        if (!link || link.hasAttribute("download")) return;
+        openManagedLink(link.href, event);
+      });
 
       document.querySelector("#loginForm").addEventListener("submit", async (event) => {
         event.preventDefault();
