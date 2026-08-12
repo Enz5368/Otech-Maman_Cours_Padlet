@@ -2509,6 +2509,15 @@
                 <div class="studio-save-status" id="studioSaveStatus" role="status" hidden></div>
               </div>
               <div class="studio-actions">
+                <div class="studio-text-format" role="toolbar" aria-label="Mise en forme du texte">
+                  <button class="btn format-button" type="button" title="Gras (Ctrl+B)" aria-label="Gras" onmousedown="formatStudioText('bold',event)"><strong>G</strong></button>
+                  <button class="btn format-button" type="button" title="Italique (Ctrl+I)" aria-label="Italique" onmousedown="formatStudioText('italic',event)"><em>I</em></button>
+                  <button class="btn format-button" type="button" title="Souligné (Ctrl+U)" aria-label="Souligné" onmousedown="formatStudioText('underline',event)"><u>S</u></button>
+                  <button class="btn format-button" type="button" title="Barré" aria-label="Barré" onmousedown="formatStudioText('strikeThrough',event)"><s>abc</s></button>
+                  <button class="btn format-button" type="button" title="Liste à puces" aria-label="Liste à puces" onmousedown="formatStudioText('insertUnorderedList',event)">• Liste</button>
+                  <button class="btn format-button" type="button" title="Liste numérotée" aria-label="Liste numérotée" onmousedown="formatStudioText('insertOrderedList',event)">1. Liste</button>
+                  <button class="btn format-button" type="button" title="Effacer la mise en forme" aria-label="Effacer la mise en forme" onmousedown="formatStudioText('removeFormat',event)">× Style</button>
+                </div>
                 <button class="btn" onclick="renameActivity('${activity.id}')">Titre</button>
                 <button class="btn" onclick="addSlide('${activity.id}')">+ Diapo</button>
                 <button class="btn" onclick="addTextElement('${activity.id}')">+ Texte</button>
@@ -2556,7 +2565,7 @@
       }
 
       function renderElementContent(element, editable) {
-        if (element.kind === "text") return `<div class="slide-text" contenteditable="${editable ? "true" : "false"}" style="font-size:${Number(element.fontSize || 34)}px">${escapeHtml(element.value || "Texte")}</div>`;
+        if (element.kind === "text") return `<div class="slide-text" contenteditable="${editable ? "true" : "false"}" style="font-size:${Number(element.fontSize || 34)}px">${element.html ? sanitizeRichText(element.html) : escapeHtml(element.value || "Texte")}</div>`;
         if (element.kind === "tool") return renderSlideTool(element.value, editable, element.id);
         if (element.kind === "youtube" || youtubeId(element.value)) return youtubeCard(element.value);
         if (element.kind === "image") return `<img src="${escapeAttr(element.value)}" alt="">`;
@@ -2610,6 +2619,10 @@
         const studio = document.querySelector(".studio");
         if (!studio || studio.dataset.canvasInputReady === "true") return;
         studio.dataset.canvasInputReady = "true";
+        studio.addEventListener("pointerdown", (event) => {
+          if (event.target.closest(".slide-el,.studio-text-format")) return;
+          document.querySelectorAll(".studio .slide-el.selected").forEach((item) => item.classList.remove("selected"));
+        });
         studio.addEventListener("dblclick", (event) => {
           if (event.target.closest(".slide-el,button,input,select,label,a")) return;
           const slide = event.target.closest(".slide-frame");
@@ -2632,6 +2645,30 @@
         });
         document.querySelectorAll(".studio .slide-text").forEach((text) => text.addEventListener("input", () => fitStudioText(text.closest(".slide-el"))));
         document.querySelectorAll(".studio .slide-el[data-kind='text']").forEach(fitStudioText);
+      }
+
+      function sanitizeRichText(html) {
+        const template = document.createElement("template");
+        template.innerHTML = String(html || "");
+        const allowed = new Set(["B", "STRONG", "I", "EM", "U", "S", "STRIKE", "BR", "DIV", "P", "UL", "OL", "LI"]);
+        [...template.content.querySelectorAll("*")].forEach((node) => {
+          if (!allowed.has(node.tagName)) node.replaceWith(...node.childNodes);
+          else [...node.attributes].forEach((attribute) => node.removeAttribute(attribute.name));
+        });
+        return template.innerHTML;
+      }
+
+      function formatStudioText(command, event) {
+        event?.preventDefault();
+        event?.stopPropagation();
+        const text = document.querySelector(".studio .slide-el.selected .slide-text");
+        if (!text) {
+          toast("Sélectionnez d'abord une zone de texte.");
+          return;
+        }
+        text.focus({ preventScroll: true });
+        document.execCommand(command, false, null);
+        fitStudioText(text.closest(".slide-el"));
       }
 
       function fitStudioText(node) {
@@ -3161,6 +3198,7 @@
           w: node.offsetWidth,
           h: node.offsetHeight,
           value: kind === "text" ? textNode?.innerText || "" : node.dataset.value || "",
+          html: kind === "text" ? sanitizeRichText(textNode?.innerHTML || "") : undefined,
           fontSize: kind === "text" ? parseFloat(textNode?.style.fontSize || "34") || 34 : undefined,
           slideIndex
         };
@@ -3752,7 +3790,7 @@
 
       function renderPrintableElement(element) {
         const style = `left:${Number(element.x || 0) / slideSize.width * 100}%;top:${Number(element.y || 0) / slideSize.height * 100}%;width:${Number(element.w || 320) / slideSize.width * 100}%;height:${Number(element.h || 160) / slideSize.height * 100}%`;
-        if (element.kind === "text") return `<div class="print-slide-element print-slide-text" style="${style};font-size:${Math.max(10, Number(element.fontSize || 34) * 0.75)}px">${escapeHtml(element.value || "")}</div>`;
+        if (element.kind === "text") return `<div class="print-slide-element print-slide-text" style="${style};font-size:${Math.max(10, Number(element.fontSize || 34) * 0.75)}px">${element.html ? sanitizeRichText(element.html) : escapeHtml(element.value || "")}</div>`;
         if (element.kind === "image") return `<div class="print-slide-element" style="${style}"><img src="${escapeAttr(element.value)}" alt=""></div>`;
         if (element.kind === "tool") {
           const toolId = String(element.value || "timer").split("|")[0];
