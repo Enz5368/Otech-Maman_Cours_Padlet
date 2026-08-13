@@ -446,10 +446,20 @@ def test_zip_fourni_est_la_base_de_la_version_gratuite() -> None:
     assert (example / "data.json").is_file()
     data = json.loads((example / "data.json").read_text(encoding="utf-8"))
     assert len(data["classes"]) == 1
-    assert "assets/free-example/data.json?v=2026-07-26-3" in APP_JS
+    assert "assets/free-example/data.json?v=2026-08-13-1" in APP_JS
     assert "/api/v1/files/" not in json.dumps(data)
     assert any(path.suffix == ".mp4" for path in example.iterdir())
     assert "convertFreePptxDocuments()" in APP_JS
+
+
+def test_exemple_gratuit_est_a_jour_et_sans_texte_mal_encode() -> None:
+    example = json.loads((ROOT / "assets" / "free-example" / "data.json").read_text(encoding="utf-8"))
+    serialized = json.dumps(example, ensure_ascii=False)
+    assert example["demoVersion"] == 3
+    assert example["exampleUpdatedAt"] == "2026-08-13"
+    assert "Ã" not in serialized
+    assert "â€“" not in serialized
+    assert "â€”" not in serialized
 
 
 def test_migration_pptx_payante_detecte_le_contenu_et_continue_apres_une_erreur() -> None:

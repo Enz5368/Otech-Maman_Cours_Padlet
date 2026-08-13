@@ -168,7 +168,7 @@
         storageInfo = null;
         freeExampleOpen = true;
         try {
-          const response = await fetch("assets/free-example/data.json?v=2026-07-26-3", { cache: "no-store" });
+          const response = await fetch("assets/free-example/data.json?v=2026-08-13-1", { cache: "no-store" });
           if (!response.ok) throw new Error(`HTTP ${response.status}`);
           state = ensureDemoData(await response.json());
           await convertFreePptxDocuments();

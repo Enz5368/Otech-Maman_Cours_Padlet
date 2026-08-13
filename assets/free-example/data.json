@@ -1,1 +1,217 @@
-{"tools":{"wheelCounts":{"student-class-1783599718085-51a0d8":{},"student-class-1783958948900-a4f287":{}},"wheelLimits":{"student-class-1783958948900-a4f287":1},"wheelHistory":{"student-class-1783958948900-a4f287":[]},"wheelAbsences":{"student-class-1783599718085-51a0d8":[],"student-class-1783958948900-a4f287":[]},"selectedWheelClassId":"student-class-1783958948900-a4f287"},"classes":[{"id":"class-1783958671649-01f654","slug":"italien-classe-de-5e","order":1,"title":"Italien – Classe de 5e","category":"Collège","isVisible":true,"sequences":[{"id":"seq-1783958704705-4170f3","slug":"sequence-0-primi-passi-in-italiano","order":1,"title":"Séquence 0 — Primi passi in italiano","classId":"class-1783958671649-01f654","lessons":[{"id":"lesson-1784700005829-689b88","slug":"seance-1-benvenuti-in-classe-d-italiano","order":0,"title":"Séance 1 - Benvenuti in classe d'italiano!","isVisible":true,"updatedAt":"2026-07-22T06:53:30.013Z","activities":[{"id":"act-1784701820081-f1490a","slug":"observe-la-langue-quels-mots-italiens-connais-tu","level":"","order":1,"title":"Observe la langue : Quels mots italiens connais-tu ?","slides":[{"id":"slide-1784701820081-99ffc2","elements":[{"h":469,"w":887,"x":39.5,"y":32,"id":"el-1784707188526-ca3af2","kind":"document","value":"assets/free-example/007-arole-italiane.pptx"}]},{"id":"slide-1784706920423-6332b2","elements":[]},{"id":"slide-1784707110349-44cab2","elements":[]}],"lessonId":"lesson-1784700005829-689b88","modality":"classe entière","isVisible":true,"objective":"","resources":[],"updatedAt":"2026-07-26T15:53:23.673Z","description":"Présentation à projeter.","instruction":"","privateNotes":"","estimatedDuration":"20 min"},{"id":"act-1784702138473-58375b","slug":"observer-la-langue-les-similitudes","level":"","order":2,"title":"Observer la langue, les similitudes","slides":[{"id":"slide-1784702138473-0c2001","elements":[{"h":378,"w":724,"x":64,"y":47,"id":"el-1784702658465-b012a7","kind":"document","value":"assets/free-example/017-ancais-italien.docx"}]},{"id":"slide-1785080730889-6f2cd7","elements":[{"h":438,"w":741,"x":61,"y":49.5,"id":"el-1784702690213-819d0b","kind":"document","value":"assets/free-example/017-ancais-italien.docx"}]}],"lessonId":"lesson-1784700005829-689b88","modality":"classe entière","isVisible":true,"objective":"","resources":[],"updatedAt":"2026-07-26T15:45:59.166Z","description":"Présentation à projeter.","instruction":"","privateNotes":"","estimatedDuration":"20 min"},{"id":"act-1784732161105-9d2642","slug":"gioca-jouer-chanson","level":"","order":3,"title":"Gioca Jouer Chanson","slides":[{"id":"slide-1784732161105-48430f","elements":[{"h":300,"w":520,"x":100,"y":90,"id":"el-1785080830702-42a692","kind":"video","value":"assets/free-example/001-nda-ninna-nann.mp4"}]}],"lessonId":"lesson-1784700005829-689b88","modality":"classe entière","isVisible":true,"objective":"","resources":[],"updatedAt":"2026-07-26T15:47:34.142Z","description":"Présentation à projeter.","instruction":"","privateNotes":"","estimatedDuration":"20 min"}],"sequenceId":"seq-1783958704705-4170f3","description":"Découvrir l’italien, reconnaître des mots transparents et savoir saluer."}],"finalTask":"","isVisible":true,"updatedAt":"2026-07-22T07:43:05.728Z","description":"Réalisation d'une page personnelle illustrée sur l’Italie dans le cahier, puis création en groupe d'une affiche illustrant les lettres de l’alphabet italien attribuées et la présenter à la classe"}],"updatedAt":"2026-07-17T09:12:19.164Z","description":"Les élèves découvrent les bases de la langue italienne en apprenant à se présenter, parler de leur quotidien, de leur famille, de leur école et de leurs loisirs. Ils explorent également les régions italiennes, les traditions, les super-héros, les monuments et la ville de Rome, tout en développant leurs premières compétences de communication."}],"resources":[{"id":"res-1783958530067-77fdd0","url":"assets/free-example/020-ichier-importe.docx","slug":"benvenuti-in-classe","type":"DOCUMENT","order":0,"title":"Benvenuti in classe","category":"Documents","isVisible":true,"updatedAt":"2026-07-13T16:02:10.067Z","activityId":"","description":""}],"categories":["Collège"],"demoVersion":2,"serverMetadata":{"migratedFiles":0},"studentClasses":[{"id":"student-class-1783958948900-a4f287","order":1,"title":"5emeA","students":["Giulia Rossi","Luca Moretti","Emma Bernard"],"isVisible":true,"updatedAt":"2026-07-13T16:09:08.900Z","description":"Exemple de classe reelle avec eleves."}]}
+{
+  "tools": {
+    "wheelCounts": {
+      "student-class-1783599718085-51a0d8": {},
+      "student-class-1783958948900-a4f287": {}
+    },
+    "wheelLimits": {
+      "student-class-1783958948900-a4f287": 1
+    },
+    "wheelHistory": {
+      "student-class-1783958948900-a4f287": []
+    },
+    "wheelAbsences": {
+      "student-class-1783599718085-51a0d8": [],
+      "student-class-1783958948900-a4f287": []
+    },
+    "selectedWheelClassId": "student-class-1783958948900-a4f287"
+  },
+  "classes": [
+    {
+      "id": "class-1783958671649-01f654",
+      "slug": "italien-classe-de-5e",
+      "order": 1,
+      "title": "Italien – Classe de 5e",
+      "category": "Collège",
+      "isVisible": true,
+      "sequences": [
+        {
+          "id": "seq-1783958704705-4170f3",
+          "slug": "sequence-0-primi-passi-in-italiano",
+          "order": 1,
+          "title": "Séquence 0 — Primi passi in italiano",
+          "classId": "class-1783958671649-01f654",
+          "lessons": [
+            {
+              "id": "lesson-1784700005829-689b88",
+              "slug": "seance-1-benvenuti-in-classe-d-italiano",
+              "order": 0,
+              "title": "Séance 1 - Benvenuti in classe d'italiano!",
+              "isVisible": true,
+              "updatedAt": "2026-07-22T06:53:30.013Z",
+              "activities": [
+                {
+                  "id": "act-1784701820081-f1490a",
+                  "slug": "observe-la-langue-quels-mots-italiens-connais-tu",
+                  "level": "",
+                  "order": 1,
+                  "title": "Observe la langue : Quels mots italiens connais-tu ?",
+                  "slides": [
+                    {
+                      "id": "slide-1784701820081-99ffc2",
+                      "elements": [
+                        {
+                          "h": 469,
+                          "w": 887,
+                          "x": 39.5,
+                          "y": 32,
+                          "id": "el-1784707188526-ca3af2",
+                          "kind": "document",
+                          "value": "assets/free-example/007-arole-italiane.pptx"
+                        }
+                      ]
+                    },
+                    {
+                      "id": "slide-1784706920423-6332b2",
+                      "elements": []
+                    },
+                    {
+                      "id": "slide-1784707110349-44cab2",
+                      "elements": []
+                    }
+                  ],
+                  "lessonId": "lesson-1784700005829-689b88",
+                  "modality": "classe entière",
+                  "isVisible": true,
+                  "objective": "",
+                  "resources": [],
+                  "updatedAt": "2026-07-26T15:53:23.673Z",
+                  "description": "Présentation à projeter.",
+                  "instruction": "",
+                  "privateNotes": "",
+                  "estimatedDuration": "20 min"
+                },
+                {
+                  "id": "act-1784702138473-58375b",
+                  "slug": "observer-la-langue-les-similitudes",
+                  "level": "",
+                  "order": 2,
+                  "title": "Observer la langue, les similitudes",
+                  "slides": [
+                    {
+                      "id": "slide-1784702138473-0c2001",
+                      "elements": [
+                        {
+                          "h": 378,
+                          "w": 724,
+                          "x": 64,
+                          "y": 47,
+                          "id": "el-1784702658465-b012a7",
+                          "kind": "document",
+                          "value": "assets/free-example/017-ancais-italien.docx"
+                        }
+                      ]
+                    },
+                    {
+                      "id": "slide-1785080730889-6f2cd7",
+                      "elements": [
+                        {
+                          "h": 438,
+                          "w": 741,
+                          "x": 61,
+                          "y": 49.5,
+                          "id": "el-1784702690213-819d0b",
+                          "kind": "document",
+                          "value": "assets/free-example/017-ancais-italien.docx"
+                        }
+                      ]
+                    }
+                  ],
+                  "lessonId": "lesson-1784700005829-689b88",
+                  "modality": "classe entière",
+                  "isVisible": true,
+                  "objective": "",
+                  "resources": [],
+                  "updatedAt": "2026-07-26T15:45:59.166Z",
+                  "description": "Présentation à projeter.",
+                  "instruction": "",
+                  "privateNotes": "",
+                  "estimatedDuration": "20 min"
+                },
+                {
+                  "id": "act-1784732161105-9d2642",
+                  "slug": "gioca-jouer-chanson",
+                  "level": "",
+                  "order": 3,
+                  "title": "Gioca Jouer Chanson",
+                  "slides": [
+                    {
+                      "id": "slide-1784732161105-48430f",
+                      "elements": [
+                        {
+                          "h": 300,
+                          "w": 520,
+                          "x": 100,
+                          "y": 90,
+                          "id": "el-1785080830702-42a692",
+                          "kind": "video",
+                          "value": "assets/free-example/001-nda-ninna-nann.mp4"
+                        }
+                      ]
+                    }
+                  ],
+                  "lessonId": "lesson-1784700005829-689b88",
+                  "modality": "classe entière",
+                  "isVisible": true,
+                  "objective": "",
+                  "resources": [],
+                  "updatedAt": "2026-07-26T15:47:34.142Z",
+                  "description": "Présentation à projeter.",
+                  "instruction": "",
+                  "privateNotes": "",
+                  "estimatedDuration": "20 min"
+                }
+              ],
+              "sequenceId": "seq-1783958704705-4170f3",
+              "description": "Découvrir l’italien, reconnaître des mots transparents et savoir saluer."
+            }
+          ],
+          "finalTask": "",
+          "isVisible": true,
+          "updatedAt": "2026-07-22T07:43:05.728Z",
+          "description": "Réalisation d'une page personnelle illustrée sur l’Italie dans le cahier, puis création en groupe d'une affiche illustrant les lettres de l’alphabet italien attribuées et la présenter à la classe"
+        }
+      ],
+      "updatedAt": "2026-07-17T09:12:19.164Z",
+      "description": "Les élèves découvrent les bases de la langue italienne en apprenant à se présenter, parler de leur quotidien, de leur famille, de leur école et de leurs loisirs. Ils explorent également les régions italiennes, les traditions, les super-héros, les monuments et la ville de Rome, tout en développant leurs premières compétences de communication."
+    }
+  ],
+  "resources": [
+    {
+      "id": "res-1783958530067-77fdd0",
+      "url": "assets/free-example/020-ichier-importe.docx",
+      "slug": "benvenuti-in-classe",
+      "type": "DOCUMENT",
+      "order": 0,
+      "title": "Benvenuti in classe",
+      "category": "Documents",
+      "isVisible": true,
+      "updatedAt": "2026-07-13T16:02:10.067Z",
+      "activityId": "",
+      "description": ""
+    }
+  ],
+  "categories": [
+    "Collège"
+  ],
+  "demoVersion": 3,
+  "serverMetadata": {
+    "migratedFiles": 0
+  },
+  "studentClasses": [
+    {
+      "id": "student-class-1783958948900-a4f287",
+      "order": 1,
+      "title": "5emeA",
+      "students": [
+        "Giulia Rossi",
+        "Luca Moretti",
+        "Emma Bernard"
+      ],
+      "isVisible": true,
+      "updatedAt": "2026-07-13T16:09:08.900Z",
+      "description": "Exemple de classe reelle avec eleves."
+    }
+  ],
+  "exampleUpdatedAt": "2026-08-13"
+}
