@@ -491,20 +491,25 @@
               <div><p class="small" style="font-weight:850;color:var(--wine-700)">Sécurité</p><h2 style="margin:0;color:var(--wine-900)">Changer le mot de passe</h2></div>
               <button class="btn icon" type="button" onclick="closeEditor()">X</button>
             </div>
-            <form class="drawer-body" id="passwordChangeForm">
-              <p class="small muted">Saisissez votre mot de passe actuel, puis choisissez un nouveau mot de passe d'au moins 10 caractères.</p>
-              <label class="label">Mot de passe actuel <input name="currentPassword" type="password" required></label>
-              <label class="label">Nouveau mot de passe <input name="newPassword" type="password" minlength="10" required></label>
-              <label class="label">Confirmer le nouveau mot de passe <input name="newPasswordConfirmation" type="password" minlength="10" required></label>
-              <div class="row"><button class="btn primary" type="submit">Enregistrer</button></div>
+            <form class="drawer-body password-form" id="passwordChangeForm">
+              <div class="security-callout"><strong>Protégez votre espace</strong><span>Choisissez un mot de passe unique d'au moins 10 caractères. Les autres appareils connectés seront déconnectés.</span></div>
+              ${passwordField("currentPassword", "Mot de passe actuel", "current-password", false)}
+              ${passwordField("newPassword", "Nouveau mot de passe", "new-password", true)}
+              <div class="password-strength" aria-live="polite"><span id="passwordStrengthBar"></span></div>
+              <p class="password-guidance" id="passwordStrengthText">Utilisez une phrase longue avec des lettres, des chiffres et un symbole.</p>
+              ${passwordField("newPasswordConfirmation", "Confirmer le nouveau mot de passe", "new-password", true)}
+              <p class="form-error" id="passwordChangeError" role="alert" hidden></p>
+              <div class="row form-actions"><button class="btn" type="button" onclick="closeEditor()">Annuler</button><button class="btn primary" type="submit">Mettre à jour le mot de passe</button></div>
             </form>
           </div>`;
+        bindPasswordForm(document.querySelector("#passwordChangeForm"));
         document.querySelector("#passwordChangeForm").addEventListener("submit", async (event) => {
           event.preventDefault();
           const form = new FormData(event.currentTarget);
           const newPassword = String(form.get("newPassword") || "");
+          const errorBox = document.querySelector("#passwordChangeError");
           if (newPassword !== String(form.get("newPasswordConfirmation") || "")) {
-            toast("Les deux nouveaux mots de passe ne correspondent pas.");
+            showPasswordError(errorBox, "Les deux nouveaux mots de passe ne correspondent pas.");
             return;
           }
           const finishSaveLock = beginSaveLock(event.submitter);
@@ -515,10 +520,43 @@
             render();
             toast("Mot de passe mis à jour.");
           } catch (error) {
-            toast(`Le mot de passe n'a pas pu être modifié : ${error.message || "erreur serveur"}.`);
+            showPasswordError(errorBox, error.message || "Le mot de passe n'a pas pu être modifié.");
           } finally {
             finishSaveLock();
           }
+        });
+      }
+
+      function passwordField(name, label, autocomplete, requiresMinimum) {
+        return `<label class="label password-field"><span>${label}</span><span class="password-input"><input name="${name}" type="password" autocomplete="${autocomplete}" ${requiresMinimum ? 'minlength="10"' : ""} required><button type="button" class="password-toggle" aria-label="Afficher ${label.toLowerCase()}">Afficher</button></span></label>`;
+      }
+
+      function showPasswordError(target, message) {
+        target.textContent = message;
+        target.hidden = false;
+      }
+
+      function passwordScore(value) {
+        return [value.length >= 10, value.length >= 14, /[a-z]/.test(value) && /[A-Z]/.test(value), /\d/.test(value), /[^\w\s]/.test(value)].filter(Boolean).length;
+      }
+
+      function bindPasswordForm(form) {
+        form.querySelectorAll(".password-toggle").forEach((button) => button.addEventListener("click", () => {
+          const input = button.previousElementSibling;
+          const visible = input.type === "text";
+          input.type = visible ? "password" : "text";
+          button.textContent = visible ? "Afficher" : "Masquer";
+        }));
+        const password = form.elements.newPassword;
+        if (!password) return;
+        password.addEventListener("input", () => {
+          const score = passwordScore(password.value);
+          const labels = ["Trop court", "Faible", "Correct", "Bon", "Très bon", "Excellent"];
+          const bar = form.querySelector("#passwordStrengthBar");
+          const guidance = form.querySelector("#passwordStrengthText");
+          if (bar) { bar.style.width = `${score * 20}%`; bar.dataset.score = String(score); }
+          if (guidance) guidance.textContent = password.value ? `${labels[score]} — 10 caractères minimum, avec plusieurs types de caractères.` : "Utilisez une phrase longue avec des lettres, des chiffres et un symbole.";
+          form.querySelector(".form-error")?.setAttribute("hidden", "");
         });
       }
 
