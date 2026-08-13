@@ -1027,6 +1027,21 @@
       }
 
       .drawer-body { padding: 18px; display: grid; gap: 14px; }
+      .password-form { align-content: start; gap: 16px; }
+      .security-callout { display: grid; gap: 5px; border: 1px solid #dfc8b5; border-radius: var(--radius); background: #fff8ed; padding: 15px 16px; }
+      .security-callout strong { color: var(--wine-900); }
+      .security-callout span, .password-guidance { color: var(--muted); font-size: 13px; line-height: 1.5; }
+      .password-field { gap: 7px; }
+      .password-input { position: relative; display: block; }
+      .password-input input { width: 100%; padding-right: 86px; }
+      .password-toggle { position: absolute; top: 50%; right: 9px; transform: translateY(-50%); border: 0; background: transparent; color: var(--wine-700); padding: 6px; font-size: 12px; font-weight: 850; cursor: pointer; }
+      .password-strength { height: 6px; overflow: hidden; border-radius: 999px; background: #eadfd7; }
+      .password-strength span { display: block; width: 0; height: 100%; border-radius: inherit; background: #b33a3a; transition: width .2s ease, background .2s ease; }
+      .password-strength span[data-score="3"] { background: #c18118; }
+      .password-strength span[data-score="4"], .password-strength span[data-score="5"] { background: #29845a; }
+      .password-guidance { margin: -9px 0 0; }
+      .form-error { margin: 0; border-left: 3px solid #a11; border-radius: 4px; background: #fff0f0; color: #8b1515; padding: 10px 12px; font-size: 13px; }
+      .form-actions { justify-content: flex-end; border-top: 1px solid var(--line); padding-top: 16px; }
       .form-grid { display: grid; gap: 12px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
       .form-grid .wide { grid-column: 1 / -1; }
 

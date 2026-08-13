@@ -254,6 +254,14 @@ def test_changement_de_mot_de_passe_n_est_jamais_impose_a_la_connexion() -> None
     assert '<button class="btn icon" type="button" onclick="closeEditor()">X</button>' in APP_JS
 
 
+def test_changement_de_mot_de_passe_a_une_interface_de_securite_complete() -> None:
+    assert "password-strength" in APP_JS
+    assert "newPasswordConfirmation" in APP_JS
+    assert '"current-password"' in APP_JS
+    assert "Les autres appareils connectés seront déconnectés" in APP_JS
+    assert "bindPasswordForm" in APP_JS
+
+
 def test_vue_arbre_affiche_toute_la_hierarchie_des_cours() -> None:
     styles = (ROOT / "assets" / "styles.css").read_text(encoding="utf-8")
     assert 'data-view="tree"' in INDEX
