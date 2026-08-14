@@ -142,6 +142,12 @@ jobs:
             docker_cmd compose config --quiet
             docker_cmd compose build backend scheduler
             docker_cmd compose build --no-cache frontend
+            echo "Préparation des répertoires de données pour le backend"
+            docker_cmd compose run --rm --no-deps --user 0:0 --entrypoint sh backend -c '
+              mkdir -p /data/users /data/backups /data/logs
+              chown 10001:10001 /data/users /data/backups /data/logs
+              chmod u+rwx /data/users /data/backups /data/logs
+            '
             echo "[4/5] Redémarrage des services"
             docker_cmd compose up -d --remove-orphans --force-recreate
 
