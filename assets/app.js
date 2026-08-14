@@ -76,13 +76,14 @@
       }
 
       async function loginAccount(username, password) {
-        const cleanUsername = slugify(username);
+        const cleanUsername = String(username || "").trim();
         if (!cleanUsername || !password) return false;
         if (isLocalFileMode()) {
-          const account = localAccounts[cleanUsername];
+          const localUsername = slugify(cleanUsername);
+          const account = localAccounts[localUsername];
           if (!account || account.password !== password) return false;
-          authenticatedUser = localAuthenticatedUser(cleanUsername);
-          sessionStorage.setItem(localSessionKey, cleanUsername);
+          authenticatedUser = localAuthenticatedUser(localUsername);
+          sessionStorage.setItem(localSessionKey, localUsername);
           adminUsers = [];
           adminUsersLoaded = false;
           adminUsersError = "";

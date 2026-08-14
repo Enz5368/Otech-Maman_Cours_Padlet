@@ -173,6 +173,15 @@ def test_le_studio_accepte_collage_double_clic_et_texte_auto_ajuste() -> None:
 def test_les_liens_en_nouvel_onglet_reutilisent_trois_emplacements() -> None:
     assert 'event.target.closest("a[target=\'_blank\']")' in APP_JS
     assert 'Number(localStorage.getItem(key) || 0) % 3' in APP_JS
+
+
+def test_la_connexion_serveur_laisse_le_serveur_normaliser_l_identifiant() -> None:
+    login_start = APP_JS.index("async function loginAccount")
+    login_end = APP_JS.index("function currentUsername", login_start)
+    login = APP_JS[login_start:login_end]
+    assert 'const cleanUsername = String(username || "").trim();' in login
+    assert "await window.ServerAPI.login(cleanUsername, password)" in login
+    assert "const localUsername = slugify(cleanUsername);" in login
     assert "openTableauSubtree('lesson'" in APP_JS
 
 
