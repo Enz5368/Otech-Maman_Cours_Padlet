@@ -109,6 +109,8 @@ jobs:
               set +e
               echo "Échec du déploiement, retour au code $PREVIOUS_COMMIT"
               if test -f docker-compose.yml; then
+                echo "Journaux du backend avant rollback :"
+                docker_cmd compose logs --no-color --tail 200 backend || true
                 docker_cmd compose down || true
               fi
               git reset --hard "$PREVIOUS_COMMIT"
