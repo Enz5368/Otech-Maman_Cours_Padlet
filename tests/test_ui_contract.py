@@ -466,6 +466,18 @@ def test_diapos_reordonnables_avec_miniatures() -> None:
     assert 'class="slide-thumbnails"' in APP_JS
     assert "function reorderStudioSlide(" in APP_JS
     assert 'draggable="true"' in APP_JS
+    assert "application/x-studio-slide" in APP_JS
+
+
+def test_objets_interdiapos_et_documents_manipulables() -> None:
+    assert "const slideCount = document.querySelectorAll" in APP_JS
+    assert "selectStudioSlide(destination)" in APP_JS
+    assert "hydrateDocumentPreviews();" in APP_JS
+    assert "Temps prévu" in APP_JS
+    assert "Contenu de l’activité" in APP_JS
+    assert "plain-document-preview" in APP_JS
+    assert "sheet-preview" in APP_JS
+    assert ".slide-frame.drop-target" in STYLES
 
 
 def test_plan_de_classe_et_emploi_du_temps_sont_disponibles() -> None:
@@ -484,8 +496,8 @@ def test_plan_de_classe_style_cinema_et_emploi_du_temps_lycee() -> None:
     assert '["lundi", "mardi", "mercredi", "jeudi", "vendredi"]' in APP_JS
     assert 'aria-label="Emploi du temps du lundi au vendredi"' in APP_JS
     assert ".timetable-course" in STYLES
-    assert "assets/styles.css?v=espace-prof-21" in INDEX
-    assert "assets/app.js?v=espace-prof-41" in INDEX
+    assert "assets/styles.css?v=espace-prof-22" in INDEX
+    assert "assets/app.js?v=espace-prof-42" in INDEX
     assert "function startDeskMove(" in APP_JS
     assert "function deleteDesk(" in APP_JS
     assert "function addDesk(" in APP_JS

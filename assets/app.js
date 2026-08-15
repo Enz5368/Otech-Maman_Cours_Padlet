@@ -685,11 +685,11 @@
 
       function kindFromUrl(url) {
         if (youtubeId(url)) return "youtube";
-        if (/\.(png|jpe?g|gif|webp|svg)(\?|#|$)/i.test(url)) return "image";
-        if (/\.(mp3|wav|ogg)(\?|#|$)/i.test(url)) return "audio";
-        if (/\.(mp4|webm|mov)(\?|#|$)/i.test(url)) return "video";
+        if (/\.(png|jpe?g|gif|webp|svg|avif|bmp|ico)(\?|#|$)/i.test(url)) return "image";
+        if (/\.(mp3|wav|ogg|oga|m4a|aac|flac|opus)(\?|#|$)/i.test(url)) return "audio";
+        if (/\.(mp4|webm|mov|m4v|ogv|avi|mkv)(\?|#|$)/i.test(url)) return "video";
         if (/\.pdf(\?|#|$)/i.test(url)) return "pdf";
-        if (/\.(docx?|xlsx?|pptx?|odt|ods|odp|zip)(\?|#|$)/i.test(url)) return "document";
+        if (/\.(docx?|xlsx?|pptx?|odt|ods|odp|rtf|txt|csv|json|xml|html?|zip)(\?|#|$)/i.test(url)) return "document";
         return "embed";
       }
 
@@ -2335,7 +2335,7 @@
           { view: "dashboard", selector: "#content", title: "Séquence", text: "Le tutoriel ouvre la première séquence de l'exemple.", enter: () => firstClass && firstSequence && openTableauSequence(firstClass.id, firstSequence.id) },
           { view: "dashboard", selector: "#content", title: "Séance", text: "Puis la visite ouvre la première séance pour trouver ses activités.", enter: () => firstClass && firstSequence && firstLesson && openTableauLesson(firstClass.id, firstSequence.id, firstLesson.id) },
           { view: "dashboard", selector: "#content", title: "Activité", text: "Le tutoriel ouvre maintenant l’activité exemple." },
-          { view: "classes", selector: "#content", title: "Miniatures des diapos", text: "Dans l’éditeur d’activité, les miniatures latérales permettent de sélectionner et réordonner les diapos par glisser-déposer." },
+          { view: "classes", selector: "#content", title: "Éditeur des activités", text: "Réordonnez les miniatures à gauche, déplacez les objets d’une diapo à l’autre et redimensionnez images, PDF, vidéos et documents. Le temps prévu et le contenu sont affichés près de la liste." },
           { view: "dashboard", selector: "#boardPage", title: "Diapo (activité) exemple", text: "Cette activité contient un titre, une image et la vidéo déposée localement.", enter: () => firstActivity && showBoard(firstActivity.id, 0) }
         ];
         tourIndex = 0;
@@ -2612,7 +2612,7 @@
                 <button class="btn" onclick="addSlide('${activity.id}')">+ Diapo (activité)</button>
                 <button class="btn" onclick="addTextElement('${activity.id}')">+ Texte</button>
                 <button class="btn" onclick="addUrlElement('${activity.id}')">+ URL</button>
-                <label class="btn">+ Fichier <input type="file" hidden onchange="addFileElement('${activity.id}',this.files[0],this);this.value=''"></label>
+                <label class="btn">+ Fichier <input type="file" accept="image/*,audio/*,video/*,.pdf,.doc,.docx,.odt,.xls,.xlsx,.ods,.ppt,.pptx,.odp,.txt,.rtf,.csv,.json,.xml,.html,.htm,.zip" hidden onchange="addFileElement('${activity.id}',this.files[0],this);this.value=''"></label>
                 <label class="studio-tool-picker">Outil
                   <select id="studioToolSelect">${Object.entries(slideTools).map(([value, tool]) => `<option value="${value}">${escapeHtml(tool.title)}</option>`).join("")}</select>
                 </label>
@@ -2628,7 +2628,7 @@
               </div>
             </header>
             <div class="studio-workspace">
-              <aside class="slide-thumbnails" aria-label="Miniatures des diapos">${activity.slides.map((slide, index) => renderSlideThumbnail(slide, index)).join("")}</aside>
+              <div class="studio-sidebar"><div class="studio-duration"><span>Temps prévu</span><strong>${escapeHtml(activity.estimatedDuration || "Non indiqué")}</strong></div><aside class="slide-thumbnails" aria-label="Miniatures des diapos">${activity.slides.map((slide, index) => renderSlideThumbnail(slide, index)).join("")}</aside><div class="studio-activity-content"><span>Contenu de l’activité</span><strong>${escapeHtml(activity.instruction || activity.objective || activity.description || "Aucun contenu renseigné")}</strong></div></div>
               <div class="slide-world">
               <div class="slide-strip" id="slideStrip" style="height:${stripHeight}px">
                 ${activity.slides.map((slide, index) => renderStudioSlide(slide, index)).join("")}
@@ -2640,6 +2640,7 @@
         `;
         initStudioDrag();
         initStudioCanvasInput();
+        hydrateDocumentPreviews();
       }
 
       function renderStudioSlide(slide, index) {
@@ -2679,12 +2680,16 @@
 
       function renderSlideThumbnail(slide, index) {
         const preview = (slide.elements || []).filter((element) => element.kind === "text").map((element) => element.value || "").join(" ").slice(0, 70);
-        return `<button class="slide-thumbnail ${index === currentStudioSlideIndex ? "current" : ""}" draggable="true" data-index="${index}" onclick="selectStudioSlide(${index});selectedSlide()?.scrollIntoView({behavior:'smooth',block:'center'})" ondragstart="event.dataTransfer.setData('text/plain','${index}')" ondragover="event.preventDefault()" ondrop="reorderStudioSlide(${index},event)"><span>${index + 1}</span><strong>Diapo (activité)</strong><small>${escapeHtml(preview || "Sans texte")}</small></button>`;
+        return `<button class="slide-thumbnail ${index === currentStudioSlideIndex ? "current" : ""}" draggable="true" data-index="${index}" onclick="selectStudioSlide(${index});selectedSlide()?.scrollIntoView({behavior:'smooth',block:'center'})" ondragstart="startStudioSlideReorder(${index},event)" ondragover="event.preventDefault();this.classList.add('drop-target')" ondragleave="this.classList.remove('drop-target')" ondragend="clearStudioSlideDropTargets()" ondrop="reorderStudioSlide(${index},event)"><span>${index + 1}</span><strong>Diapo (activité)</strong><small>${escapeHtml(preview || "Sans texte")}</small></button>`;
       }
+
+      function startStudioSlideReorder(index,event){ event.dataTransfer.effectAllowed="move"; event.dataTransfer.setData("application/x-studio-slide",String(index)); event.currentTarget.classList.add("dragging"); }
+      function clearStudioSlideDropTargets(){ document.querySelectorAll(".slide-thumbnail").forEach(node=>node.classList.remove("dragging","drop-target")); }
 
       async function reorderStudioSlide(targetIndex, event) {
         event.preventDefault();
-        const sourceIndex = Number(event.dataTransfer.getData("text/plain"));
+        const sourceIndex = Number(event.dataTransfer.getData("application/x-studio-slide"));
+        clearStudioSlideDropTargets();
         if (!Number.isInteger(sourceIndex) || sourceIndex === targetIndex) return;
         const activity = findItem("activity", document.querySelector(".studio")?.dataset.activityId);
         if (!activity || !await saveStudio(activity.id, false, null, false)) return;
@@ -3254,11 +3259,12 @@
             ? { mime_type: file.type || "", content_url: await readFileAsDataUrl(file) }
             : await window.ServerAPI.upload(file);
           const mimeType = uploaded.mime_type || file.type || "";
+          const extensionKind = kindFromUrl(file.name || "");
           const kind = mimeType.startsWith("image/") ? "image"
             : mimeType.startsWith("audio/") ? "audio"
             : mimeType.startsWith("video/") ? "video"
             : mimeType === "application/pdf" ? "pdf"
-            : "document";
+            : extensionKind === "embed" ? "document" : extensionKind;
           const slide = selectedSlide();
           document.querySelector("#slideStrip").insertAdjacentHTML("beforeend", renderStudioElement({ id: uid("el"), kind, x: 100, y: 90, w: 520, h: 300, value: uploaded.content_url }, Number(slide.dataset.slideIndex || 0)));
           initStudioDrag();
@@ -3376,6 +3382,7 @@
             const width = node.offsetWidth;
             const height = node.offsetHeight;
             const slideStep = slideSize.height + slideSize.gap;
+            const slideCount = document.querySelectorAll(".slide-frame").length;
             const slideIndex = Math.max(0, Math.min(document.querySelectorAll(".slide-frame").length - 1, Math.floor((top + height / 2) / slideStep)));
             const slideTop = slideIndex * slideStep;
             const direction = handle.dataset.resize || "";
@@ -3393,7 +3400,9 @@
               const dy = move.clientY - startY;
               if (moving) {
                 node.style.left = `${Math.min(slideSize.width - width, Math.max(0, left + dx))}px`;
-                node.style.top = `${Math.min(slideTop + slideSize.height - height, Math.max(slideTop, top + dy))}px`;
+                node.style.top = `${Math.min((slideCount - 1) * slideStep + slideSize.height - height, Math.max(0, top + dy))}px`;
+                const destination = Math.max(0, Math.min(slideCount - 1, Math.floor(((parseFloat(node.style.top) || 0) + height / 2) / slideStep)));
+                document.querySelectorAll(".slide-frame").forEach(frame=>frame.classList.toggle("drop-target",Number(frame.dataset.slideIndex)===destination));
                 return;
               }
               let nextLeft = left;
@@ -3418,6 +3427,14 @@
               showSize();
             };
             const finish = () => {
+              if (moving) {
+                const rawTop = parseFloat(node.style.top) || 0;
+                const destination = Math.max(0, Math.min(slideCount - 1, Math.floor((rawTop + height / 2) / slideStep)));
+                const destinationTop = destination * slideStep;
+                node.style.top = `${Math.min(destinationTop + slideSize.height - height, Math.max(destinationTop, rawTop))}px`;
+                selectStudioSlide(destination);
+                document.querySelectorAll(".slide-frame").forEach(frame=>frame.classList.remove("drop-target"));
+              }
               node.classList.remove("dragging", "resizing");
               fitStudioText(node);
               handle.removeEventListener("pointermove", onMove);
@@ -3690,7 +3707,17 @@
         try {
           const documentXml = await extractZipEntry(arrayBuffer, "word/document.xml");
           return docxXmlToHtml(new TextDecoder("utf-8").decode(documentXml));
-        } catch {
+        } catch {}
+        try {
+          const worksheetNames = listZipEntryNames(arrayBuffer).filter(name=>/^xl\/worksheets\/sheet\d+\.xml$/i.test(name)).sort();
+          if (worksheetNames.length) {
+            let shared=[];
+            try { const bytes=await extractZipEntry(arrayBuffer,"xl/sharedStrings.xml"), xml=new DOMParser().parseFromString(new TextDecoder("utf-8").decode(bytes),"application/xml"); shared=[...xml.getElementsByTagNameNS("*","si")].map(node=>[...node.getElementsByTagNameNS("*","t")].map(text=>text.textContent||"").join("")); } catch {}
+            const sheets=await Promise.all(worksheetNames.map(async(name,index)=>{ const bytes=await extractZipEntry(arrayBuffer,name), xml=new DOMParser().parseFromString(new TextDecoder("utf-8").decode(bytes),"application/xml"); const rows=[...xml.getElementsByTagNameNS("*","row")].slice(0,100).map(row=>`<tr>${[...row.getElementsByTagNameNS("*","c")].map(cell=>{ const value=cell.getElementsByTagNameNS("*","v")[0]?.textContent||""; return `<td>${escapeHtml(cell.getAttribute("t")==="s" ? shared[Number(value)]||"" : value)}</td>`; }).join("")}</tr>`).join(""); return `<section class="sheet-preview"><strong>Feuille ${index+1}</strong><table>${rows}</table></section>`; }));
+            return sheets.join("");
+          }
+        } catch {}
+        try {
           const slideNames = listZipEntryNames(arrayBuffer)
             .filter((name) => /^ppt\/slides\/slide\d+\.xml$/i.test(name))
             .sort((a, b) => Number(a.match(/\d+/)?.[0]) - Number(b.match(/\d+/)?.[0]));
@@ -3707,7 +3734,11 @@
             ? `<div class="pptx-preview-controls"><button class="btn" disabled onclick="changePptxPreviewSlide(this,-1,event)">Précédente</button><span>1 / ${slides.length}</span><button class="btn" onclick="changePptxPreviewSlide(this,1,event)">Suivante</button></div>`
             : "";
           return `<div class="pptx-preview" data-pptx-index="0">${slides.join("")}${controls}</div>`;
-        }
+        } catch {}
+        const decoded = new TextDecoder("utf-8",{fatal:false}).decode(arrayBuffer).replace(/^\uFEFF/,"");
+        const printable = [...decoded.slice(0,20000)].filter(char=>char==="\n"||char==="\r"||char==="\t"||char>=" ").length;
+        if (decoded && printable / Math.max(1,Math.min(decoded.length,20000)) > .9) return `<pre class="plain-document-preview">${escapeHtml(decoded.slice(0,200000))}</pre>`;
+        throw new Error("format non prévisualisable dans le navigateur");
       }
 
       function changePptxPreviewSlide(button, direction, event) {
@@ -4633,7 +4664,7 @@
           [/ajouter une s[ée]quence/, "Créer une séquence dans cette classe."],
           [/ajouter une s[ée]ance/, "Créer une séance dans cette séquence."],
           [/ajouter une (activit[ée]|pr[ée]sentation)/, "Créer une nouvelle présentation dans cette séance."],
-          [/\+ fichier/, "Importer une image, un son, une vidéo, un PDF ou un PowerPoint. Un PowerPoint devient des diapos du site."],
+          [/\+ fichier/, "Importer images, sons, vidéos, PDF, documents Word, tableaux Excel, textes et PowerPoint. Tous les objets peuvent être déplacés et redimensionnés."],
           [/\+ texte/, "Ajouter une zone de texte à la diapositive."],
           [/\+ url/, "Ajouter un média ou un lien depuis une adresse internet."],
           [/exporter zip/, "Télécharger une sauvegarde complète avec les présentations et leurs médias."],
