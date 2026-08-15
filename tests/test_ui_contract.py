@@ -444,10 +444,21 @@ def test_version_gratuite_est_editable_sans_ecriture_serveur() -> None:
     assert "isLocalFileMode() || freeExampleOpen" in APP_JS
 
 
-def test_tutoriel_est_remplace_par_une_aide_differee() -> None:
-    assert 'data-view="tutorial"' not in INDEX
-    assert 'id="buttonHelpTooltip"' in INDEX
-    assert "}, 1500);" in APP_JS
+def test_tutoriel_complet_est_accessible_et_passable() -> None:
+    assert 'data-view="tutorial"' in INDEX
+    assert 'id="tourOverlay"' in INDEX
+    assert "function startTutorial()" in APP_JS
+    assert "function startFreeExampleTutorial()" in APP_JS
+    assert "Passer le tutoriel" in APP_JS
+    assert "Précédent" in APP_JS
+    assert "Suivant" in APP_JS
+    assert "setTimeout(startFreeExampleTutorial, 250);" in APP_JS
+
+
+def test_description_publique_ne_divulgue_aucun_identifiant() -> None:
+    assert "Créez, organisez et projetez vos cours" in INDEX
+    assert "rose / it" not in INDEX
+    assert "root / root" not in INDEX
 
 
 def test_zip_fourni_est_la_base_de_la_version_gratuite() -> None:
