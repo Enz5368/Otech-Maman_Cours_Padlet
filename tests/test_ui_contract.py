@@ -470,7 +470,7 @@ def test_diapos_reordonnables_avec_miniatures() -> None:
 
 def test_plan_de_classe_et_emploi_du_temps_sont_disponibles() -> None:
     assert "function openSeatingPlan(" in APP_JS
-    assert "maximum 40" in APP_JS
+    assert "Maximum 40" in APP_JS
     assert 'data-view="schedule"' in INDEX
     assert "function renderSchedule()" in APP_JS
     assert 'id="currentCourseShortcut"' in INDEX
@@ -478,17 +478,18 @@ def test_plan_de_classe_et_emploi_du_temps_sont_disponibles() -> None:
 
 def test_plan_de_classe_style_cinema_et_emploi_du_temps_lycee() -> None:
     assert 'class="cinema-room"' in APP_JS
-    assert "Sièges par rangée" in APP_JS
+    assert "Nombre de bureaux" in APP_JS
     assert ".desk::before" in STYLES
     assert "function renderTimetableGrid()" in APP_JS
     assert '["lundi", "mardi", "mercredi", "jeudi", "vendredi"]' in APP_JS
     assert 'aria-label="Emploi du temps du lundi au vendredi"' in APP_JS
     assert ".timetable-course" in STYLES
     assert "assets/styles.css?v=espace-prof-21" in INDEX
-    assert "assets/app.js?v=espace-prof-40" in INDEX
+    assert "assets/app.js?v=espace-prof-41" in INDEX
     assert "function startDeskMove(" in APP_JS
     assert "function deleteDesk(" in APP_JS
     assert "function addDesk(" in APP_JS
+    assert "function setDeskCount(" in APP_JS
     assert ".desk-delete" in STYLES
 
 
