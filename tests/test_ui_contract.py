@@ -327,7 +327,7 @@ def test_export_pptx_embarque_les_medias_et_produit_un_zip_windows_valide() -> N
 def test_studio_confirme_visiblement_la_sauvegarde_et_recharge_les_medias() -> None:
     assert "saveStudio('${activity.id}',false,this)" in APP_JS
     assert 'id="studioSaveStatus" role="status"' in APP_JS
-    assert "Présentation enregistrée sur le serveur." in APP_JS
+    assert "Activité enregistrée sur le serveur." in APP_JS
     assert "const savedWorkspace = await operation;" in APP_JS
     assert "state = confirmedState;" in APP_JS
     assert "const uploaded = await window.ServerAPI.upload(file);" in APP_JS
