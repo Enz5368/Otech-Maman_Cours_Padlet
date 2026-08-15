@@ -499,8 +499,8 @@ def test_plan_de_classe_style_cinema_et_emploi_du_temps_lycee() -> None:
     assert '["lundi", "mardi", "mercredi", "jeudi", "vendredi"]' in APP_JS
     assert 'aria-label="Emploi du temps du lundi au vendredi"' in APP_JS
     assert ".timetable-course" in STYLES
-    assert "assets/styles.css?v=espace-prof-23" in INDEX
-    assert "assets/app.js?v=espace-prof-43" in INDEX
+    assert "assets/styles.css?v=espace-prof-24" in INDEX
+    assert "assets/app.js?v=espace-prof-44" in INDEX
     assert "function startDeskMove(" in APP_JS
     assert "function deleteDesk(" in APP_JS
     assert "function addDesk(" in APP_JS
@@ -517,6 +517,14 @@ def test_emploi_du_temps_est_un_calendrier_interactif() -> None:
     assert "Cours associé" in APP_JS
     render_schedule = APP_JS.split("function renderSchedule()", 1)[1].split("function selectScheduleItem", 1)[0]
     assert "form-grid" not in render_schedule
+    assert "Seuls les horaires sont obligatoires" in APP_JS
+    assert 'class="schedule-group-list"' in APP_JS
+    assert 'name="classId"><option' in APP_JS
+    assert 'name="groupTitle" size="4"' in APP_JS
+    assert ".schedule-editor-form" in STYLES
+    schedule_editor = APP_JS.split("function openScheduleEditor", 1)[1].split("function saveScheduleEditor", 1)[0]
+    assert 'name="classId" required' not in schedule_editor
+    assert 'name="groupTitle" required' not in schedule_editor
 
 
 def test_initialisation_ne_lit_pas_le_mode_demo_avant_sa_declaration() -> None:
