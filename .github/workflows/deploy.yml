@@ -137,6 +137,8 @@ jobs:
             echo "[2/5] Récupération du commit $EXPECTED_COMMIT"
             git reset --hard "$EXPECTED_COMMIT"
             test "$(git rev-parse HEAD)" = "$EXPECTED_COMMIT"
+            echo "Restauration exceptionnelle des données précédant le merge"
+            sh scripts/restore.sh /mnt/DriveMaison/Backups/global/20260815T085141Z --confirm
             EXPECTED_INDEX_HASH="$(sha256sum index.html | awk '{print $1}')"
             echo "[3/5] Construction des images"
             docker_cmd compose config --quiet
