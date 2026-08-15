@@ -253,7 +253,7 @@
                     title: "Chi e Leonardo?",
                     description: "Identifier Leonardo et presenter une personne.",
                     activities: [
-                      makeActivity("Carte d’identité de Leonardo", "Activité courte pour découvrir Leonardo da Vinci.", "Comprendre une activité simple.", "Observe les images et retrouve les informations importantes.", 1, [
+                      makeActivity("Carte d'identite de Leonardo", "Presentation courte pour decouvrir Leonardo da Vinci.", "Comprendre une presentation simple.", "Observe les images et retrouve les informations importantes.", 1, [
                         demoPresentationSlide,
                         imageSlide("Osserva", "Nome: Leonardo\nCitta: Vinci\nPaese: Italia\nEpoca: Rinascimento", "https://upload.wikimedia.org/wikipedia/commons/b/ba/Leonardo_self.jpg")
                       ]),
@@ -305,7 +305,7 @@
                     title: "Scrivere a un mecenate",
                     description: "Comprendre et produire une lettre de candidature.",
                     activities: [
-                      makeActivity("Lettre à Ludovico Sforza", "Simulation de candidature.", "Présenter ses compétences.", "Écris 5 lignes : Sono capace di..., posso..., vorrei...", 1, [
+                      makeActivity("Lettre a Ludovico Sforza", "Simulation de candidature.", "Presenter ses competences.", "Ecris 5 lignes : Sono capace di..., posso..., vorrei...", 1, [
                         titleSlide("Caro Ludovico Sforza", "Leonardo propose ses talents : peinture, architecture, machines, spectacles."),
                         titleSlide("A toi", "Choisis 3 competences et convaincs ton mecenate.")
                       ])
@@ -949,8 +949,8 @@
         document.querySelector("#appPage").hidden = false;
         document.querySelector("#boardPage").hidden = true;
         const titles = {
-          dashboard: ["Cours par niveau à projeter", "Naviguer jusqu'à l’activité à afficher."],
-          classes: ["Cours par niveau modifiable", "Classe > Séquence > Séance > Activités."],
+          dashboard: ["Cours par niveau à projeter", "Naviguer jusqu'à la présentation à afficher."],
+          classes: ["Cours par niveau modifiable", "Classe > Séquence > Séance > Activité."],
           tree: ["Arbre", "Vue complète des classes et de toutes leurs branches."],
           studentClasses: ["Groupes Classes", "Groupes réels et listes d'élèves."],
           tools: ["Roue de la fortune et chrono", "Tirages et minuteur de classe."],
@@ -984,9 +984,9 @@
         if (currentTableauPage.type === "lesson") return renderTableauLesson(currentTableauPage.classId, currentTableauPage.sequenceId, currentTableauPage.lessonId);
         document.querySelector("#content").innerHTML = `
           <section class="page-head">
-            <div class="breadcrumb">Cours par niveau à projeter / Classes</div>
+            <div class="breadcrumb">Cours à projeter / Classes</div>
             <h2 style="margin:0;color:var(--wine-900);font-size:34px">Choisir une classe</h2>
-            <p class="muted">Cette vue sert uniquement à trouver et afficher une activité.</p>
+            <p class="muted">Cette vue sert uniquement à trouver et afficher une présentation.</p>
           </section>
           <nav class="dashboard-shortcuts" aria-label="Accès rapides">
             ${workspaceShortcuts.map((shortcut) => `<a class="shortcut-card" href="${escapeAttr(shortcut.url)}" target="_blank" rel="noopener noreferrer"><span>Accès rapide</span><strong>${escapeHtml(shortcut.title)}</strong><small>${escapeHtml(shortcut.description)}</small></a>`).join("")}
@@ -1053,7 +1053,7 @@
         }
         document.querySelector("#content").innerHTML = `
           <section class="page-head">
-            <div class="breadcrumb"><button onclick="currentTableauPage={type:'classes'};render()">Cours par niveau à projeter</button> / ${escapeHtml(classe.title)}</div>
+            <div class="breadcrumb"><button onclick="currentTableauPage={type:'classes'};render()">Cours à projeter</button> / ${escapeHtml(classe.title)}</div>
             <h2 style="margin:0;color:var(--wine-900);font-size:34px">${escapeHtml(classe.title)}</h2>
             <p class="muted">Choisir une séquence.</p>
           </section>
@@ -1127,7 +1127,7 @@
         }
         document.querySelector("#content").innerHTML = `
           <section class="page-head">
-            <div class="breadcrumb"><button onclick="currentTableauPage={type:'classes'};render()">Cours par niveau à projeter</button> / <button onclick="openTableauClass('${classe.id}')">${escapeHtml(classe.title)}</button> / ${escapeHtml(sequence.title)}</div>
+            <div class="breadcrumb"><button onclick="currentTableauPage={type:'classes'};render()">Cours à projeter</button> / <button onclick="openTableauClass('${classe.id}')">${escapeHtml(classe.title)}</button> / ${escapeHtml(sequence.title)}</div>
             <h2 style="margin:0;color:var(--wine-900);font-size:34px">${escapeHtml(sequence.title)}</h2>
             <p class="muted">Choisir une séance.</p>
           </section>
@@ -1140,7 +1140,7 @@
           <div>
             <p class="small" style="font-weight:850;color:var(--wine-700)">Séance</p>
             <h3>${escapeHtml(lesson.title)}</h3>
-            <p class="muted small">${lesson.activities.length} activités</p>
+            <p class="muted small">${lesson.activities.length} activité(s)</p>
           </div>
           <div class="row wrap">
             <button class="btn" onclick="openTableauSubtree('lesson','${classe.id}','${sequence.id}','${lesson.id}')">Arbre</button>
@@ -1207,7 +1207,7 @@
 
       function projectTreeActivityNode(activity) {
         return `<li>
-          <button class="tree-node tree-activity" onclick="closeEditor();openBoardInNewTab('${activity.id}',0)"><span>Activités</span><strong>${escapeHtml(activity.title)}</strong></button>
+          <button class="tree-node tree-activity" onclick="closeEditor();openBoardInNewTab('${activity.id}',0)"><span>Activité</span><strong>${escapeHtml(activity.title)}</strong></button>
           ${treeChildren((activity.resources || []).filter((resource) => resource.isVisible !== false).map(projectTreeResourceNode))}
         </li>`;
       }
@@ -1226,9 +1226,9 @@
         }
         document.querySelector("#content").innerHTML = `
           <section class="page-head">
-            <div class="breadcrumb"><button onclick="currentTableauPage={type:'classes'};render()">Cours par niveau à projeter</button> / <button onclick="openTableauClass('${classe.id}')">${escapeHtml(classe.title)}</button> / <button onclick="openTableauSequence('${classe.id}','${sequence.id}')">${escapeHtml(sequence.title)}</button> / ${escapeHtml(lesson.title)}</div>
+            <div class="breadcrumb"><button onclick="currentTableauPage={type:'classes'};render()">Cours à projeter</button> / <button onclick="openTableauClass('${classe.id}')">${escapeHtml(classe.title)}</button> / <button onclick="openTableauSequence('${classe.id}','${sequence.id}')">${escapeHtml(sequence.title)}</button> / ${escapeHtml(lesson.title)}</div>
             <h2 style="margin:0;color:var(--wine-900);font-size:34px">${escapeHtml(lesson.title)}</h2>
-            <p class="muted">Choisir l’activité à afficher.</p>
+            <p class="muted">Choisir la présentation à afficher.</p>
           </section>
           <section class="numbered-list">${lesson.activities.filter((activity) => activity.isVisible !== false).map(tableauActivityCard).join("") || empty("Aucune activité visible.")}</section>
         `;
@@ -1237,7 +1237,7 @@
       function tableauActivityCard(activity) {
         return `<article class="card entity-card">
           <div>
-            <p class="small" style="font-weight:850;color:var(--wine-700)">Activités</p>
+            <p class="small" style="font-weight:850;color:var(--wine-700)">Présentation</p>
             <h3 style="font-size:24px">${escapeHtml(activity.title)}</h3>
             <p class="muted small">${escapeHtml(activity.description || "Activité à projeter.")}</p>
           </div>
@@ -1254,7 +1254,7 @@
             <div>
               <p class="small" style="font-weight:850;color:var(--wine-700)">${escapeHtml(activity.level || activity.classTitle || "Activité")}</p>
               <h3>${escapeHtml(activity.title)}</h3>
-              <p class="muted small">${escapeHtml(activity.objective || activity.description || "Activité")}</p>
+              <p class="muted small">${escapeHtml(activity.objective || activity.description || "Présentation")}</p>
             </div>
             <div class="activity-actions">
               <button class="btn primary" onclick="openBoardInNewTab('${activity.id}',0)">Présenter</button>
@@ -2028,7 +2028,7 @@
             <button class="btn" onclick="openEditableSubtree('${classe.id}','${sequence.id}')">Arbre</button>
             <span class="pill">${sequence.lessons.length} séance(s)</span>
             <span class="pill">Tâche finale${sequence.finalTask ? ` : ${escapeHtml(sequence.finalTask)}` : ""}</span>
-            <span class="pill">${activityCount} activités</span>
+            <span class="pill">${activityCount} activité(s)</span>
             ${editOnly(moveButtons("sequence", sequence.id))}
             <button class="btn primary" onclick="openSequencePage('${classe.id}','${sequence.id}')">${isLoggedIn() ? "Modifier" : "Voir"}</button>
             ${editOnly(`<button class="btn danger" onclick="removeItem('sequence','${sequence.id}')">Supprimer</button>`)}
@@ -2072,7 +2072,7 @@
             <p class="muted small">${escapeHtml(lesson.description)}</p>
           </div>
           <div class="row wrap">
-            <span class="pill">${lesson.activities.length} activités</span>
+            <span class="pill">${lesson.activities.length} activité(s)</span>
             ${editOnly(moveButtons("lesson", lesson.id))}
             <button class="btn primary" onclick="openLessonPage('${classe.id}','${sequence.id}','${lesson.id}')">${isLoggedIn() ? "Modifier" : "Voir"}</button>
             ${editOnly(`<button class="btn danger" onclick="removeItem('lesson','${lesson.id}')">Supprimer</button>`)}
@@ -2145,7 +2145,7 @@
             <strong>${escapeHtml(lesson.title)} ${lesson.isVisible ? "" : "<span class='pill'>Masque</span>"}</strong>
             ${editOnly(`<div class="row">
               ${moveButtons("lesson", lesson.id)}
-              <button class="btn" onclick="createActivityInLesson('${lesson.id}')">+ Activité</button>
+              <button class="btn" onclick="createActivityInLesson('${lesson.id}')">+ Activite</button>
               <button class="btn" onclick="openEditor('lesson','${lesson.id}')">Modifier</button>
               <button class="btn danger" onclick="removeItem('lesson','${lesson.id}')">Supprimer</button>
             </div>`)}
@@ -2158,7 +2158,7 @@
         return `<article class="card activity-card">
           <div class="activity-card-body">
             <div>
-              <p class="small" style="font-weight:850;color:var(--wine-700)">${escapeHtml(activity.level || activity.classTitle || "Activité")}</p>
+              <p class="small" style="font-weight:850;color:var(--wine-700)">${escapeHtml(activity.level || activity.classTitle || "Activite")}</p>
               <h3>${escapeHtml(activity.title)} ${activity.isVisible ? "" : "<span class='pill'>Masque</span>"}</h3>
               <p class="muted small">${escapeHtml(activity.objective || activity.description)}</p>
             </div>
@@ -2231,14 +2231,14 @@
       }
 
       const tutorialSteps = [
-        { view: "dashboard", selector: "[data-view='dashboard']", title: "Cours par niveau à projeter", text: "Ici, on navigue jusqu'à l’activité à montrer aux élèves. Cette partie ne sert pas à modifier." },
-        { view: "classes", selector: "[data-view='classes']", title: "Cours modifiables", text: "C'est l'espace de préparation : classes pédagogiques, séquences, séances et activités." },
+        { view: "dashboard", selector: "[data-view='dashboard']", title: "Cours à projeter", text: "Ici, on navigue jusqu'à la présentation à montrer aux élèves. Cette partie ne sert pas à modifier." },
+        { view: "classes", selector: "[data-view='classes']", title: "Cours modifiables", text: "C'est l'espace de préparation : classes pédagogiques, séquences, séances et présentations." },
         { view: "classes", selector: "#content", title: "Préparation", text: "Depuis une classe, tu ouvres une séquence, puis une séance. Les activités se créent uniquement dans une séance." },
         { view: "studentClasses", selector: "[data-view='studentClasses']", title: "Groupes Classes", text: "Ici, tu gères les vrais groupes avec les noms des élèves, par exemple 5emeA et 5emeB." },
         { view: "tools", selector: "[data-view='tools']", title: "Outils", text: "Cette entrée contient la roue de la fortune, les absents, les compteurs, l'historique et le chrono." },
-        { view: "search", selector: "[data-view='search']", title: "Recherche", text: "La recherche retrouve rapidement une activité ou une ressource sans parcourir toute l'arborescence." },
+        { view: "search", selector: "[data-view='search']", title: "Recherche", text: "La recherche retrouve rapidement une présentation ou une ressource sans parcourir toute l'arborescence." },
         { view: "settings", selector: "[data-view='settings']", title: "Réglages", text: "Dans les réglages, tu peux exporter le ZIP, importer des données, ou réinitialiser l'espace du compte." },
-        { view: "settings", selector: "#openBoardBtn", title: "Mode tableau", text: "Ce bouton ouvre directement une activité au tableau. Dans les séances, chaque activité a aussi son bouton de projection." },
+        { view: "settings", selector: "#openBoardBtn", title: "Mode tableau", text: "Ce bouton ouvre directement une présentation au tableau. Dans les séances, chaque activité a aussi son bouton de présentation." },
         { view: "tutorial", selector: ".sidebar-mail", title: "Contact", text: "En bas à gauche, le téléphone et le mail restent discrets et se copient au clic." }
       ];
 
@@ -2254,7 +2254,7 @@
             <p class="muted">Le tutoriel change de page automatiquement, encadre la zone importante et explique à quoi elle sert.</p>
             <div class="row wrap" style="margin-top:18px">
               <button class="btn primary" onclick="startTutorial()">Lancer le tutoriel</button>
-              <button class="btn" onclick="setView('dashboard')">Aller aux cours par niveau à projeter</button>
+              <button class="btn" onclick="setView('dashboard')">Aller aux cours à projeter</button>
             </div>
           </section>
         `;
@@ -2277,15 +2277,15 @@
           { view: "classes", selector: "#content", title: "Cours modifiables", text: "Dans cette partie, on voit les cours organisés par niveau. En gratuit, tu peux consulter sans modifier." },
           { view: "studentClasses", selector: "#content", title: "Groupes Classes", text: "Groupes Classes montre les groupes d'élèves. Les actions restent bloquées sans connexion." },
           { view: "tools", selector: "#content", title: "Outils", text: "Les outils, comme la roue et le chrono, sont visibles mais utilisables seulement avec un compte connecté." },
-          { view: "search", selector: "#content", title: "Recherche", text: "La recherche permet de retrouver rapidement une activité ou une ressource." },
+          { view: "search", selector: "#content", title: "Recherche", text: "La recherche permet de retrouver rapidement une présentation ou une ressource." },
           { view: "tutorial", selector: "#content", title: "Tutoriel", text: "Cette entrée permet de relancer la visite guidée du portail." },
           { view: "tutorial", selector: "#exampleAd", title: "Contact OrellanaTech", text: "Dans l'exemple gratuit, la pub est visible ici. Le téléphone et le mail se copient au clic." },
           { view: "settings", selector: "#content", title: "Réglages", text: "Les réglages expliquent le mode public. Les exports et imports demandent une connexion." },
           { view: "dashboard", selector: "#content", title: "Classe 5eme", text: "On commence par la classe 5eme.", enter: () => firstClass && openTableauClass(firstClass.id) },
           { view: "dashboard", selector: "#content", title: "Séquence", text: "Le tutoriel ouvre la première séquence de l'exemple.", enter: () => firstClass && firstSequence && openTableauSequence(firstClass.id, firstSequence.id) },
-          { view: "dashboard", selector: "#content", title: "Séance", text: "Puis il ouvre la première séance pour trouver l’activité.", enter: () => firstClass && firstSequence && firstLesson && openTableauLesson(firstClass.id, firstSequence.id, firstLesson.id) },
-          { view: "dashboard", selector: "#content", title: "Activité", text: "Le tutoriel ouvre maintenant l’activité exemple." },
-          { view: "dashboard", selector: "#boardPage", title: "Diapo (activité) exemple", text: "Cette activité contient un titre, une image et la vidéo déposée localement.", enter: () => firstActivity && showBoard(firstActivity.id, 0) }
+          { view: "dashboard", selector: "#content", title: "Séance", text: "Puis il ouvre la première séance pour trouver la présentation.", enter: () => firstClass && firstSequence && firstLesson && openTableauLesson(firstClass.id, firstSequence.id, firstLesson.id) },
+          { view: "dashboard", selector: "#content", title: "Présentation", text: "Le tutoriel ouvre maintenant la présentation exemple." },
+          { view: "dashboard", selector: "#boardPage", title: "Diapo exemple", text: "Cette présentation contient un titre, une image et la vidéo déposée localement.", enter: () => firstActivity && showBoard(firstActivity.id, 0) }
         ];
         tourIndex = 0;
         tourRunning = true;
@@ -2518,9 +2518,9 @@
         const activity = {
           ...createBlank("activity", { lessonId }),
           id: uid("act"),
-          title: "Nouvelle activité",
+          title: "Nouvelle présentation",
           slug: slugify("nouvelle-presentation"),
-          description: "Activité à projeter.",
+          description: "Présentation à projeter.",
           objective: "",
           instruction: "",
           level: "",
@@ -2544,7 +2544,7 @@
             <header class="studio-toolbar">
               <div>
                 <strong>${escapeHtml(activity.title)}</strong>
-                <div class="studio-note">Diapos (activités) horizontales. Les cadres pointillés indiquent ce qui sera visible au tableau.</div>
+                <div class="studio-note">Diapos horizontales. Les cadres pointilles indiquent ce qui sera visible au tableau.</div>
                 <div class="studio-save-status" id="studioSaveStatus" role="status" hidden></div>
               </div>
               <div class="studio-actions">
@@ -2558,7 +2558,7 @@
                   <button class="btn format-button" type="button" title="Effacer la mise en forme" aria-label="Effacer la mise en forme" onmousedown="formatStudioText('removeFormat',event)">× Style</button>
                 </div>
                 <button class="btn" onclick="renameActivity('${activity.id}')">Titre</button>
-                <button class="btn" onclick="addSlide('${activity.id}')">+ Diapo (activité)</button>
+                <button class="btn" onclick="addSlide('${activity.id}')">+ Diapo</button>
                 <button class="btn" onclick="addTextElement('${activity.id}')">+ Texte</button>
                 <button class="btn" onclick="addUrlElement('${activity.id}')">+ URL</button>
                 <label class="btn">+ Fichier <input type="file" hidden onchange="addFileElement('${activity.id}',this.files[0],this);this.value=''"></label>
@@ -2571,7 +2571,7 @@
                 <button class="btn" onclick="addToolElement('${activity.id}')">+ Outil</button>
                 <button class="btn danger" onclick="deleteSelectedElement()">Suppr. objet</button>
                 <button class="btn primary" onclick="saveStudio('${activity.id}',false,this)">Enregistrer</button>
-                <button class="btn" onclick="showBoard('${activity.id}',0)">Présenter</button>
+                <button class="btn" onclick="showBoard('${activity.id}',0)">Presenter</button>
                 <button class="btn" onclick="previewStudioActivity('${activity.id}',this)">Imprimer / Word</button>
                 <button class="btn" onclick="closeEditor()">Fermer</button>
               </div>
@@ -2590,7 +2590,7 @@
 
       function renderStudioSlide(slide, index) {
         const top = index * (slideSize.height + slideSize.gap);
-        return `<article class="slide-frame ${index === currentStudioSlideIndex ? "current" : ""}" data-slide-id="${slide.id}" data-slide-index="${index}" data-label="Diapo (activité) ${index + 1}" tabindex="0" onclick="selectStudioSlide(${index})" style="position:absolute;left:0;top:${top}px"></article>`;
+        return `<article class="slide-frame ${index === currentStudioSlideIndex ? "current" : ""}" data-slide-id="${slide.id}" data-slide-index="${index}" data-label="Diapo ${index + 1}" tabindex="0" onclick="selectStudioSlide(${index})" style="position:absolute;left:0;top:${top}px"></article>`;
       }
 
       function renderStudioElement(element, slideIndex = 0) {
@@ -3176,7 +3176,7 @@
 
       async function renameActivity(activityId) {
         const activity = findItem("activity", activityId);
-        const title = prompt("Titre de l’activité", activity.title);
+        const title = prompt("Titre de l'activite", activity.title);
         if (!title) return;
         activity.title = title.trim();
         activity.slug = slugify(activity.title);
@@ -3197,7 +3197,7 @@
           delete element.slideIndex;
         });
         activity.updatedAt = new Date().toISOString();
-        const saved = await saveData("Activité enregistrée sur le serveur.", triggerButton);
+        const saved = await saveData("Présentation enregistrée sur le serveur.", triggerButton);
         if (saved && close) {
           closeEditor();
           render();
@@ -3209,7 +3209,7 @@
           selectStudioSlide(currentStudioSlideIndex);
           const status = document.querySelector("#studioSaveStatus");
           if (status) {
-            status.textContent = "Activité enregistrée sur le serveur.";
+            status.textContent = "Présentation enregistrée sur le serveur.";
             status.className = "studio-save-status success";
             status.hidden = false;
           }
@@ -3763,7 +3763,7 @@
                 <p class="print-breadcrumb">${escapeHtml(classe.title)} · Séquence n° ${sequenceNumber(classe, sequence)} · ${escapeHtml(sequence.title)}</p>
                 <h1>${escapeHtml(lesson.title)}</h1>
                 ${lesson.description ? `<p>${escapeHtml(lesson.description)}</p>` : ""}
-                <p class="pill">${activities.length} activités</p>
+                <p class="pill">${activities.length} activité(s)</p>
               </header>
               ${activities.map((activity, activityIndex) => `<section class="print-lesson-activity">
                 <header class="print-activity-head">
@@ -3828,7 +3828,7 @@
 
       function renderPrintableSlide(activity, slide, index) {
         return `<section class="print-slide-page">
-          <h2>Diapo (activité) ${index + 1}</h2>
+          <h2>Diapo ${index + 1}</h2>
           <div class="print-slide-canvas">
             ${elementsForBoardSlide(activity, index).map(renderPrintableElement).join("")}
           </div>
@@ -3872,7 +3872,7 @@
           docxParagraph([activity.estimatedDuration && `Durée : ${activity.estimatedDuration}`, activity.modality && `Modalité : ${activity.modality}`, activity.level && `Niveau : ${activity.level}`].filter(Boolean).join(" · "), false, 20)
         ];
         (activity.slides || []).forEach((slide, index) => {
-          paragraphs.push(docxParagraph(`Diapo (activité) ${index + 1}`, true, 28, index > 0));
+          paragraphs.push(docxParagraph(`Diapo ${index + 1}`, true, 28, index > 0));
           elementsForBoardSlide(activity, index)
             .sort((a, b) => Number(a.y || 0) - Number(b.y || 0) || Number(a.x || 0) - Number(b.x || 0))
             .forEach((element) => {
