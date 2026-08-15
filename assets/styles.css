@@ -658,6 +658,13 @@
       .shortcut-card span { color: var(--sea); font-size: 11px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; }
       .shortcut-card strong { color: var(--wine-900); font-size: 19px; font-weight: 700; }
       .shortcut-card small { color: var(--muted); }
+      .upcoming-courses-card { align-content:start; }
+      .upcoming-course-list { display:grid; gap:6px; margin-top:5px; }
+      .upcoming-course-list button { display:grid; grid-template-columns:48px minmax(0,1fr); gap:1px 8px; border:0; border-radius:8px; background:#f7eee8; padding:7px 9px; color:var(--wine-900); text-align:left; cursor:pointer; }
+      .upcoming-course-list button:hover { background:#f1dfd4; box-shadow:inset 3px 0 var(--gold); }
+      .upcoming-course-list button b { grid-row:1 / span 2; align-self:center; color:var(--wine-700); }
+      .upcoming-course-list button span { overflow:hidden; color:var(--wine-900); font-size:12px; font-weight:850; letter-spacing:normal; text-overflow:ellipsis; text-transform:none; white-space:nowrap; }
+      .upcoming-course-list button small { font-size:10px; }
       .page-grid, .grid.two, .grid.three { perspective: 1100px; }
       .entity-card {
         min-height: 190px;
@@ -681,6 +688,9 @@
         padding: 20px 22px;
         box-shadow: var(--shadow-soft);
       }
+      .lesson-pptx-drop { transition:border-color .2s ease,background .2s ease,box-shadow .2s ease; }
+      .lesson-pptx-drop.drop-target { border-color:#187b70; background:#eefbf8; box-shadow:0 0 0 6px rgba(24,123,112,.14),var(--shadow-soft); }
+      .pptx-drop-hint { width:100%; margin-top:12px; border:2px dashed #b9d6d1; border-radius:10px; background:#f4fbfa; padding:10px 14px; color:#176d65; font-size:12px; font-weight:800; text-align:center; }
       .breadcrumb {
         display: flex;
         flex-wrap: wrap;
@@ -1139,6 +1149,9 @@
       .studio-activity-content strong { white-space:pre-wrap; }
       .slide-thumbnails { overflow: auto; background: #fff; padding: 12px; display: flex; flex-direction: column; gap: 10px; }
       .slide-thumbnail { display: grid; gap: 4px; text-align: left; border: 2px solid var(--line); border-radius: 10px; background: var(--paper); padding: 10px; cursor: grab; }
+      .slide-thumbnail { position:relative; }
+      .slide-thumbnail-delete { position:absolute; top:5px; right:5px; z-index:2; width:23px; height:23px; padding:0; border:0; border-radius:50%; color:#fff; background:#a91d37; font-size:16px; line-height:1; cursor:pointer; opacity:.72; }
+      .slide-thumbnail-delete:hover { opacity:1; transform:scale(1.08); }
       .slide-thumbnail.current { border-color: var(--wine-700); box-shadow: 0 0 0 3px rgba(116,24,42,.12); }
       .slide-thumbnail.dragging { opacity:.45; }
       .slide-thumbnail.drop-target { border-color:#d09516; transform:translateY(3px); box-shadow:0 -4px 0 #d09516; }
@@ -1211,6 +1224,7 @@
         box-shadow: 0 0 0 5px rgba(116, 24, 42, 0.08), 0 24px 60px rgba(59, 13, 22, 0.16);
       }
       .slide-frame.drop-target { border-color:#d09516; background:#fff9e8; box-shadow:0 0 0 7px rgba(208,149,22,.18),0 24px 60px rgba(59,13,22,.16); }
+      .slide-frame.file-drop-target { border-color:#187b70; background:#eefbf8; box-shadow:0 0 0 8px rgba(24,123,112,.18); }
       .slide-frame::before {
         content: attr(data-label);
         position: absolute;

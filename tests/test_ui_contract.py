@@ -499,8 +499,8 @@ def test_plan_de_classe_style_cinema_et_emploi_du_temps_lycee() -> None:
     assert '["lundi", "mardi", "mercredi", "jeudi", "vendredi"]' in APP_JS
     assert 'aria-label="Emploi du temps du lundi au vendredi"' in APP_JS
     assert ".timetable-course" in STYLES
-    assert "assets/styles.css?v=espace-prof-24" in INDEX
-    assert "assets/app.js?v=espace-prof-44" in INDEX
+    assert "assets/styles.css?v=espace-prof-25" in INDEX
+    assert "assets/app.js?v=espace-prof-45" in INDEX
     assert "function startDeskMove(" in APP_JS
     assert "function deleteDesk(" in APP_JS
     assert "function addDesk(" in APP_JS
@@ -525,6 +525,27 @@ def test_emploi_du_temps_est_un_calendrier_interactif() -> None:
     schedule_editor = APP_JS.split("function openScheduleEditor", 1)[1].split("function saveScheduleEditor", 1)[0]
     assert 'name="classId" required' not in schedule_editor
     assert 'name="groupTitle" required' not in schedule_editor
+
+
+def test_import_pptx_par_depot_et_historique_du_studio() -> None:
+    assert "function importPptxIntoLesson(" in APP_JS
+    assert 'class="page-head lesson-pptx-drop"' in APP_JS
+    assert "await importPptxAsSiteSlides(file)" in APP_JS
+    assert "function undoStudioChange(" in APP_JS
+    assert "function redoStudioChange(" in APP_JS
+    assert "function deleteStudioSlide(" in APP_JS
+    assert "studioUndoStack" in APP_JS
+    assert "Ctrl+Z" in APP_JS
+    assert 'class="slide-thumbnail-delete"' in APP_JS
+    assert ".slide-frame.file-drop-target" in STYLES
+
+
+def test_acces_rapide_affiche_les_trois_prochains_cours() -> None:
+    assert "function upcomingScheduleItemsToday(" in APP_JS
+    assert "slice(0,3)" in APP_JS
+    assert "Les 3 prochains cours" in APP_JS
+    assert 'class="shortcut-card upcoming-courses-card"' in APP_JS
+    assert "function openUpcomingCourse(" in APP_JS
 
 
 def test_initialisation_ne_lit_pas_le_mode_demo_avant_sa_declaration() -> None:

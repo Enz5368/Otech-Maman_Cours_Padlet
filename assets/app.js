@@ -53,6 +53,9 @@
       let currentPage = { type: "classes" };
       let currentTableauPage = { type: "classes" };
       let currentStudioSlideIndex = 0;
+      let studioHistoryActivityId = "";
+      let studioUndoStack = [];
+      let studioRedoStack = [];
       let timerRemaining = 5 * 60;
       let timerTotal = 5 * 60;
       let timerInterval = null;
@@ -1010,6 +1013,7 @@
           </section>
           <nav class="dashboard-shortcuts" aria-label="Accès rapides">
             ${workspaceShortcuts.map((shortcut) => `<a class="shortcut-card" href="${escapeAttr(shortcut.url)}" target="_blank" rel="noopener noreferrer"><span>Accès rapide</span><strong>${escapeHtml(shortcut.title)}</strong><small>${escapeHtml(shortcut.description)}</small></a>`).join("")}
+            ${renderUpcomingCoursesShortcut()}
           </nav>
           <section class="page-grid">${state.classes.filter((classe) => classe.isVisible !== false).map(tableauClassCard).join("")}</section>
         `;
@@ -1789,6 +1793,9 @@
 
       function scheduleMinutes(value) { const [h,m]=String(value).split(":").map(Number); return h*60+m; }
       function scheduleTime(value) { return `${String(Math.floor(Number(value)/60)).padStart(2,"0")}:${String(Number(value)%60).padStart(2,"0")}`; }
+      function upcomingScheduleItemsToday(){ const now=new Date(),days=["dimanche","lundi","mardi","mercredi","jeudi","vendredi","samedi"],minute=now.getHours()*60+now.getMinutes(); return (state.schedule||[]).filter(item=>item.day===days[now.getDay()]&&Number(item.start)>=minute).sort((a,b)=>Number(a.start)-Number(b.start)).slice(0,3); }
+      function renderUpcomingCoursesShortcut(){ const items=upcomingScheduleItemsToday(); return `<section class="shortcut-card upcoming-courses-card"><span>Accès rapide</span><strong>Les 3 prochains cours</strong><div class="upcoming-course-list">${items.map(item=>{const linked=findItem("class",item.classId);return `<button type="button" onclick="openUpcomingCourse('${item.id}')"><b>${scheduleTime(item.start)}</b><span>${escapeHtml(linked?.title||item.level||"Cours")}</span><small>${escapeHtml(item.groupTitle||"Sans groupe")}</small></button>`;}).join("")||`<small>Aucun autre cours prévu aujourd’hui.</small>`}</div></section>`; }
+      function openUpcomingCourse(itemId){ const item=(state.schedule||[]).find(entry=>entry.id===itemId);if(!item)return;sessionStorage.setItem("mep-selected-schedule",item.id);updateCurrentCourseShortcut();if(item.classId)return openTableauClass(item.classId);setView("schedule"); }
       function currentScheduleItem() { const now=new Date(), days=["dimanche","lundi","mardi","mercredi","jeudi","vendredi","samedi"], day=days[now.getDay()], minute=now.getHours()*60+now.getMinutes(); return (state.schedule||[]).find(item=>item.day===day&&minute>=item.start&&minute<item.end)||(state.schedule||[]).find(item=>item.day===day); }
       function selectedScheduleItem() { const id=sessionStorage.getItem("mep-selected-schedule"); return (state.schedule||[]).find(item=>item.id===id)||null; }
       function updateCurrentCourseShortcut() { const item=selectedScheduleItem()||currentScheduleItem(), button=document.querySelector("#currentCourseShortcut"); if(!button)return; button.hidden=!item; const linked=findItem("class",item?.classId); button.textContent=item?`Cours associé · ${linked?.title||item.level}`:"Cours associé"; }
@@ -2145,7 +2152,7 @@
           return renderClasses();
         }
         document.querySelector("#content").innerHTML = `
-          <section class="page-head">
+          <section class="page-head lesson-pptx-drop" ondragover="prepareLessonPptxDrop(event)" ondragleave="this.classList.remove('drop-target')" ondrop="importPptxIntoLesson('${lesson.id}',event)">
             <div class="breadcrumb"><button onclick="currentPage={type:'classes'};render()">Cours modifiables</button> / <button onclick="openClassPage('${classe.id}')">${escapeHtml(classe.title)}</button> / <button onclick="openSequencePage('${classe.id}','${sequence.id}')">${escapeHtml(sequence.title)}</button> / <button onclick="openLessonPage('${classe.id}','${sequence.id}','${lesson.id}')">${escapeHtml(lesson.title)}</button></div>
             <div class="row wrap">
               <div>
@@ -2160,6 +2167,7 @@
                 <button class="btn danger" onclick="removeItem('lesson','${lesson.id}')">Supprimer la séance</button>
               </div>`)}
             </div>
+            ${editOnly(`<div class="pptx-drop-hint">Déposez un fichier PowerPoint (.pptx) ici pour créer automatiquement une activité.</div>`)}
           </section>
           <section class="numbered-list">${lesson.activities.map(activityCard).join("") || empty("Aucune activité.")}</section>
         `;
@@ -2288,6 +2296,7 @@
 
       const tutorialSteps = [
         { view: "dashboard", selector: "[data-view='dashboard']", title: "Cours par niveau à projeter", text: "Parcourez les classes, séquences et séances pour ouvrir une activité devant les élèves." },
+        { view: "dashboard", selector: ".upcoming-courses-card", title: "Trois prochains cours", text: "Consultez les trois prochains cours de la journée et ouvrez directement le cours associé." },
         { view: "classes", selector: "[data-view='classes']", title: "Cours modifiables", text: "Préparez ici vos classes pédagogiques, séquences, séances, activités et ressources." },
         { view: "classes", selector: "#content", title: "Créer et organiser", text: "Ouvrez une classe, puis une séquence et une séance pour ajouter, modifier, déplacer ou masquer les contenus." },
         { view: "tree", selector: "[data-view='tree']", title: "Arbre", text: "L’arbre affiche toute l’organisation des cours et donne un accès direct à chaque élément." },
@@ -2346,7 +2355,7 @@
           { view: "dashboard", selector: "#content", title: "Séquence", text: "Le tutoriel ouvre la première séquence de l'exemple.", enter: () => firstClass && firstSequence && openTableauSequence(firstClass.id, firstSequence.id) },
           { view: "dashboard", selector: "#content", title: "Séance", text: "Puis la visite ouvre la première séance pour trouver ses activités.", enter: () => firstClass && firstSequence && firstLesson && openTableauLesson(firstClass.id, firstSequence.id, firstLesson.id) },
           { view: "dashboard", selector: "#content", title: "Activité", text: "Le tutoriel ouvre maintenant l’activité exemple." },
-          { view: "classes", selector: "#content", title: "Éditeur des activités", text: "Chaque miniature possède son propre temps prévu. Réordonnez les diapos à gauche et utilisez la poignée toujours visible des URL et PDF pour les déplacer ou les redimensionner." },
+          { view: "classes", selector: "#content", title: "Éditeur des activités", text: "Déposez un PPTX pour importer ses diapos. Supprimez depuis une miniature, puis utilisez Annuler/Rétablir ou Ctrl+Z pour récupérer une diapo ou un objet supprimé." },
           { view: "dashboard", selector: "#boardPage", title: "Diapo (activité) exemple", text: "Cette activité contient un titre, une image et la vidéo déposée localement.", enter: () => firstActivity && showBoard(firstActivity.id, 0) }
         ];
         tourIndex = 0;
@@ -2593,10 +2602,14 @@
         if (await saveData("Activité créée sur le serveur.")) openActivityStudio(activity.id);
       }
 
+      function prepareLessonPptxDrop(event){ if(!canEdit()||![...(event.dataTransfer?.items||[])].some(item=>item.kind==="file"))return; event.preventDefault(); event.currentTarget.classList.add("drop-target"); }
+      async function importPptxIntoLesson(lessonId,event){ event.preventDefault(); event.currentTarget.classList.remove("drop-target"); if(!requireLogin())return; const files=[...(event.dataTransfer?.files||[])].filter(file=>/\.pptx$/i.test(file.name||"")||file.type==="application/vnd.openxmlformats-officedocument.presentationml.presentation"); if(!files.length){toast("Déposez un fichier PowerPoint au format .pptx.");return;} const lesson=findItem("lesson",lessonId), finishUploadLock=beginSaveLock(null); try { for(const file of files){ const slides=await importPptxAsSiteSlides(file); const title=String(file.name||"PowerPoint").replace(/\.pptx$/i,""); lesson.activities.push({...createBlank("activity",{lessonId}),id:uid("act"),title,slug:slugify(title),description:"Activité créée depuis un PowerPoint.",objective:"",instruction:"",level:"",resources:[],slides:slides.map(slide=>({...slide,duration:slide.duration||"5 min"}))}); } if(await saveData(`${files.length} activité(s) créée(s) depuis PowerPoint.`))render(); } catch(error){toast(`Import PowerPoint impossible : ${error.message||"erreur"}.`);} finally {finishUploadLock();} }
+
       function openActivityStudio(id) {
         if (!requireLogin()) return;
         const activity = ensureActivitySlides(findItem("activity", id));
         if (!activity) return;
+        if(studioHistoryActivityId!==id){studioHistoryActivityId=id;studioUndoStack=[];studioRedoStack=[];}
         currentStudioSlideIndex = 0;
         const stripHeight = activity.slides.length * slideSize.height + Math.max(0, activity.slides.length - 1) * slideSize.gap;
         const modal = document.querySelector("#editorModal");
@@ -2621,6 +2634,9 @@
                 </div>
                 <button class="btn" onclick="renameActivity('${activity.id}')">Titre</button>
                 <button class="btn" onclick="addSlide('${activity.id}')">+ Diapo (activité)</button>
+                <button class="btn" id="studioUndoBtn" onclick="undoStudioChange('${activity.id}')" ${studioUndoStack.length?"":"disabled"}>↶ Annuler</button>
+                <button class="btn" id="studioRedoBtn" onclick="redoStudioChange('${activity.id}')" ${studioRedoStack.length?"":"disabled"}>↷ Rétablir</button>
+                <button class="btn danger" onclick="deleteStudioSlide('${activity.id}',currentStudioSlideIndex,event)" ${activity.slides.length>1?"":"disabled"}>Suppr. diapo</button>
                 <button class="btn" onclick="addTextElement('${activity.id}')">+ Texte</button>
                 <button class="btn" onclick="addUrlElement('${activity.id}')">+ URL</button>
                 <label class="btn">+ Fichier <input type="file" accept="image/*,audio/*,video/*,.pdf,.doc,.docx,.odt,.xls,.xlsx,.ods,.ppt,.pptx,.odp,.txt,.rtf,.csv,.json,.xml,.html,.htm,.zip" hidden onchange="addFileElement('${activity.id}',this.files[0],this);this.value=''"></label>
@@ -2691,10 +2707,18 @@
 
       function renderSlideThumbnail(slide, index) {
         const preview = (slide.elements || []).filter((element) => element.kind === "text").map((element) => element.value || "").join(" ").slice(0, 70);
-        return `<div class="slide-thumbnail ${index === currentStudioSlideIndex ? "current" : ""}" role="button" tabindex="0" draggable="true" data-index="${index}" onclick="if(!event.target.closest('input')){selectStudioSlide(${index});selectedSlide()?.scrollIntoView({behavior:'smooth',block:'center'})}" ondragstart="startStudioSlideReorder(${index},event)" ondragover="event.preventDefault();this.classList.add('drop-target')" ondragleave="this.classList.remove('drop-target')" ondragend="clearStudioSlideDropTargets()" ondrop="reorderStudioSlide(${index},event)"><span>${index + 1}</span><strong>Diapo (activité)</strong><small>${escapeHtml(preview || "Sans texte")}</small><label class="slide-duration">Temps prévu <input draggable="false" value="${escapeAttr(slide.duration || "5 min")}" aria-label="Temps prévu pour la diapo ${index+1}" onclick="event.stopPropagation()" onpointerdown="event.stopPropagation()" oninput="updateSlideDuration(${index},this.value)"></label></div>`;
+        return `<div class="slide-thumbnail ${index === currentStudioSlideIndex ? "current" : ""}" role="button" tabindex="0" draggable="true" data-index="${index}" onclick="if(!event.target.closest('input,button')){selectStudioSlide(${index});selectedSlide()?.scrollIntoView({behavior:'smooth',block:'center'})}" ondragstart="startStudioSlideReorder(${index},event)" ondragover="event.preventDefault();this.classList.add('drop-target')" ondragleave="this.classList.remove('drop-target')" ondragend="clearStudioSlideDropTargets()" ondrop="reorderStudioSlide(${index},event)"><button class="slide-thumbnail-delete" type="button" title="Supprimer cette diapo" aria-label="Supprimer la diapo ${index+1}" onclick="deleteStudioSlide('${studioHistoryActivityId}',${index},event)">×</button><span>${index + 1}</span><strong>Diapo (activité)</strong><small>${escapeHtml(preview || "Sans texte")}</small><label class="slide-duration">Temps prévu <input draggable="false" value="${escapeAttr(slide.duration || "5 min")}" aria-label="Temps prévu pour la diapo ${index+1}" onclick="event.stopPropagation()" onpointerdown="event.stopPropagation()" oninput="updateSlideDuration(${index},this.value)"></label></div>`;
       }
 
       function updateSlideDuration(index,value){ const activity=findItem("activity",document.querySelector(".studio")?.dataset.activityId); if(activity?.slides[index]) activity.slides[index].duration=String(value||"").trim()||"5 min"; }
+
+      function cloneStudioSlides(slides){ return JSON.parse(JSON.stringify(slides||[])); }
+      function captureStudioSlides(activityId){ const activity=findItem("activity",activityId); const frames=[...document.querySelectorAll(`.studio[data-activity-id="${activityId}"] .slide-frame`)]; if(!frames.length)return cloneStudioSlides(activity?.slides); const previous=activity?.slides||[], slides=frames.map(frame=>({id:frame.dataset.slideId||uid("slide"),duration:previous.find(slide=>slide.id===frame.dataset.slideId)?.duration||"5 min",elements:[]})); [...document.querySelectorAll(`.studio[data-activity-id="${activityId}"] .slide-el`)].map(readSlideElement).forEach(element=>{const target=slides[element.slideIndex]||slides[0],clean={...element};delete clean.slideIndex;target.elements.push(clean);}); return slides; }
+      function updateStudioHistoryButtons(){ const undo=document.querySelector("#studioUndoBtn"),redo=document.querySelector("#studioRedoBtn");if(undo)undo.disabled=!studioUndoStack.length;if(redo)redo.disabled=!studioRedoStack.length; }
+      function recordStudioHistory(activityId){ const snapshot=captureStudioSlides(activityId); if(!snapshot?.length)return; studioUndoStack.push(snapshot); if(studioUndoStack.length>30)studioUndoStack.shift(); studioRedoStack=[]; updateStudioHistoryButtons(); }
+      async function undoStudioChange(activityId){ if(!studioUndoStack.length)return; const activity=findItem("activity",activityId);studioRedoStack.push(captureStudioSlides(activityId));activity.slides=cloneStudioSlides(studioUndoStack.pop());const selected=Math.min(currentStudioSlideIndex,activity.slides.length-1);await saveData("Modification annulée.");openActivityStudio(activityId);currentStudioSlideIndex=selected;selectStudioSlide(selected);updateStudioHistoryButtons(); }
+      async function redoStudioChange(activityId){ if(!studioRedoStack.length)return; const activity=findItem("activity",activityId);studioUndoStack.push(captureStudioSlides(activityId));activity.slides=cloneStudioSlides(studioRedoStack.pop());const selected=Math.min(currentStudioSlideIndex,activity.slides.length-1);await saveData("Modification rétablie.");openActivityStudio(activityId);currentStudioSlideIndex=selected;selectStudioSlide(selected);updateStudioHistoryButtons(); }
+      function deleteStudioSlide(activityId,index,event){ event?.stopPropagation(); const activity=findItem("activity",activityId),slides=captureStudioSlides(activityId);if(!activity||slides.length<=1){toast("Une activité doit garder au moins une diapo.");return;}recordStudioHistory(activityId);slides.splice(index,1);activity.slides=slides;const selected=Math.max(0,Math.min(index,slides.length-1));openActivityStudio(activityId);currentStudioSlideIndex=selected;selectStudioSlide(selected);updateStudioHistoryButtons(); }
 
       function startStudioSlideReorder(index,event){ event.dataTransfer.effectAllowed="move"; event.dataTransfer.setData("application/x-studio-slide",String(index)); event.currentTarget.classList.add("dragging"); }
       function clearStudioSlideDropTargets(){ document.querySelectorAll(".slide-thumbnail").forEach(node=>node.classList.remove("dragging","drop-target")); }
@@ -2705,6 +2729,7 @@
         clearStudioSlideDropTargets();
         if (!Number.isInteger(sourceIndex) || sourceIndex === targetIndex) return;
         const activity = findItem("activity", document.querySelector(".studio")?.dataset.activityId);
+        recordStudioHistory(activity?.id);
         if (!activity || !await saveStudio(activity.id, false, null, false)) return;
         const [slide] = activity.slides.splice(sourceIndex, 1);
         activity.slides.splice(targetIndex, 0, slide);
@@ -2748,6 +2773,7 @@
       }
 
       function insertStudioText(text, slideIndex, x = 90, y = 90) {
+        recordStudioHistory(document.querySelector(".studio")?.dataset.activityId);
         const value = String(text ?? "").replace(/\r\n/g, "\n");
         document.querySelector("#slideStrip")?.insertAdjacentHTML("beforeend", renderStudioElement({
           id: uid("el"), kind: "text", x, y, w: Math.min(520, slideSize.width - x), h: 150, value, fontSize: 38
@@ -2766,6 +2792,7 @@
           const uploaded = isLocalFileMode() || freeExampleOpen
             ? { content_url: await readFileAsDataUrl(file) }
             : await window.ServerAPI.upload(file);
+          recordStudioHistory(document.querySelector(".studio")?.dataset.activityId);
           document.querySelector("#slideStrip")?.insertAdjacentHTML("beforeend", renderStudioElement({
             id: uid("el"), kind: "image", x, y, w: Math.min(520, slideSize.width - x), h: 300, value: uploaded.content_url
           }, slideIndex));
@@ -2782,6 +2809,10 @@
         const studio = document.querySelector(".studio");
         if (!studio || studio.dataset.canvasInputReady === "true") return;
         studio.dataset.canvasInputReady = "true";
+        studio.addEventListener("keydown",event=>{if(!(event.ctrlKey||event.metaKey)||event.key.toLowerCase()!=="z"||event.target.closest("input,textarea,[contenteditable=true]"))return;event.preventDefault();if(event.shiftKey)redoStudioChange(studio.dataset.activityId);else undoStudioChange(studio.dataset.activityId);});
+        studio.addEventListener("dragover",event=>{if([...(event.dataTransfer?.items||[])].some(item=>item.kind==="file")){event.preventDefault();event.dataTransfer.dropEffect="copy";event.target.closest(".slide-frame")?.classList.add("file-drop-target");}});
+        studio.addEventListener("dragleave",event=>event.target.closest(".slide-frame")?.classList.remove("file-drop-target"));
+        studio.addEventListener("drop",async event=>{const files=[...(event.dataTransfer?.files||[])];if(!files.length)return;event.preventDefault();document.querySelectorAll(".slide-frame.file-drop-target").forEach(frame=>frame.classList.remove("file-drop-target"));const target=event.target.closest(".slide-frame");if(target)selectStudioSlide(Number(target.dataset.slideIndex||0));for(const file of files)await addFileElement(studio.dataset.activityId,file);});
         studio.addEventListener("pointerdown", (event) => {
           if (event.target.closest(".slide-el,.studio-text-format")) return;
           document.querySelectorAll(".studio .slide-el.selected").forEach((item) => item.classList.remove("selected"));
@@ -3005,9 +3036,10 @@
         document.querySelectorAll(".slide-thumbnail").forEach((node) => node.classList.toggle("current", Number(node.dataset.index) === currentStudioSlideIndex));
       }
 
-      async function addSlide(activityId) {
-        if (!await saveStudio(activityId, false, null, false)) return;
+      function addSlide(activityId) {
         const activity = findItem("activity", activityId);
+        recordStudioHistory(activityId);
+        activity.slides = captureStudioSlides(activityId);
         activity.slides.push({ id: uid("slide"), duration: "5 min", elements: [] });
         openActivityStudio(activityId);
         currentStudioSlideIndex = activity.slides.length - 1;
@@ -3024,6 +3056,7 @@
         const url = prompt("Collez une URL à afficher");
         if (!url) return;
         const kind = kindFromUrl(url);
+        recordStudioHistory(activityId);
         const slide = selectedSlide();
         document.querySelector("#slideStrip").insertAdjacentHTML("beforeend", renderStudioElement({ id: uid("el"), kind, x: 100, y: 90, w: 520, h: 300, value: url }, Number(slide.dataset.slideIndex || 0)));
         initStudioDrag();
@@ -3038,6 +3071,7 @@
         }
         const slide = selectedSlide();
         if (!slide) return;
+        recordStudioHistory(activityId);
         const slideIndex = Number(slide.dataset.slideIndex || 0);
         const slideTop = slideIndex * (slideSize.height + slideSize.gap);
         const toolCount = [...document.querySelectorAll('.slide-el[data-kind="tool"]')].filter((node) => {
@@ -3255,6 +3289,7 @@
         const finishUploadLock = beginSaveLock(null);
         try {
           if (/\.pptx$/i.test(file.name || "") || file.type === "application/vnd.openxmlformats-officedocument.presentationml.presentation") {
+            recordStudioHistory(activityId);
             if (!await saveStudio(activityId, false, null, false)) return;
             const activity = findItem("activity", activityId);
             const importedSlides = await importPptxAsSiteSlides(file);
@@ -3278,6 +3313,7 @@
             : mimeType.startsWith("video/") ? "video"
             : mimeType === "application/pdf" ? "pdf"
             : extensionKind === "embed" ? "document" : extensionKind;
+          recordStudioHistory(activityId);
           const slide = selectedSlide();
           document.querySelector("#slideStrip").insertAdjacentHTML("beforeend", renderStudioElement({ id: uid("el"), kind, x: 100, y: 90, w: 520, h: 300, value: uploaded.content_url }, Number(slide.dataset.slideIndex || 0)));
           initStudioDrag();
@@ -3390,6 +3426,7 @@
             if (!handle) return;
             event.preventDefault();
             event.stopPropagation();
+            recordStudioHistory(document.querySelector(".studio")?.dataset.activityId);
             const startX = event.clientX;
             const startY = event.clientY;
             const left = parseFloat(node.style.left) || 0;
@@ -3464,6 +3501,7 @@
             if (!node.classList.contains("selected") || event.target.closest("input,select,[contenteditable=true]")) return;
             if (event.key === "Delete" || event.key === "Backspace") {
               event.preventDefault();
+              recordStudioHistory(document.querySelector(".studio")?.dataset.activityId);
               node.remove();
               return;
             }
@@ -3484,12 +3522,13 @@
 
       function deleteSelectedElement() {
         const selected = document.querySelector(".slide-el.selected");
-        if (selected) selected.remove();
+        if (selected) { recordStudioHistory(document.querySelector(".studio")?.dataset.activityId); selected.remove(); }
       }
 
       function deleteStudioElement(button, event) {
         event?.preventDefault();
         event?.stopPropagation();
+        recordStudioHistory(document.querySelector(".studio")?.dataset.activityId);
         button.closest(".slide-el")?.remove();
       }
 
