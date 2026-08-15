@@ -1,6 +1,6 @@
 {
   "root_ids": ["loginPage", "appPage", "boardPage", "content", "editorModal", "tourOverlay", "buttonHelpTooltip", "notice"],
-  "views": ["dashboard", "classes", "tree", "studentClasses", "tools", "search", "tutorial", "settings"],
+  "views": ["dashboard", "classes", "tree", "studentClasses", "tools", "schedule", "search", "tutorial", "settings"],
   "slide_size": {"width": 960, "height": 540, "gap": 36},
   "required_texts": [
     "Cours par niveau à projeter",
@@ -8,6 +8,7 @@
     "Arbre",
     "Groupes Classes",
     "Outils",
+    "Emploi du temps",
     "Recherche ressource ou activité",
     "Tutoriel",
     "Réglages",

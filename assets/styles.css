@@ -1129,6 +1129,21 @@
         overflow: auto;
         padding: 36px;
       }
+      .studio-workspace { display: grid; grid-template-columns: 190px minmax(0, 1fr); min-height: 0; }
+      .slide-thumbnails { overflow: auto; background: #fff; padding: 12px; display: flex; flex-direction: column; gap: 10px; }
+      .slide-thumbnail { display: grid; gap: 4px; text-align: left; border: 2px solid var(--line); border-radius: 10px; background: var(--paper); padding: 10px; cursor: grab; }
+      .slide-thumbnail.current { border-color: var(--wine-700); box-shadow: 0 0 0 3px rgba(116,24,42,.12); }
+      .slide-thumbnail span { font-weight: 900; color: var(--wine-700); }
+      .slide-thumbnail small { color: var(--muted); }
+      .seating-dialog { position: fixed; inset: 4vh 3vw; overflow: auto; background: var(--paper); border-radius: 18px; padding: 20px; }
+      .seating-controls { display: flex; gap: 12px; align-items: end; flex-wrap: wrap; margin: 18px 0; }
+      .seating-controls label { display: grid; gap: 5px; }
+      .classroom-board { margin: 20px auto; width: min(620px,90%); padding: 14px; text-align: center; background: #24463e; color: white; border-radius: 8px; font-weight: 900; }
+      .seating-grid { display: grid; gap: 14px; }
+      .desk { min-height: 82px; border: 2px solid var(--line); border-radius: 12px; background: white; padding: 10px; display: grid; gap: 6px; }
+      .desk.assigned { border-color: #779957; }
+      .desk.selected { outline: 4px solid #f7c948; }
+      .desk span { font-size: 11px; color: var(--muted); }
       .slide-strip {
         position: relative;
         width: 960px;

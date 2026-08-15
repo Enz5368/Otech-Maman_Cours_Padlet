@@ -461,6 +461,20 @@ def test_description_publique_ne_divulgue_aucun_identifiant() -> None:
     assert "root / root" not in INDEX
 
 
+def test_diapos_reordonnables_avec_miniatures() -> None:
+    assert 'class="slide-thumbnails"' in APP_JS
+    assert "function reorderStudioSlide(" in APP_JS
+    assert 'draggable="true"' in APP_JS
+
+
+def test_plan_de_classe_et_emploi_du_temps_sont_disponibles() -> None:
+    assert "function openSeatingPlan(" in APP_JS
+    assert "maximum 40" in APP_JS
+    assert 'data-view="schedule"' in INDEX
+    assert "function renderSchedule()" in APP_JS
+    assert 'id="currentCourseShortcut"' in INDEX
+
+
 def test_zip_fourni_est_la_base_de_la_version_gratuite() -> None:
     example = ROOT / "assets" / "free-example"
     assert (example / "data.json").is_file()
