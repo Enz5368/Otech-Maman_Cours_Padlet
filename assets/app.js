@@ -2301,7 +2301,7 @@
         { view: "dashboard", selector: "[data-shortcut-title='Messagerie']", title: "Messagerie externe", text: "Ce raccourci ouvre la messagerie de l’académie de Grenoble sur un autre site, dans un nouvel onglet." },
         { view: "classes", selector: "[data-view='classes']", title: "Cours modifiables", text: "C’est ici que vous préparez la structure complète : classes, séquences, séances, activités et ressources. Les modifications sont enregistrées dans votre espace." },
         { view: "classes", selector: "#content", title: "Créer et organiser", text: "Ouvrez chaque niveau successivement. Vous pouvez ajouter, renommer, réordonner ou supprimer les éléments, puis organiser les activités d’une séance." },
-        { view: "classes", selector: "#content", title: "Éditeur des activités", text: "Dans une activité, ajoutez des diapos, du texte, des URL, PDF, ODT, images, vidéos ou MP3. Les objets et les diapos se déplacent par glisser-déposer ; Annuler permet de récupérer une suppression accidentelle." },
+        { view: "classes", selector: "#content", title: "Éditeur des activités", text: "Dans une activité, ajoutez des diapos, du texte, des URL, PDF, ODT, images, vidéos ou MP3. Les formats AVI, MOV, MKV, WMV, FLV, MPEG, M4V, 3GP et TS sont convertis automatiquement en MP4 compatible. Les objets et les diapos se déplacent par glisser-déposer ; Annuler permet de récupérer une suppression accidentelle." },
         { view: "classes", selector: "#content", title: "Impression et export", text: "L’aperçu d’impression permet de choisir Portrait ou Paysage et place chaque diapo sur une page. Le ZIP conserve aussi les PDF, documents LibreOffice et médias." },
         { view: "tree", selector: "[data-view='tree']", title: "Arbre", text: "L’arbre présente toute la hiérarchie du cours sur une seule page et fournit un accès direct à chaque classe, séquence, séance ou activité." },
         { view: "studentClasses", selector: "[data-view='studentClasses']", title: "Groupes Classes", text: "Créez vos groupes et renseignez les élèves. Ces listes alimentent le plan de classe, la roue de la fortune et le suivi des absences." },
@@ -2365,7 +2365,7 @@
           { view: "dashboard", selector: "#content", title: "Séquence", text: "Le tutoriel ouvre la première séquence de l'exemple.", enter: () => firstClass && firstSequence && openTableauSequence(firstClass.id, firstSequence.id) },
           { view: "dashboard", selector: "#content", title: "Séance", text: "Puis la visite ouvre la première séance pour trouver ses activités.", enter: () => firstClass && firstSequence && firstLesson && openTableauLesson(firstClass.id, firstSequence.id, firstLesson.id) },
           { view: "dashboard", selector: "#content", title: "Activité", text: "Le tutoriel ouvre maintenant l’activité exemple." },
-          { view: "classes", selector: "#content", title: "Éditeur des activités", text: "Déposez un PPTX pour importer ses diapos. Ajoutez ou collez aussi des PDF, documents LibreOffice/ODT et MP3 : ils restent consultables dans la diapo sans téléchargement. Supprimez depuis une miniature, puis utilisez Annuler/Rétablir ou Ctrl+Z pour récupérer une diapo ou un objet supprimé." },
+          { view: "classes", selector: "#content", title: "Éditeur des activités", text: "Déposez un PPTX pour importer ses diapos. Ajoutez ou collez aussi des PDF, documents LibreOffice/ODT, MP3 et vidéos. Sur le véritable espace, les formats AVI, MOV, MKV, WMV, FLV, MPEG, M4V, 3GP et TS sont convertis automatiquement en MP4 compatible. Supprimez depuis une miniature, puis utilisez Annuler/Rétablir ou Ctrl+Z pour récupérer une diapo ou un objet supprimé." },
           { view: "dashboard", selector: "#boardPage", title: "Diapo (activité) exemple", text: "Cette activité contient un titre, une image et la vidéo déposée localement.", enter: () => firstActivity && showBoard(firstActivity.id, 0) }
         ];
         tourIndex = 0;
@@ -2655,7 +2655,7 @@
                 <button class="btn danger" onclick="deleteStudioSlide('${activity.id}',currentStudioSlideIndex,event)" ${activity.slides.length>1?"":"disabled"}>Suppr. diapo</button>
                 <button class="btn" onclick="addTextElement('${activity.id}')">+ Texte</button>
                 <button class="btn" onclick="addUrlElement('${activity.id}')">+ URL</button>
-                <label class="btn">+ Fichier <input type="file" accept="image/*,audio/*,video/*,.pdf,.doc,.docx,.odt,.xls,.xlsx,.ods,.ppt,.pptx,.odp,.txt,.rtf,.csv,.json,.xml,.html,.htm,.zip" hidden onchange="addFileElement('${activity.id}',this.files[0],this);this.value=''"></label>
+                <label class="btn">+ Fichier <input type="file" accept="image/*,audio/*,video/*,.avi,.mkv,.wmv,.flv,.m4v,.mpeg,.mpg,.3gp,.ts,.m2ts,.pdf,.doc,.docx,.odt,.xls,.xlsx,.ods,.ppt,.pptx,.odp,.txt,.rtf,.csv,.json,.xml,.html,.htm,.zip" hidden onchange="addFileElement('${activity.id}',this.files[0],this);this.value=''"></label>
                 <label class="studio-tool-picker">Outil
                   <select id="studioToolSelect">${Object.entries(slideTools).map(([value, tool]) => `<option value="${value}">${escapeHtml(tool.title)}</option>`).join("")}</select>
                 </label>
@@ -3034,8 +3034,29 @@
         setSlideTimerMinutes(value || 5, event);
       }
 
-      function reportMediaError() {
-        const message = "Le navigateur ne peut pas lire ce format vidéo. Utilisez de préférence une vidéo MP4 encodée en H.264.";
+      async function reportMediaError(video) {
+        if (video?.dataset.conversionAttempted === "true") return;
+        const fileId = /^\/api\/v1\/files\/([^/]+)\/content/i.exec(video?.getAttribute("src") || "")?.[1];
+        if (fileId && window.ServerAPI?.convertVideo && !isLocalFileMode() && !freeExampleOpen) {
+          video.dataset.conversionAttempted = "true";
+          const progress = "Conversion de la vidéo en MP4 compatible…";
+          const status = document.querySelector("#studioSaveStatus");
+          if (status) { status.textContent = progress; status.className = "studio-save-status pending"; status.hidden = false; }
+          toast(progress);
+          try {
+            const converted = await window.ServerAPI.convertVideo(fileId);
+            video.src = `${converted.content_url}?converted=${Date.now()}`;
+            video.load();
+            if (status) { status.textContent = "Vidéo convertie et prête à être lue."; status.className = "studio-save-status success"; }
+            toast("Vidéo convertie en MP4 compatible.");
+            return;
+          } catch (error) {
+            console.warn("Conversion vidéo impossible", error);
+          }
+        }
+        const message = freeExampleOpen
+          ? "La démo locale ne peut pas convertir cette vidéo. Dans l’espace connecté, ce format sera converti automatiquement en MP4 compatible."
+          : "Cette vidéo ne peut pas être lue ni convertie automatiquement. Essayez de l’ajouter de nouveau.";
         const status = document.querySelector("#studioSaveStatus");
         if (status) {
           status.textContent = message;
@@ -3344,7 +3365,7 @@
             status.className = "studio-save-status pending";
             status.hidden = false;
           }
-          toast(isLocalFileMode() ? "Fichier ajouté. Enregistrez maintenant la présentation." : "Fichier envoyé. Enregistrez maintenant la présentation.");
+          toast(isLocalFileMode() ? "Fichier ajouté. Enregistrez maintenant la présentation." : kind === "video" ? "Vidéo prête dans un format compatible. Enregistrez maintenant la présentation." : "Fichier envoyé. Enregistrez maintenant la présentation.");
         } catch (error) {
           toast(`Envoi du fichier impossible : ${error.message || "erreur serveur"}.`);
         } finally {

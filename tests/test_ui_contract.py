@@ -465,7 +465,7 @@ def test_export_impression_et_documents_libreoffice() -> None:
     assert 'value="landscape">Paysage' in APP_JS
     assert "une diapo par page" in APP_JS
     assert "espace-prof-26" in INDEX
-    assert "espace-prof-47" in INDEX
+    assert "espace-prof-48" in INDEX
     assert "Précédent" in APP_JS
     assert "Suivant" in APP_JS
     assert "setTimeout(startFreeExampleTutorial, 250);" in APP_JS
@@ -521,7 +521,21 @@ def test_plan_de_classe_style_cinema_et_emploi_du_temps_lycee() -> None:
     assert 'aria-label="Emploi du temps du lundi au vendredi"' in APP_JS
     assert ".timetable-course" in STYLES
     assert "assets/styles.css?v=espace-prof-26" in INDEX
-    assert "assets/app.js?v=espace-prof-47" in INDEX
+    assert "assets/app.js?v=espace-prof-48" in INDEX
+    assert "assets/api-client.js?v=espace-prof-5" in INDEX
+
+
+def test_les_videos_non_natives_sont_converties_pour_le_navigateur() -> None:
+    storage = (ROOT / "backend" / "app" / "services" / "storage.py").read_text(encoding="utf-8")
+    for extension in (".avi", ".mkv", ".wmv", ".flv", ".m4v", ".mpeg", ".3gp", ".m2ts"):
+        assert f'"{extension}"' in storage
+    assert "def _convert_video_for_browser" in storage
+    assert "def convert_stored_video" in storage
+    assert '"-c:v", "libx264"' in storage
+    assert '"-pix_fmt", "yuv420p"' in storage
+    assert 'mime_type = "video/mp4"' in storage
+    assert "window.ServerAPI.convertVideo(fileId)" in APP_JS
+    assert 'request(`/files/${encodeURIComponent(fileId)}/convert-video`' in (ROOT / "assets" / "api-client.js").read_text(encoding="utf-8")
     assert "function startDeskMove(" in APP_JS
     assert "function deleteDesk(" in APP_JS
     assert "function addDesk(" in APP_JS
