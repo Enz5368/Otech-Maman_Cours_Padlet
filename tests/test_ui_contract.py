@@ -478,6 +478,9 @@ def test_objets_interdiapos_et_documents_manipulables() -> None:
     assert "plain-document-preview" in APP_JS
     assert "sheet-preview" in APP_JS
     assert ".slide-frame.drop-target" in STYLES
+    assert "function updateSlideDuration(" in APP_JS
+    assert 'class="slide-duration"' in APP_JS
+    assert 'data-kind="pdf"' in STYLES
 
 
 def test_plan_de_classe_et_emploi_du_temps_sont_disponibles() -> None:
@@ -496,13 +499,24 @@ def test_plan_de_classe_style_cinema_et_emploi_du_temps_lycee() -> None:
     assert '["lundi", "mardi", "mercredi", "jeudi", "vendredi"]' in APP_JS
     assert 'aria-label="Emploi du temps du lundi au vendredi"' in APP_JS
     assert ".timetable-course" in STYLES
-    assert "assets/styles.css?v=espace-prof-22" in INDEX
-    assert "assets/app.js?v=espace-prof-42" in INDEX
+    assert "assets/styles.css?v=espace-prof-23" in INDEX
+    assert "assets/app.js?v=espace-prof-43" in INDEX
     assert "function startDeskMove(" in APP_JS
     assert "function deleteDesk(" in APP_JS
     assert "function addDesk(" in APP_JS
     assert "function setDeskCount(" in APP_JS
     assert ".desk-delete" in STYLES
+
+
+def test_emploi_du_temps_est_un_calendrier_interactif() -> None:
+    assert 'class="calendar-only"' in APP_JS
+    assert "function openScheduleEditor(" in APP_JS
+    assert "function moveScheduleItem(" in APP_JS
+    assert "application/x-schedule-item" in APP_JS
+    assert "function selectScheduleItem(" in APP_JS
+    assert "Cours associé" in APP_JS
+    render_schedule = APP_JS.split("function renderSchedule()", 1)[1].split("function selectScheduleItem", 1)[0]
+    assert "form-grid" not in render_schedule
 
 
 def test_initialisation_ne_lit_pas_le_mode_demo_avant_sa_declaration() -> None:
