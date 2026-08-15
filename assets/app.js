@@ -389,9 +389,13 @@
       }
 
       function ensureActivitySlides(activity) {
-        if (Array.isArray(activity.slides) && activity.slides.length) return activity;
+        if (Array.isArray(activity.slides) && activity.slides.length) {
+          activity.slides.forEach(slide=>{ if(!slide.duration) slide.duration=activity.estimatedDuration||"5 min"; });
+          return activity;
+        }
         activity.slides = [{
           id: uid("slide"),
+          duration: activity.estimatedDuration || "5 min",
           elements: [
             { id: uid("el"), kind: "text", x: 70, y: 62, w: 820, h: 105, value: activity.title || "Activité", fontSize: 50 },
             { id: uid("el"), kind: "text", x: 70, y: 205, w: 820, h: 210, value: activity.instruction || activity.objective || activity.description || "Nouvelle diapo", fontSize: 34 }
@@ -1786,15 +1790,16 @@
       function scheduleMinutes(value) { const [h,m]=String(value).split(":").map(Number); return h*60+m; }
       function scheduleTime(value) { return `${String(Math.floor(Number(value)/60)).padStart(2,"0")}:${String(Number(value)%60).padStart(2,"0")}`; }
       function currentScheduleItem() { const now=new Date(), days=["dimanche","lundi","mardi","mercredi","jeudi","vendredi","samedi"], day=days[now.getDay()], minute=now.getHours()*60+now.getMinutes(); return (state.schedule||[]).find(item=>item.day===day&&minute>=item.start&&minute<item.end)||(state.schedule||[]).find(item=>item.day===day); }
-      function updateCurrentCourseShortcut() { const item=currentScheduleItem(), button=document.querySelector("#currentCourseShortcut"); if(!button)return; button.hidden=!item; button.textContent=item?`Cours prévu · ${item.level}`:"Cours prévu"; }
-      function openCurrentCourse() { const item=currentScheduleItem(); if(item?.classId)return openTableauClass(item.classId); setView("schedule"); }
+      function selectedScheduleItem() { const id=sessionStorage.getItem("mep-selected-schedule"); return (state.schedule||[]).find(item=>item.id===id)||null; }
+      function updateCurrentCourseShortcut() { const item=selectedScheduleItem()||currentScheduleItem(), button=document.querySelector("#currentCourseShortcut"); if(!button)return; button.hidden=!item; const linked=findItem("class",item?.classId); button.textContent=item?`Cours associé · ${linked?.title||item.level}`:"Cours associé"; }
+      function openCurrentCourse() { const item=selectedScheduleItem()||currentScheduleItem(); if(item?.classId)return openTableauClass(item.classId); setView("schedule"); }
       function renderTimetableGrid() {
         const days = ["lundi", "mardi", "mercredi", "jeudi", "vendredi"];
         const startMinute = 8 * 60;
         const endMinute = 18 * 60;
         const slots = Array.from({ length: (endMinute - startMinute) / 30 }, (_, index) => startMinute + index * 30);
         const headers = `<div class="timetable-corner">Heures</div>${days.map(day => `<div class="timetable-day">${day}</div>`).join("")}`;
-        const cells = slots.map((minute, row) => `${minute % 60 === 0 ? `<div class="timetable-hour" style="grid-row:${row + 2} / span 2">${scheduleTime(minute)}</div>` : ""}${days.map((_, column) => `<div class="timetable-cell ${minute % 60 ? "half-hour" : ""}" style="grid-column:${column + 2};grid-row:${row + 2}"></div>`).join("")}`).join("");
+        const cells = slots.map((minute, row) => `${minute % 60 === 0 ? `<div class="timetable-hour" style="grid-row:${row + 2} / span 2">${scheduleTime(minute)}</div>` : ""}${days.map((day, column) => `<button class="timetable-cell ${minute % 60 ? "half-hour" : ""}" style="grid-column:${column + 2};grid-row:${row + 2}" aria-label="Ajouter un cours ${day} à ${scheduleTime(minute)}" onclick="openScheduleEditor('${day}',${minute})" ondragover="event.preventDefault();this.classList.add('drop-target')" ondragleave="this.classList.remove('drop-target')" ondrop="moveScheduleItem('${day}',${minute},event)"></button>`).join("")}`).join("");
         const courses = (state.schedule || []).map((item, index) => {
           const column = days.indexOf(String(item.day).toLowerCase()) + 2;
           const courseStart = Math.max(startMinute, Number(item.start));
@@ -1802,13 +1807,19 @@
           if (column < 2 || courseEnd <= courseStart) return "";
           const row = Math.floor((courseStart - startMinute) / 30) + 2;
           const span = Math.max(1, Math.ceil((courseEnd - courseStart) / 30));
-          return `<article class="timetable-course" style="grid-column:${column};grid-row:${row} / span ${span}" title="${escapeAttr(item.description)}"><strong>${scheduleTime(item.start)}–${scheduleTime(item.end)}</strong><span>${escapeHtml(item.level)} · ${escapeHtml(item.groupTitle)}</span><small>${escapeHtml(item.description)}</small>${editOnly(`<button type="button" aria-label="Supprimer ce cours" onclick="removeScheduleItem(${index})">×</button>`)}</article>`;
+          const selected=selectedScheduleItem()?.id===item.id;
+          return `<article class="timetable-course ${selected?"selected":""}" draggable="${canEdit()?"true":"false"}" data-schedule-index="${index}" style="grid-column:${column};grid-row:${row} / span ${span}" title="Cliquer pour choisir le cours associé · Double-cliquer pour modifier" onclick="selectScheduleItem(${index},event)" ondblclick="openScheduleEditor('${escapeAttr(item.day)}',${Number(item.start)},${index},event)" ondragstart="startScheduleDrag(${index},event)"><strong>${scheduleTime(item.start)}–${scheduleTime(item.end)}</strong><span>${escapeHtml(item.level)} · ${escapeHtml(item.groupTitle)}</span><small>${escapeHtml(item.description)}</small></article>`;
         }).join("");
         return `<div class="timetable-scroll"><div class="timetable" aria-label="Emploi du temps du lundi au vendredi">${headers}${cells}${courses}</div></div>`;
       }
 
-      function renderSchedule() { const days=["lundi","mardi","mercredi","jeudi","vendredi"]; document.querySelector("#content").innerHTML=`<section class="page-head"><div class="breadcrumb">Emploi du temps</div><h2>Emploi du temps de la semaine</h2><p class="muted">Les cinq jours de la semaine, de 8 h à 18 h, comme sur un emploi du temps de lycée.</p></section>${editOnly(`<section class="card"><form class="form-grid" onsubmit="addScheduleItem(event)"><label>Jour<select name="day">${days.map(day=>`<option>${day}</option>`).join("")}</select></label><label>Début<input name="start" type="time" min="08:00" max="18:00" step="1800" required></label><label>Fin<input name="end" type="time" min="08:00" max="18:00" step="1800" required></label><label>Niveau<input name="level" required></label><label>Groupe classe<input name="groupTitle" required></label><label class="wide">Description complète<textarea name="description" required></textarea></label><label>Cours lié<select name="classId"><option value="">Aucun</option>${state.classes.map(item=>`<option value="${item.id}">${escapeHtml(item.title)}</option>`).join("")}</select></label><button class="btn primary">Ajouter</button></form></section>`)}${renderTimetableGrid()}`; }
-      async function addScheduleItem(event) { event.preventDefault(); const form=new FormData(event.currentTarget); state.schedule.push({id:uid("schedule"),day:String(form.get("day")),start:scheduleMinutes(form.get("start")),end:scheduleMinutes(form.get("end")),level:String(form.get("level")),groupTitle:String(form.get("groupTitle")),description:String(form.get("description")),classId:String(form.get("classId"))}); if(await saveData("Emploi du temps enregistré."))renderSchedule(); }
+      function renderSchedule() { document.querySelector("#content").innerHTML=`<section class="calendar-only">${renderTimetableGrid()}</section>`; }
+      function selectScheduleItem(index,event){ event?.stopPropagation(); const item=state.schedule[index]; if(!item)return; sessionStorage.setItem("mep-selected-schedule",item.id); document.querySelectorAll(".timetable-course").forEach(node=>node.classList.toggle("selected",Number(node.dataset.scheduleIndex)===index)); updateCurrentCourseShortcut(); toast("Cours associé au raccourci de gauche."); }
+      function startScheduleDrag(index,event){ if(!canEdit()){event.preventDefault();return;} event.dataTransfer.effectAllowed="move"; event.dataTransfer.setData("application/x-schedule-item",String(index)); }
+      async function moveScheduleItem(day,start,event){ event.preventDefault(); event.currentTarget.classList.remove("drop-target"); const index=Number(event.dataTransfer.getData("application/x-schedule-item")), item=state.schedule[index]; if(!item)return; const duration=Math.max(30,Number(item.end)-Number(item.start)); item.day=day; item.start=start; item.end=Math.min(1080,start+duration); if(await saveData("Cours déplacé dans l’emploi du temps."))renderSchedule(); }
+      function openScheduleEditor(day,start,index=null,event=null){ event?.stopPropagation(); if(!requireLogin())return; const existing=Number.isInteger(index)?state.schedule[index]:null, end=Math.min(1080,Number(existing?.end||start+60)); const modal=document.querySelector("#editorModal"); modal.hidden=false; modal.innerHTML=`<section class="editor-card schedule-editor"><header class="subtree-head"><div><p>Emploi du temps</p><h2>${existing?"Modifier":"Ajouter"} un cours</h2></div><button class="btn" type="button" onclick="closeEditor()">Fermer</button></header><form class="form-grid" onsubmit="saveScheduleEditor(event,${existing?index:"null"})"><label>Jour<select name="day">${["lundi","mardi","mercredi","jeudi","vendredi"].map(value=>`<option ${value===(existing?.day||day)?"selected":""}>${value}</option>`).join("")}</select></label><label>Début<input name="start" type="time" min="08:00" max="18:00" step="1800" value="${scheduleTime(existing?.start??start)}" required></label><label>Fin<input name="end" type="time" min="08:00" max="18:00" step="1800" value="${scheduleTime(end)}" required></label><label>Cours associé<select name="classId" required><option value="">Choisir un cours</option>${state.classes.map(item=>`<option value="${item.id}" ${item.id===existing?.classId?"selected":""}>${escapeHtml(item.title)}</option>`).join("")}</select></label><label>Groupe classe<input name="groupTitle" value="${escapeAttr(existing?.groupTitle||"")}" required></label><label class="wide">Description<textarea name="description">${escapeHtml(existing?.description||"")}</textarea></label><div class="wide editor-actions">${existing?`<button class="btn danger" type="button" onclick="deleteScheduleFromEditor(${index})">Supprimer</button>`:""}<button class="btn primary" type="submit">Enregistrer</button></div></form></section>`; }
+      async function saveScheduleEditor(event,index){ event.preventDefault(); const form=new FormData(event.currentTarget), start=scheduleMinutes(form.get("start")), end=scheduleMinutes(form.get("end")); if(end<=start){toast("L’heure de fin doit être après le début.");return;} const linked=findItem("class",String(form.get("classId"))), item={id:Number.isInteger(index)?state.schedule[index].id:uid("schedule"),day:String(form.get("day")),start,end,level:linked?.title||"Cours",groupTitle:String(form.get("groupTitle")),description:String(form.get("description")),classId:String(form.get("classId"))}; if(Number.isInteger(index))state.schedule[index]=item;else state.schedule.push(item); sessionStorage.setItem("mep-selected-schedule",item.id); if(await saveData("Emploi du temps enregistré.",event.submitter)){closeEditor();renderSchedule();updateCurrentCourseShortcut();} }
+      async function deleteScheduleFromEditor(index){ const item=state.schedule[index]; if(!item||!confirm("Supprimer ce cours de l’emploi du temps ?"))return; state.schedule.splice(index,1); if(sessionStorage.getItem("mep-selected-schedule")===item.id)sessionStorage.removeItem("mep-selected-schedule"); if(await saveData("Cours supprimé.")){closeEditor();renderSchedule();updateCurrentCourseShortcut();} }
       async function removeScheduleItem(index) { state.schedule.splice(index,1); if(await saveData("Cours supprimé."))renderSchedule(); }
 
       function renderTeacherToolLinks() {
@@ -2282,7 +2293,7 @@
         { view: "tree", selector: "[data-view='tree']", title: "Arbre", text: "L’arbre affiche toute l’organisation des cours et donne un accès direct à chaque élément." },
         { view: "studentClasses", selector: "[data-view='studentClasses']", title: "Groupes Classes", text: "Créez les groupes d’élèves utilisés par la roue, les absences et les outils de classe." },
         { view: "tools", selector: "[data-view='tools']", title: "Outils", text: "Utilisez la roue de la fortune, les absents, les compteurs, l’historique et le chronomètre." },
-        { view: "schedule", selector: "[data-view='schedule']", title: "Emploi du temps", text: "Retrouvez les cinq jours de la semaine et les horaires de 8 h à 18 h, puis ouvrez directement le cours prévu depuis la barre latérale." },
+        { view: "schedule", selector: "[data-view='schedule']", title: "Emploi du temps", text: "Cliquez dans le calendrier pour ajouter un cours, glissez-le pour changer son horaire et cliquez dessus pour créer le raccourci « Cours associé » à gauche." },
         { view: "search", selector: "[data-view='search']", title: "Recherche", text: "Retrouvez rapidement une activité ou une ressource dans tout votre espace." },
         { view: "settings", selector: "[data-view='settings']", title: "Réglages et sauvegardes", text: "Consultez le mode de stockage, exportez vos données et gérez les sauvegardes disponibles." },
         { view: "dashboard", selector: "#openBoardBtn", title: "Mode tableau", text: "Ouvrez une activité en plein écran pour la projeter et naviguer entre ses diapos (activités)." },
@@ -2326,7 +2337,7 @@
           { view: "studentClasses", selector: "#content", title: "Groupes Classes", text: "Ajoutez des groupes et des élèves pour tester les outils de classe." },
           { view: "studentClasses", selector: "#content", title: "Plan de classe", text: "Choisissez directement de 1 à 40 bureaux, puis ajoutez, supprimez et déplacez-les librement dans toute la salle." },
           { view: "tools", selector: "#content", title: "Outils", text: "Testez la roue, les absences, les compteurs et le chronomètre exactement comme dans le véritable espace." },
-          { view: "schedule", selector: "#content", title: "Emploi du temps", text: "Ajoutez vos cours dans la grille du lundi au vendredi, avec les horaires présentés comme sur un emploi du temps de lycée." },
+          { view: "schedule", selector: "#content", title: "Emploi du temps", text: "Le calendrier est entièrement interactif : cliquez sur une case pour ajouter, glissez un cours pour le déplacer et cliquez sur un cours pour l’associer au raccourci de gauche." },
           { view: "search", selector: "#content", title: "Recherche", text: "Retrouvez rapidement une activité ou une ressource dans toutes les données de démonstration." },
           { view: "tutorial", selector: "#content", title: "Tutoriel", text: "Relancez cette visite complète à tout moment ou passez-la avec le bouton prévu." },
           { view: "tutorial", selector: "#exampleAd", title: "Contact OrellanaTech", text: "Dans l'exemple gratuit, la pub est visible ici. Le téléphone et le mail se copient au clic." },
@@ -2335,7 +2346,7 @@
           { view: "dashboard", selector: "#content", title: "Séquence", text: "Le tutoriel ouvre la première séquence de l'exemple.", enter: () => firstClass && firstSequence && openTableauSequence(firstClass.id, firstSequence.id) },
           { view: "dashboard", selector: "#content", title: "Séance", text: "Puis la visite ouvre la première séance pour trouver ses activités.", enter: () => firstClass && firstSequence && firstLesson && openTableauLesson(firstClass.id, firstSequence.id, firstLesson.id) },
           { view: "dashboard", selector: "#content", title: "Activité", text: "Le tutoriel ouvre maintenant l’activité exemple." },
-          { view: "classes", selector: "#content", title: "Éditeur des activités", text: "Réordonnez les miniatures à gauche, déplacez les objets d’une diapo à l’autre et redimensionnez images, PDF, vidéos et documents. Le temps prévu et le contenu sont affichés près de la liste." },
+          { view: "classes", selector: "#content", title: "Éditeur des activités", text: "Chaque miniature possède son propre temps prévu. Réordonnez les diapos à gauche et utilisez la poignée toujours visible des URL et PDF pour les déplacer ou les redimensionner." },
           { view: "dashboard", selector: "#boardPage", title: "Diapo (activité) exemple", text: "Cette activité contient un titre, une image et la vidéo déposée localement.", enter: () => firstActivity && showBoard(firstActivity.id, 0) }
         ];
         tourIndex = 0;
@@ -2628,7 +2639,7 @@
               </div>
             </header>
             <div class="studio-workspace">
-              <div class="studio-sidebar"><div class="studio-duration"><span>Temps prévu</span><strong>${escapeHtml(activity.estimatedDuration || "Non indiqué")}</strong></div><aside class="slide-thumbnails" aria-label="Miniatures des diapos">${activity.slides.map((slide, index) => renderSlideThumbnail(slide, index)).join("")}</aside><div class="studio-activity-content"><span>Contenu de l’activité</span><strong>${escapeHtml(activity.instruction || activity.objective || activity.description || "Aucun contenu renseigné")}</strong></div></div>
+              <div class="studio-sidebar"><aside class="slide-thumbnails" aria-label="Miniatures des diapos">${activity.slides.map((slide, index) => renderSlideThumbnail(slide, index)).join("")}</aside><div class="studio-activity-content"><span>Contenu de l’activité</span><strong>${escapeHtml(activity.instruction || activity.objective || activity.description || "Aucun contenu renseigné")}</strong></div></div>
               <div class="slide-world">
               <div class="slide-strip" id="slideStrip" style="height:${stripHeight}px">
                 ${activity.slides.map((slide, index) => renderStudioSlide(slide, index)).join("")}
@@ -2680,8 +2691,10 @@
 
       function renderSlideThumbnail(slide, index) {
         const preview = (slide.elements || []).filter((element) => element.kind === "text").map((element) => element.value || "").join(" ").slice(0, 70);
-        return `<button class="slide-thumbnail ${index === currentStudioSlideIndex ? "current" : ""}" draggable="true" data-index="${index}" onclick="selectStudioSlide(${index});selectedSlide()?.scrollIntoView({behavior:'smooth',block:'center'})" ondragstart="startStudioSlideReorder(${index},event)" ondragover="event.preventDefault();this.classList.add('drop-target')" ondragleave="this.classList.remove('drop-target')" ondragend="clearStudioSlideDropTargets()" ondrop="reorderStudioSlide(${index},event)"><span>${index + 1}</span><strong>Diapo (activité)</strong><small>${escapeHtml(preview || "Sans texte")}</small></button>`;
+        return `<div class="slide-thumbnail ${index === currentStudioSlideIndex ? "current" : ""}" role="button" tabindex="0" draggable="true" data-index="${index}" onclick="if(!event.target.closest('input')){selectStudioSlide(${index});selectedSlide()?.scrollIntoView({behavior:'smooth',block:'center'})}" ondragstart="startStudioSlideReorder(${index},event)" ondragover="event.preventDefault();this.classList.add('drop-target')" ondragleave="this.classList.remove('drop-target')" ondragend="clearStudioSlideDropTargets()" ondrop="reorderStudioSlide(${index},event)"><span>${index + 1}</span><strong>Diapo (activité)</strong><small>${escapeHtml(preview || "Sans texte")}</small><label class="slide-duration">Temps prévu <input draggable="false" value="${escapeAttr(slide.duration || "5 min")}" aria-label="Temps prévu pour la diapo ${index+1}" onclick="event.stopPropagation()" onpointerdown="event.stopPropagation()" oninput="updateSlideDuration(${index},this.value)"></label></div>`;
       }
+
+      function updateSlideDuration(index,value){ const activity=findItem("activity",document.querySelector(".studio")?.dataset.activityId); if(activity?.slides[index]) activity.slides[index].duration=String(value||"").trim()||"5 min"; }
 
       function startStudioSlideReorder(index,event){ event.dataTransfer.effectAllowed="move"; event.dataTransfer.setData("application/x-studio-slide",String(index)); event.currentTarget.classList.add("dragging"); }
       function clearStudioSlideDropTargets(){ document.querySelectorAll(".slide-thumbnail").forEach(node=>node.classList.remove("dragging","drop-target")); }
@@ -2995,7 +3008,7 @@
       async function addSlide(activityId) {
         if (!await saveStudio(activityId, false, null, false)) return;
         const activity = findItem("activity", activityId);
-        activity.slides.push({ id: uid("slide"), elements: [] });
+        activity.slides.push({ id: uid("slide"), duration: "5 min", elements: [] });
         openActivityStudio(activityId);
         currentStudioSlideIndex = activity.slides.length - 1;
         selectStudioSlide(currentStudioSlideIndex);
@@ -3297,8 +3310,10 @@
       async function saveStudio(activityId, close = false, triggerButton = null, refreshStudio = true) {
         const selectedIndex = currentStudioSlideIndex;
         const activity = findItem("activity", activityId);
+        const previousSlides = activity.slides || [];
         activity.slides = Array.from(document.querySelectorAll(".slide-frame")).map((slide) => ({
           id: slide.dataset.slideId || uid("slide"),
+          duration: previousSlides.find(item=>item.id===slide.dataset.slideId)?.duration || "5 min",
           elements: []
         }));
         Array.from(document.querySelectorAll(".slide-el")).map(readSlideElement).forEach((element) => {
