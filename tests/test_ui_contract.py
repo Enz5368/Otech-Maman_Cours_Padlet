@@ -475,6 +475,11 @@ def test_plan_de_classe_et_emploi_du_temps_sont_disponibles() -> None:
     assert 'id="currentCourseShortcut"' in INDEX
 
 
+def test_initialisation_ne_lit_pas_le_mode_demo_avant_sa_declaration() -> None:
+    ensure_block = APP_JS.split("function ensureDemoData(data)", 1)[1].split("function ensureActivitySlides", 1)[0]
+    assert "freeExampleOpen" not in ensure_block
+
+
 def test_zip_fourni_est_la_base_de_la_version_gratuite() -> None:
     example = ROOT / "assets" / "free-example"
     assert (example / "data.json").is_file()
