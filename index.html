@@ -3,6 +3,11 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="Créez, organisez et projetez vos cours avec MON ESPACE PROF : activités interactives, ressources, groupes d’élèves et outils pédagogiques réunis dans un cartable numérique." />
+    <meta property="og:title" content="MON ESPACE PROF · Cartable numérique" />
+    <meta property="og:description" content="Préparez vos cours, créez des activités interactives et projetez-les simplement en classe." />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://monespaceprof.com/" />
     <title>MON ESPACE PROF · Cartable numérique</title>
     <link rel="stylesheet" href="assets/styles.css?v=espace-prof-19" />
   </head>
@@ -28,7 +33,7 @@
             <label class="label">Identifiant <input name="username" autocomplete="username" required autofocus /></label>
             <label class="label">Mot de passe <input name="password" type="password" autocomplete="current-password" required /></label>
             <a class="forgot-link" href="mailto:orellanatech37@gmail.com?subject=Mot%20de%20passe%20oublie%20-%20MON%20ESPACE%20PROF&body=Bonjour%2C%0A%0AJ'ai%20oublie%20mon%20mot%20de%20passe%20pour%20MON%20ESPACE%20PROF.%0A%0AIdentifiant%20%3A%20" target="_blank" rel="noopener noreferrer">Mot de passe oublié ?</a>
-            <p id="localLoginHint" class="local-login-hint" hidden>Mode local : utilisez <strong>rose / it</strong> ou <strong>root / root</strong>.</p>
+            <p id="localLoginHint" class="local-login-hint" hidden></p>
             <p id="loginError" class="small" style="color:#a11" hidden>Mot de passe incorrect pour cet identifiant.</p>
             <button class="btn primary" type="submit">Se connecter</button>
             <button class="btn" type="button" onclick="openFreeExample()">Voir l'exemple gratuit</button>
@@ -62,6 +67,7 @@
         <a class="nav-button external-nav" href="https://0380035g.index-education.net/pronote/professeur.html" target="_blank" rel="noopener noreferrer">Cahier de texte</a>
         <a class="nav-button external-nav" href="https://extranet.ac-grenoble.fr/iwc_static/layout/main.html?lang=fr&amp;3.0.1.3.0_16070513" target="_blank" rel="noopener noreferrer">Messagerie</a>
         <button class="nav-button" data-view="search">Recherche ressource ou activité</button>
+        <button class="nav-button" data-view="tutorial">Tutoriel</button>
         <button class="nav-button" data-view="settings">Réglages</button>
         <button id="loginNavBtn" class="nav-button" style="margin-top:22px">Connexion</button>
         <button id="logoutBtn" class="nav-button" style="margin-top:22px">Déconnexion</button>
@@ -105,10 +111,11 @@
 
     <section id="boardPage" class="board" hidden></section>
     <div id="editorModal" class="modal" hidden></div>
+    <div id="tourOverlay" class="tour-overlay" hidden></div>
     <div id="buttonHelpTooltip" class="button-help-tooltip" role="tooltip" hidden></div>
     <p id="notice" class="notice" hidden></p>
 
     <script src="assets/api-client.js?v=espace-prof-4"></script>
-    <script src="assets/app.js?v=espace-prof-35"></script>
+    <script src="assets/app.js?v=espace-prof-36"></script>
   </body>
 </html>

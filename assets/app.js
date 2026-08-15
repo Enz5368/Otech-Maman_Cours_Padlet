@@ -158,7 +158,10 @@
         document.querySelector("#boardPage").hidden = true;
         document.querySelector("#loginPage").hidden = false;
         const localHint = document.querySelector("#localLoginHint");
-        if (localHint) localHint.hidden = !isLocalFileMode();
+        if (localHint) {
+          localHint.hidden = !isLocalFileMode();
+          localHint.innerHTML = isLocalFileMode() ? "Mode local : utilisez <strong>rose / it</strong> ou <strong>root / root</strong>." : "";
+        }
         setTimeout(() => document.querySelector("input[name='username']")?.focus(), 50);
       }
 
@@ -184,6 +187,7 @@
         currentTableauPage = { type: "classes" };
         render();
         toast("Mode gratuit : toutes les fonctions sont disponibles, sans aucun enregistrement sur le serveur.");
+        setTimeout(startFreeExampleTutorial, 250);
       }
 
       function currentCacheKey() {
@@ -899,7 +903,7 @@
       function applyInitialRoute() {
         const params = new URLSearchParams(window.location.search);
         const view = params.get("view");
-        if (view && ["dashboard", "classes", "tree", "studentClasses", "tools", "search", "settings"].includes(view)) {
+        if (view && ["dashboard", "classes", "tree", "studentClasses", "tools", "search", "tutorial", "settings"].includes(view)) {
           currentView = view;
         }
       }
@@ -955,6 +959,7 @@
           studentClasses: ["Groupes Classes", "Groupes réels et listes d'élèves."],
           tools: ["Roue de la fortune et chrono", "Tirages et minuteur de classe."],
           search: ["Recherche ressource ou activité", "Retrouver rapidement une activité ou une ressource."],
+          tutorial: ["Tutoriel", "Découvrir toutes les fonctions du site à son rythme."],
           settings: ["Réglages", "Configuration locale du site HTML."]
         };
         const selectedNavButton = document.querySelector(`.nav-button[data-view="${currentView}"]`);
@@ -967,6 +972,7 @@
         document.querySelector("#openBoardBtn").hidden = currentView === "dashboard";
         document.querySelector("#logoutBtn").hidden = !isLoggedIn();
         document.querySelector("#loginNavBtn").hidden = isLoggedIn();
+        document.querySelector("#loginNavBtn").textContent = freeExampleOpen ? "Quitter la démo" : "Connexion";
         document.querySelector("#exampleAd").hidden = !freeExampleOpen || isLoggedIn();
         document.querySelector(".sidebar-mail").hidden = freeExampleOpen && !isLoggedIn();
         if (currentView === "dashboard") renderDashboard();
@@ -975,6 +981,7 @@
         if (currentView === "studentClasses") renderStudentClasses();
         if (currentView === "tools") renderTools();
         if (currentView === "search") renderSearch();
+        if (currentView === "tutorial") renderTutorial();
         if (currentView === "settings") renderSettings();
       }
 
@@ -1088,10 +1095,10 @@
         if (document?.url) {
           return `<span class="sequence-hook-control">
             <a class="btn sequence-hook-document" href="${escapeAttr(document.url)}" target="_blank" rel="noopener noreferrer" onclick="return openManagedLink(this.href,event)" title="Ouvrir ${escapeAttr(document.name || "le document d’accroche")}">📎 Document d’accroche</a>
-            ${isLoggedIn() ? `<label class="sequence-hook-replace" title="Remplacer le document d’accroche" aria-label="Remplacer le document d’accroche">↻<input type="file" hidden onchange="setSequenceHookDocument('${escapeAttr(sequence.id)}',this.files[0],this);this.value=''" /></label>` : ""}
+            ${canEdit() ? `<label class="sequence-hook-replace" title="Remplacer le document d’accroche" aria-label="Remplacer le document d’accroche">↻<input type="file" hidden onchange="setSequenceHookDocument('${escapeAttr(sequence.id)}',this.files[0],this);this.value=''" /></label>` : ""}
           </span>`;
         }
-        if (!isLoggedIn()) return `<span class="btn sequence-hook-document empty" aria-disabled="true">📎 Document d’accroche</span>`;
+        if (!canEdit()) return `<span class="btn sequence-hook-document empty" aria-disabled="true">📎 Document d’accroche</span>`;
         return `<label class="btn sequence-hook-document empty">＋ Document d’accroche<input type="file" hidden onchange="setSequenceHookDocument('${escapeAttr(sequence.id)}',this.files[0],this);this.value=''" /></label>`;
       }
 
@@ -1791,15 +1798,15 @@
                 <div class="wheel-result"><span class="wheel-help">La roue choisit au hasard un élève présent qui n'a pas atteint sa limite.</span><strong>${escapeHtml(last)}</strong></div>
               </div>
               <label class="label" style="margin:18px auto 0;max-width:330px">Nombre maximum de tirages par élève
-                <input type="number" min="1" max="20" value="${limit}" ${isLoggedIn() ? "" : "disabled"} onchange="setWheelLimit('${classe.id}', this.value)">
+                <input type="number" min="1" max="20" value="${limit}" ${canEdit() ? "" : "disabled"} onchange="setWheelLimit('${classe.id}', this.value)">
               </label>
               <div class="row wrap" style="justify-content:center;margin-top:18px">
-                ${isLoggedIn() ? `
+                ${canEdit() ? `
                   <button class="btn primary" ${availableCount ? "" : "disabled"} onclick="spinStudentWheel('${classe.id}')">Lancer la roue</button>
                   <button class="btn" onclick="resetWheelCounts('${classe.id}')">Remettre les compteurs à 0</button>
                   <button class="btn" onclick="resetWheelAbsences('${classe.id}')">Tout le monde présent</button>
                   <button class="btn" onclick="clearWheelHistory('${classe.id}')">Vider l'historique</button>
-                ` : `<span class="pill">Connectez-vous pour utiliser la roue</span>`}
+                ` : `<span class="pill">Ouvrez la démo gratuite pour utiliser la roue</span>`}
               </div>
               <p class="small muted" style="text-align:center;margin-top:12px">${availableCount} élève(s) encore disponible(s), ${presentCount} présent(s) sur ${students.length}. Limite actuelle : ${limit} tirage(s) par élève.</p>
             </section>
@@ -2030,7 +2037,7 @@
             <span class="pill">Tâche finale${sequence.finalTask ? ` : ${escapeHtml(sequence.finalTask)}` : ""}</span>
             <span class="pill">${activityCount} activité(s)</span>
             ${editOnly(moveButtons("sequence", sequence.id))}
-            <button class="btn primary" onclick="openSequencePage('${classe.id}','${sequence.id}')">${isLoggedIn() ? "Modifier" : "Voir"}</button>
+            <button class="btn primary" onclick="openSequencePage('${classe.id}','${sequence.id}')">${canEdit() ? "Modifier" : "Voir"}</button>
             ${editOnly(`<button class="btn danger" onclick="removeItem('sequence','${sequence.id}')">Supprimer</button>`)}
           </div>
         </article>`;
@@ -2074,7 +2081,7 @@
           <div class="row wrap">
             <span class="pill">${lesson.activities.length} activité(s)</span>
             ${editOnly(moveButtons("lesson", lesson.id))}
-            <button class="btn primary" onclick="openLessonPage('${classe.id}','${sequence.id}','${lesson.id}')">${isLoggedIn() ? "Modifier" : "Voir"}</button>
+            <button class="btn primary" onclick="openLessonPage('${classe.id}','${sequence.id}','${lesson.id}')">${canEdit() ? "Modifier" : "Voir"}</button>
             ${editOnly(`<button class="btn danger" onclick="removeItem('lesson','${lesson.id}')">Supprimer</button>`)}
           </div>
         </article>`;
@@ -2231,15 +2238,16 @@
       }
 
       const tutorialSteps = [
-        { view: "dashboard", selector: "[data-view='dashboard']", title: "Cours par niveau à projeter", text: "Ici, on navigue jusqu'à l’activité à montrer aux élèves. Cette partie ne sert pas à modifier." },
-        { view: "classes", selector: "[data-view='classes']", title: "Cours modifiables", text: "C'est l'espace de préparation : classes pédagogiques, séquences, séances et présentations." },
-        { view: "classes", selector: "#content", title: "Préparation", text: "Depuis une classe, tu ouvres une séquence, puis une séance. Les activités se créent uniquement dans une séance." },
-        { view: "studentClasses", selector: "[data-view='studentClasses']", title: "Groupes Classes", text: "Ici, tu gères les vrais groupes avec les noms des élèves, par exemple 5emeA et 5emeB." },
-        { view: "tools", selector: "[data-view='tools']", title: "Outils", text: "Cette entrée contient la roue de la fortune, les absents, les compteurs, l'historique et le chrono." },
-        { view: "search", selector: "[data-view='search']", title: "Recherche", text: "La recherche retrouve rapidement une présentation ou une ressource sans parcourir toute l'arborescence." },
-        { view: "settings", selector: "[data-view='settings']", title: "Réglages", text: "Dans les réglages, tu peux exporter le ZIP, importer des données, ou réinitialiser l'espace du compte." },
-        { view: "settings", selector: "#openBoardBtn", title: "Mode tableau", text: "Ce bouton ouvre directement une présentation au tableau. Dans les séances, chaque activité a aussi son bouton de présentation." },
-        { view: "tutorial", selector: ".sidebar-mail", title: "Contact", text: "En bas à gauche, le téléphone et le mail restent discrets et se copient au clic." }
+        { view: "dashboard", selector: "[data-view='dashboard']", title: "Cours par niveau à projeter", text: "Parcourez les classes, séquences et séances pour ouvrir une activité devant les élèves." },
+        { view: "classes", selector: "[data-view='classes']", title: "Cours modifiables", text: "Préparez ici vos classes pédagogiques, séquences, séances, activités et ressources." },
+        { view: "classes", selector: "#content", title: "Créer et organiser", text: "Ouvrez une classe, puis une séquence et une séance pour ajouter, modifier, déplacer ou masquer les contenus." },
+        { view: "tree", selector: "[data-view='tree']", title: "Arbre", text: "L’arbre affiche toute l’organisation des cours et donne un accès direct à chaque élément." },
+        { view: "studentClasses", selector: "[data-view='studentClasses']", title: "Groupes Classes", text: "Créez les groupes d’élèves utilisés par la roue, les absences et les outils de classe." },
+        { view: "tools", selector: "[data-view='tools']", title: "Outils", text: "Utilisez la roue de la fortune, les absents, les compteurs, l’historique et le chronomètre." },
+        { view: "search", selector: "[data-view='search']", title: "Recherche", text: "Retrouvez rapidement une activité ou une ressource dans tout votre espace." },
+        { view: "settings", selector: "[data-view='settings']", title: "Réglages et sauvegardes", text: "Consultez le mode de stockage, exportez vos données et gérez les sauvegardes disponibles." },
+        { view: "dashboard", selector: "#openBoardBtn", title: "Mode tableau", text: "Ouvrez une activité en plein écran pour la projeter et naviguer entre ses diapos (activités)." },
+        { view: "tutorial", selector: ".sidebar-mail", title: "Aide et contact", text: "Relancez ce tutoriel à tout moment. Les coordonnées d’assistance restent accessibles dans la barre latérale." }
       ];
 
       function renderTutorial() {
@@ -2247,14 +2255,14 @@
           <section class="page-head">
             <div class="breadcrumb">Tutoriel</div>
             <h2 style="margin:0;color:var(--wine-900);font-size:34px">Visite guidée</h2>
-            <p class="muted">Lance le tutoriel pour parcourir les parties du site une par une.</p>
+            <p class="muted">Lancez le tutoriel pour parcourir toutes les parties du site. Vous pouvez le passer ou le quitter à tout moment.</p>
           </section>
           <section class="card">
-            <h2>Comprendre le site en quelques clics</h2>
-            <p class="muted">Le tutoriel change de page automatiquement, encadre la zone importante et explique à quoi elle sert.</p>
+            <h2>Comprendre tout le site en quelques clics</h2>
+            <p class="muted">La visite change de page automatiquement, encadre chaque fonction importante et explique son utilisation.</p>
             <div class="row wrap" style="margin-top:18px">
               <button class="btn primary" onclick="startTutorial()">Lancer le tutoriel</button>
-              <button class="btn" onclick="setView('dashboard')">Aller aux cours à projeter</button>
+              <button class="btn" onclick="setView('dashboard')">Passer le tutoriel</button>
             </div>
           </section>
         `;
@@ -2273,17 +2281,18 @@
         const firstLesson = firstSequence?.lessons?.[0];
         const firstActivity = firstLesson?.activities?.[0];
         activeTutorialSteps = [
-          { view: "dashboard", selector: "#content", title: "Exemple gratuit", text: "Voici l'exemple gratuit sur Leonardo da Vinci. Tu vas être guidé jusqu'à une présentation complète." },
-          { view: "classes", selector: "#content", title: "Cours modifiables", text: "Dans cette partie, on voit les cours organisés par niveau. En gratuit, tu peux consulter sans modifier." },
-          { view: "studentClasses", selector: "#content", title: "Groupes Classes", text: "Groupes Classes montre les groupes d'élèves. Les actions restent bloquées sans connexion." },
-          { view: "tools", selector: "#content", title: "Outils", text: "Les outils, comme la roue et le chrono, sont visibles mais utilisables seulement avec un compte connecté." },
-          { view: "search", selector: "#content", title: "Recherche", text: "La recherche permet de retrouver rapidement une présentation ou une ressource." },
-          { view: "tutorial", selector: "#content", title: "Tutoriel", text: "Cette entrée permet de relancer la visite guidée du portail." },
+          { view: "dashboard", selector: "#content", title: "Démo gratuite complète", text: "La démo reprend les fonctions du véritable espace avec un cours sur Leonardo da Vinci. Vos essais restent uniquement en mémoire pendant cette visite." },
+          { view: "classes", selector: "#content", title: "Cours modifiables", text: "Créez, modifiez, déplacez et supprimez les classes, séquences, séances, activités et ressources comme dans le véritable espace." },
+          { view: "tree", selector: "#content", title: "Arbre", text: "Explorez toute l’organisation du cours depuis une vue unique." },
+          { view: "studentClasses", selector: "#content", title: "Groupes Classes", text: "Ajoutez des groupes et des élèves pour tester les outils de classe." },
+          { view: "tools", selector: "#content", title: "Outils", text: "Testez la roue, les absences, les compteurs et le chronomètre exactement comme dans le véritable espace." },
+          { view: "search", selector: "#content", title: "Recherche", text: "Retrouvez rapidement une activité ou une ressource dans toutes les données de démonstration." },
+          { view: "tutorial", selector: "#content", title: "Tutoriel", text: "Relancez cette visite complète à tout moment ou passez-la avec le bouton prévu." },
           { view: "tutorial", selector: "#exampleAd", title: "Contact OrellanaTech", text: "Dans l'exemple gratuit, la pub est visible ici. Le téléphone et le mail se copient au clic." },
-          { view: "settings", selector: "#content", title: "Réglages", text: "Les réglages expliquent le mode public. Les exports et imports demandent une connexion." },
+          { view: "settings", selector: "#content", title: "Réglages", text: "Exportez la démo et essayez les fonctions de gestion sans envoyer de données au serveur." },
           { view: "dashboard", selector: "#content", title: "Classe 5eme", text: "On commence par la classe 5eme.", enter: () => firstClass && openTableauClass(firstClass.id) },
           { view: "dashboard", selector: "#content", title: "Séquence", text: "Le tutoriel ouvre la première séquence de l'exemple.", enter: () => firstClass && firstSequence && openTableauSequence(firstClass.id, firstSequence.id) },
-          { view: "dashboard", selector: "#content", title: "Séance", text: "Puis il ouvre la première séance pour trouver la présentation.", enter: () => firstClass && firstSequence && firstLesson && openTableauLesson(firstClass.id, firstSequence.id, firstLesson.id) },
+          { view: "dashboard", selector: "#content", title: "Séance", text: "Puis la visite ouvre la première séance pour trouver ses activités.", enter: () => firstClass && firstSequence && firstLesson && openTableauLesson(firstClass.id, firstSequence.id, firstLesson.id) },
           { view: "dashboard", selector: "#content", title: "Activité", text: "Le tutoriel ouvre maintenant l’activité exemple." },
           { view: "dashboard", selector: "#boardPage", title: "Diapo (activité) exemple", text: "Cette activité contient un titre, une image et la vidéo déposée localement.", enter: () => firstActivity && showBoard(firstActivity.id, 0) }
         ];
@@ -2325,12 +2334,12 @@
         overlay.innerHTML = `
           <div class="tour-highlight" style="left:${left}px;top:${top}px;width:${width}px;height:${height}px"></div>
           <section class="tour-panel" style="left:${panelLeft}px;top:${panelTop}px">
-            <span class="tour-step-count">Etape ${tourIndex + 1} / ${steps.length}</span>
+            <span class="tour-step-count">Étape ${tourIndex + 1} / ${steps.length}</span>
             <h3>${escapeHtml(step.title)}</h3>
             <p>${escapeHtml(step.text)}</p>
             <div class="row wrap" style="margin-top:16px;justify-content:flex-end">
-              ${forcedTour ? "" : `<button class="btn" onclick="endTutorial()">Terminer</button>`}
-              <button class="btn" ${tourIndex === 0 ? "disabled" : ""} onclick="previousTutorialStep()">Precedent</button>
+              <button class="btn" onclick="endTutorial()">Passer le tutoriel</button>
+              <button class="btn" ${tourIndex === 0 ? "disabled" : ""} onclick="previousTutorialStep()">Précédent</button>
               <button class="btn primary" onclick="nextTutorialStep()">${tourIndex === steps.length - 1 ? "Finir" : "Suivant"}</button>
             </div>
           </section>
