@@ -2350,12 +2350,12 @@
           { view: "search", selector: "#content", title: "Recherche", text: "Retrouvez rapidement une activité ou une ressource dans toutes les données de démonstration." },
           { view: "tutorial", selector: "#content", title: "Tutoriel", text: "Relancez cette visite complète à tout moment ou passez-la avec le bouton prévu." },
           { view: "tutorial", selector: "#exampleAd", title: "Contact OrellanaTech", text: "Dans l'exemple gratuit, la pub est visible ici. Le téléphone et le mail se copient au clic." },
-          { view: "settings", selector: "#content", title: "Réglages", text: "Exportez la démo et essayez les fonctions de gestion sans envoyer de données au serveur." },
+          { view: "settings", selector: "#content", title: "Réglages", text: "Exportez un ZIP complet : les PDF, documents LibreOffice, MP3 et autres médias sont inclus pour rester consultables hors ligne." },
           { view: "dashboard", selector: "#content", title: "Classe 5eme", text: "On commence par la classe 5eme.", enter: () => firstClass && openTableauClass(firstClass.id) },
           { view: "dashboard", selector: "#content", title: "Séquence", text: "Le tutoriel ouvre la première séquence de l'exemple.", enter: () => firstClass && firstSequence && openTableauSequence(firstClass.id, firstSequence.id) },
           { view: "dashboard", selector: "#content", title: "Séance", text: "Puis la visite ouvre la première séance pour trouver ses activités.", enter: () => firstClass && firstSequence && firstLesson && openTableauLesson(firstClass.id, firstSequence.id, firstLesson.id) },
           { view: "dashboard", selector: "#content", title: "Activité", text: "Le tutoriel ouvre maintenant l’activité exemple." },
-          { view: "classes", selector: "#content", title: "Éditeur des activités", text: "Déposez un PPTX pour importer ses diapos. Supprimez depuis une miniature, puis utilisez Annuler/Rétablir ou Ctrl+Z pour récupérer une diapo ou un objet supprimé." },
+          { view: "classes", selector: "#content", title: "Éditeur des activités", text: "Déposez un PPTX pour importer ses diapos. Ajoutez ou collez aussi des PDF, documents LibreOffice/ODT et MP3 : ils restent consultables dans la diapo sans téléchargement. Supprimez depuis une miniature, puis utilisez Annuler/Rétablir ou Ctrl+Z pour récupérer une diapo ou un objet supprimé." },
           { view: "dashboard", selector: "#boardPage", title: "Diapo (activité) exemple", text: "Cette activité contient un titre, une image et la vidéo déposée localement.", enter: () => firstActivity && showBoard(firstActivity.id, 0) }
         ];
         tourIndex = 0;
@@ -2829,12 +2829,15 @@
           const slide = selectedSlide();
           if (!slide) return;
           const items = [...(event.clipboardData?.items || [])];
-          const image = items.find((item) => item.kind === "file" && item.type.startsWith("image/"))?.getAsFile();
+          const files = items.filter((item) => item.kind === "file").map((item) => item.getAsFile()).filter(Boolean);
           const text = event.clipboardData?.getData("text/plain") || "";
-          if (!image && !text) return;
+          if (!files.length && !text) return;
           event.preventDefault();
           const slideIndex = Number(slide.dataset.slideIndex || 0);
-          if (image) await insertStudioClipboardImage(image, slideIndex);
+          if (files.length) {
+            selectStudioSlide(slideIndex);
+            for (const file of files) await addFileElement(studio.dataset.activityId, file);
+          }
           else insertStudioText(text, slideIndex);
         });
         document.querySelectorAll(".studio .slide-text").forEach((text) => text.addEventListener("input", () => fitStudioText(text.closest(".slide-el"))));
@@ -3759,6 +3762,17 @@
 
       async function officeDocumentToHtml(arrayBuffer) {
         try {
+          const contentXml = await extractZipEntry(arrayBuffer, "content.xml");
+          const xml = new DOMParser().parseFromString(new TextDecoder("utf-8").decode(contentXml), "application/xml");
+          if (xml.querySelector("parsererror")) throw new Error("document LibreOffice invalide");
+          const blocks = [...xml.querySelectorAll("text\\:h, text\\:p, h, p")];
+          const html = blocks.slice(0, 1000).map((block) => {
+            const text = escapeHtml(block.textContent || "");
+            return block.localName === "h" ? `<h3>${text || "&nbsp;"}</h3>` : `<p>${text || "&nbsp;"}</p>`;
+          }).join("");
+          return html || "<p>Ce document LibreOffice ne contient aucun texte affichable.</p>";
+        } catch {}
+        try {
           const documentXml = await extractZipEntry(arrayBuffer, "word/document.xml");
           return docxXmlToHtml(new TextDecoder("utf-8").decode(documentXml));
         } catch {}
@@ -3943,8 +3957,8 @@
         modal.hidden = false;
         modal.innerHTML = `<section class="print-preview-shell">
           <header class="print-preview-toolbar">
-            <div><strong>Aperçu de la séance complète</strong><p class="small muted">Toutes les activités et leurs diapositives seront imprimées dans l'ordre.</p></div>
-            <div class="row wrap"><button class="btn primary" onclick="printActivity()">Imprimer toute la séance</button><button class="btn" onclick="closeEditor()">Fermer</button></div>
+            <div><strong>Aperçu de la séance complète</strong><p class="small muted">Toutes les activités et leurs diapositives sont imprimées dans l’ordre, avec une diapo par page.</p></div>
+            <div class="row wrap">${printOrientationControl()}<button class="btn primary" onclick="printActivity()">Imprimer toute la séance</button><button class="btn" onclick="closeEditor()">Fermer</button></div>
           </header>
           <div class="print-preview-scroll">
             <article class="printable-lesson" id="lessonPrintPreview">
@@ -3982,10 +3996,10 @@
           <header class="print-preview-toolbar">
             <div>
               <strong>Aperçu avant impression</strong>
-              <p class="small muted">Vérifiez la fiche, puis imprimez-la ou exportez-la dans Word.</p>
+              <p class="small muted">Choisissez l’orientation. Chaque diapo sera imprimée sur une page distincte.</p>
             </div>
             <div class="row wrap">
-              <button class="btn primary" onclick="printActivity()">Imprimer</button>
+              ${printOrientationControl()}<button class="btn primary" onclick="printActivity()">Imprimer</button>
               <button class="btn" onclick="exportActivityWord('${activity.id}')">Exporter Word (.docx)</button>
               <button class="btn" onclick="closeEditor()">Fermer</button>
             </div>
@@ -4035,7 +4049,29 @@
         return `<div class="print-slide-element print-slide-placeholder" style="${style}"><strong>${escapeHtml(labelTypeForPptx(element.kind))}</strong><span>${escapeHtml(element.value || "")}</span></div>`;
       }
 
+      function printOrientationControl() {
+        return `<label class="print-orientation-control">Orientation
+          <select id="printOrientation" onchange="setPrintOrientation(this.value)">
+            <option value="landscape">Paysage</option>
+            <option value="portrait">Portrait</option>
+          </select>
+        </label>`;
+      }
+
+      function setPrintOrientation(value) {
+        const orientation = value === "portrait" ? "portrait" : "landscape";
+        let style = document.querySelector("#dynamicPrintPageStyle");
+        if (!style) {
+          style = document.createElement("style");
+          style.id = "dynamicPrintPageStyle";
+          document.head.appendChild(style);
+        }
+        style.textContent = `@media print { @page { size: A4 ${orientation}; margin: 10mm; } }`;
+        document.body.dataset.printOrientation = orientation;
+      }
+
       function printActivity() {
+        setPrintOrientation(document.querySelector("#printOrientation")?.value || "landscape");
         window.print();
       }
 
@@ -4110,7 +4146,7 @@
           link.href = URL.createObjectURL(blob);
           link.download = `in-viaggio-export-${new Date().toISOString().slice(0, 10)}.zip`;
           link.click();
-          URL.revokeObjectURL(link.href);
+          setTimeout(() => URL.revokeObjectURL(link.href), 1000);
           toast(exportWarnings.length
             ? `ZIP exporté. ${exportWarnings.length} média(s) introuvable(s) sont indiqués dans le rapport.`
             : "ZIP exporté avec les présentations et leurs médias.");
@@ -4185,7 +4221,7 @@
       }
 
       async function collectActivityMediaExportFiles(activity, activityFolder) {
-        const supported = new Set(["image", "audio", "video"]);
+        const supported = new Set(["image", "audio", "video", "pdf", "document"]);
         const elements = (activity.slides || []).flatMap((slide) => slide.elements || []);
         const uniqueElements = [...new Map(elements
           .filter((element) => supported.has(element.kind) && element.value)
@@ -4470,16 +4506,18 @@
       }
 
       function defaultMediaMime(kind) {
-        return kind === "image" ? "image/png" : kind === "audio" ? "audio/mpeg" : "video/mp4";
+        return kind === "image" ? "image/png" : kind === "audio" ? "audio/mpeg" : kind === "pdf" ? "application/pdf" : kind === "document" ? "application/vnd.oasis.opendocument.text" : "video/mp4";
       }
 
       function mediaExtension(mimeType, kind) {
         const extensions = {
           "image/jpeg": "jpg", "image/png": "png", "image/gif": "gif", "image/webp": "webp",
           "audio/mpeg": "mp3", "audio/mp4": "m4a", "audio/wav": "wav", "audio/ogg": "ogg",
-          "video/mp4": "mp4", "video/webm": "webm", "video/ogg": "ogv", "video/quicktime": "mov"
+          "video/mp4": "mp4", "video/webm": "webm", "video/ogg": "ogv", "video/quicktime": "mov",
+          "application/pdf": "pdf", "application/vnd.oasis.opendocument.text": "odt",
+          "application/vnd.oasis.opendocument.spreadsheet": "ods", "application/vnd.oasis.opendocument.presentation": "odp"
         };
-        return extensions[String(mimeType || "").split(";")[0].toLowerCase()] || (kind === "image" ? "png" : kind === "audio" ? "mp3" : "mp4");
+        return extensions[String(mimeType || "").split(";")[0].toLowerCase()] || (kind === "image" ? "png" : kind === "audio" ? "mp3" : kind === "pdf" ? "pdf" : kind === "document" ? "odt" : "mp4");
       }
 
       function mediaPlaceholderPng() {

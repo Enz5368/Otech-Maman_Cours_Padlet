@@ -1583,6 +1583,22 @@
         padding: 14px 18px;
       }
       .print-preview-toolbar p { margin: 4px 0 0; }
+      .print-orientation-control {
+        display: grid;
+        gap: 4px;
+        color: var(--wine-900);
+        font-size: 12px;
+        font-weight: 800;
+      }
+      .print-orientation-control select {
+        min-width: 120px;
+        padding: 9px 34px 9px 11px;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        background: white;
+        color: var(--ink);
+        font: inherit;
+      }
       .print-preview-scroll { overflow: auto; padding: 28px; }
       .printable-activity {
         width: min(100%, 1040px);

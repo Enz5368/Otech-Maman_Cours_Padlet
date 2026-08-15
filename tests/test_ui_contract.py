@@ -451,6 +451,21 @@ def test_tutoriel_complet_est_accessible_et_passable() -> None:
     assert "function startTutorial()" in APP_JS
     assert "function startFreeExampleTutorial()" in APP_JS
     assert "Passer le tutoriel" in APP_JS
+
+
+def test_export_impression_et_documents_libreoffice() -> None:
+    assert 'new Set(["image", "audio", "video", "pdf", "document"])' in APP_JS
+    assert '"application/pdf": "pdf"' in APP_JS
+    assert '"application/vnd.oasis.opendocument.text": "odt"' in APP_JS
+    assert 'extractZipEntry(arrayBuffer, "content.xml")' in APP_JS
+    assert 'files = items.filter((item) => item.kind === "file")' in APP_JS
+    assert "for (const file of files) await addFileElement" in APP_JS
+    assert "function printOrientationControl()" in APP_JS
+    assert 'value="portrait">Portrait' in APP_JS
+    assert 'value="landscape">Paysage' in APP_JS
+    assert "une diapo par page" in APP_JS
+    assert "espace-prof-26" in INDEX
+    assert "espace-prof-46" in INDEX
     assert "Précédent" in APP_JS
     assert "Suivant" in APP_JS
     assert "setTimeout(startFreeExampleTutorial, 250);" in APP_JS
@@ -499,8 +514,8 @@ def test_plan_de_classe_style_cinema_et_emploi_du_temps_lycee() -> None:
     assert '["lundi", "mardi", "mercredi", "jeudi", "vendredi"]' in APP_JS
     assert 'aria-label="Emploi du temps du lundi au vendredi"' in APP_JS
     assert ".timetable-course" in STYLES
-    assert "assets/styles.css?v=espace-prof-25" in INDEX
-    assert "assets/app.js?v=espace-prof-45" in INDEX
+    assert "assets/styles.css?v=espace-prof-26" in INDEX
+    assert "assets/app.js?v=espace-prof-46" in INDEX
     assert "function startDeskMove(" in APP_JS
     assert "function deleteDesk(" in APP_JS
     assert "function addDesk(" in APP_JS
