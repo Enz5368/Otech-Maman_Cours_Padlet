@@ -139,6 +139,10 @@
       return request("/files", { method: "POST", body });
     },
 
+    convertVideo(fileId) {
+      return request(`/files/${encodeURIComponent(fileId)}/convert-video`, { method: "POST" });
+    },
+
     files(offset = 0, limit = 200) {
       return request(`/files?offset=${encodeURIComponent(offset)}&limit=${encodeURIComponent(limit)}`);
     }

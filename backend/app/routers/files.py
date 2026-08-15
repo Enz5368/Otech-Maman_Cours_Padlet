@@ -14,7 +14,7 @@ from ..config import get_settings
 from ..dependencies import CsrfGuard, CurrentUser, DbDep
 from ..models import StoredFile
 from ..services.audit import record_audit
-from ..services.storage import iter_file_range, resolve_user_file, store_upload
+from ..services.storage import convert_stored_video, iter_file_range, resolve_user_file, store_upload
 
 router = APIRouter(prefix="/files", tags=["files"])
 RANGE_RE = re.compile(r"bytes=(\d*)-(\d*)$")
@@ -127,6 +127,19 @@ def file_content(
         )
     headers["Content-Length"] = str(size)
     return StreamingResponse(iter_file_range(path, 0, size - 1), media_type=record.mime_type, headers=headers)
+
+
+@router.post("/{file_id}/convert-video")
+def convert_video(file_id: uuid.UUID, user: CurrentUser, db: DbDep, _csrf: CsrfGuard) -> dict:
+    record = owned_file(db, user.id, file_id)
+    convert_stored_video(get_settings(), user, record)
+    record_audit(db, "file.video_converted", user_id=user.id, resource_id=str(record.id))
+    db.commit()
+    return {
+        "id": str(record.id),
+        "mime_type": record.mime_type,
+        "content_url": f"/api/v1/files/{record.id}/content",
+    }
 
 
 @router.delete("/{file_id}", status_code=status.HTTP_204_NO_CONTENT)

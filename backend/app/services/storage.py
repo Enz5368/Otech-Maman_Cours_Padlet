@@ -3,6 +3,7 @@ from __future__ import annotations
 import base64
 import binascii
 import hashlib
+import json
 import mimetypes
 import re
 import shutil
@@ -42,6 +43,16 @@ ALLOWED_EXTENSIONS = {
     ".mp4",
     ".webm",
     ".mov",
+    ".m4v",
+    ".mkv",
+    ".avi",
+    ".wmv",
+    ".flv",
+    ".mpeg",
+    ".mpg",
+    ".3gp",
+    ".ts",
+    ".m2ts",
     ".mp3",
     ".wav",
     ".ogg",
@@ -59,6 +70,11 @@ MIME_EXTENSION_OVERRIDES = {
     "application/vnd.openxmlformats-officedocument.presentationml.presentation": ".pptx",
     "application/vnd.openxmlformats-officedocument.wordprocessingml.document": ".docx",
     "application/vnd.oasis.opendocument.text": ".odt",
+}
+VIDEO_MIME_BY_EXTENSION = {
+    ".avi": "video/x-msvideo", ".mkv": "video/x-matroska", ".wmv": "video/x-ms-wmv",
+    ".flv": "video/x-flv", ".m4v": "video/x-m4v", ".mpeg": "video/mpeg",
+    ".mpg": "video/mpeg", ".3gp": "video/3gpp", ".ts": "video/mp2t", ".m2ts": "video/mp2t",
 }
 DATA_URL_RE = re.compile(r"^data:([^;,]+)?(?:;[^,]*)?;base64,(.*)$", re.DOTALL)
 
@@ -80,7 +96,7 @@ def validate_mime_and_extension(filename: str, mime_type: str) -> str:
     if not (mime_type.startswith(ALLOWED_MIME_PREFIXES) or mime_type in ALLOWED_MIME_TYPES):
         raise HTTPException(status_code=415, detail="Type MIME non autorisé")
     guessed = mimetypes.guess_type(filename)[0]
-    if guessed and guessed.split("/", 1)[0] != mime_type.split("/", 1)[0]:
+    if guessed and extension not in VIDEO_MIME_BY_EXTENSION and guessed.split("/", 1)[0] != mime_type.split("/", 1)[0]:
         raise HTTPException(status_code=415, detail="Extension et type MIME incompatibles")
     return extension
 
@@ -190,6 +206,46 @@ def _check_quota(user: User, settings: Settings, size: int, backup_bytes: int = 
         raise HTTPException(status_code=413, detail="Quota de stockage dépassé")
 
 
+def _video_is_browser_compatible(source: Path) -> bool:
+    ffprobe = shutil.which("ffprobe")
+    if not ffprobe or source.suffix.lower() != ".mp4":
+        return False
+    try:
+        result = subprocess.run(  # noqa: S603 - arguments séparés et chemin validé
+            [ffprobe, "-v", "error", "-show_entries", "stream=codec_type,codec_name", "-of", "json", str(source)],
+            check=True, timeout=30, capture_output=True, text=True,
+        )
+        streams = json.loads(result.stdout or "{}").get("streams", [])
+        video_codecs = [item.get("codec_name") for item in streams if item.get("codec_type") == "video"]
+        audio_codecs = [item.get("codec_name") for item in streams if item.get("codec_type") == "audio"]
+        return video_codecs == ["h264"] and all(codec in {"aac", "mp3"} for codec in audio_codecs)
+    except (OSError, subprocess.SubprocessError, ValueError, TypeError):
+        return False
+
+
+def _convert_video_for_browser(source: Path) -> Path:
+    """Convertit une vidéo vers le profil compris par les navigateurs modernes."""
+    ffmpeg = shutil.which("ffmpeg")
+    if not ffmpeg:
+        raise HTTPException(status_code=503, detail="Conversion vidéo indisponible sur le serveur")
+    converted = source.with_name(f"{source.stem}-conversion.mp4")
+    command = [
+        ffmpeg, "-nostdin", "-loglevel", "error", "-y", "-i", str(source),
+        "-map", "0:v:0", "-map", "0:a?", "-c:v", "libx264", "-preset", "veryfast",
+        "-crf", "23", "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "160k",
+        "-movflags", "+faststart", str(converted),
+    ]
+    try:
+        subprocess.run(command, check=True, timeout=900, capture_output=True)  # noqa: S603
+    except (OSError, subprocess.SubprocessError) as exc:
+        converted.unlink(missing_ok=True)
+        raise HTTPException(status_code=415, detail="Cette vidéo n’a pas pu être convertie en MP4 H.264") from exc
+    if not converted.is_file() or converted.stat().st_size == 0:
+        converted.unlink(missing_ok=True)
+        raise HTTPException(status_code=415, detail="La conversion vidéo n’a produit aucun fichier lisible")
+    return converted
+
+
 def store_stream(
     db: Session,
     settings: Settings,
@@ -225,6 +281,29 @@ def store_stream(
     except Exception:
         target.unlink(missing_ok=True)
         raise
+    if mime_type.startswith("video/") and not _video_is_browser_compatible(target):
+        converted = _convert_video_for_browser(target)
+        final_target = target.with_suffix(".mp4")
+        converted_size = converted.stat().st_size
+        try:
+            _check_quota(user, settings, converted_size, backup_bytes)
+            converted.replace(final_target)
+            if target != final_target:
+                target.unlink(missing_ok=True)
+        except Exception:
+            converted.unlink(missing_ok=True)
+            target.unlink(missing_ok=True)
+            raise
+        target = final_target
+        stored_name = final_target.name
+        relative = final_target.relative_to((settings.users_root / str(user.id)).resolve()).as_posix()
+        original_name = f"{Path(original_name).stem}.mp4"
+        mime_type = "video/mp4"
+        size = converted_size
+        digest = hashlib.sha256()
+        with target.open("rb") as converted_file:
+            while chunk := converted_file.read(1024 * 1024):
+                digest.update(chunk)
     record = StoredFile(
         user_id=user.id,
         original_name=Path(original_name).name[:500],
@@ -243,14 +322,49 @@ def store_stream(
 
 
 def store_upload(db: Session, settings: Settings, user: User, upload: UploadFile) -> StoredFile:
+    original_name = upload.filename or "fichier.bin"
+    mime_type = (upload.content_type or "application/octet-stream").lower()
+    extension = Path(original_name).suffix.lower()
+    if extension in VIDEO_MIME_BY_EXTENSION and not mime_type.startswith("video/"):
+        mime_type = VIDEO_MIME_BY_EXTENSION[extension]
+    if mime_type == "application/octet-stream":
+        mime_type = mimetypes.guess_type(original_name)[0] or mime_type
     return store_stream(
         db,
         settings,
         user,
         upload.file,
-        original_name=upload.filename or "fichier.bin",
-        mime_type=(upload.content_type or "application/octet-stream").lower(),
+        original_name=original_name,
+        mime_type=mime_type,
     )
+
+
+def convert_stored_video(settings: Settings, user: User, record: StoredFile) -> bool:
+    if not record.mime_type.startswith("video/"):
+        raise HTTPException(status_code=415, detail="Ce fichier n’est pas une vidéo")
+    source = resolve_user_file(settings, user.id, record.relative_path)
+    converted = _convert_video_for_browser(source)
+    converted_size = converted.stat().st_size
+    projected_usage = user.storage_used_bytes - record.size_bytes + converted_size
+    if converted_size > settings.max_upload_bytes or projected_usage > user.storage_quota_bytes:
+        converted.unlink(missing_ok=True)
+        raise HTTPException(status_code=413, detail="Quota insuffisant pour convertir cette vidéo")
+    final_target = source.with_suffix(".mp4")
+    converted.replace(final_target)
+    if source != final_target:
+        source.unlink(missing_ok=True)
+    user.storage_used_bytes = projected_usage
+    record.original_name = f"{Path(record.original_name).stem}.mp4"
+    record.stored_name = final_target.name
+    record.relative_path = final_target.relative_to((settings.users_root / str(user.id)).resolve()).as_posix()
+    record.mime_type = "video/mp4"
+    record.size_bytes = converted_size
+    digest = hashlib.sha256()
+    with final_target.open("rb") as converted_file:
+        while chunk := converted_file.read(1024 * 1024):
+            digest.update(chunk)
+    record.checksum = digest.hexdigest()
+    return True
 
 
 def store_data_url(db: Session, settings: Settings, user: User, value: str) -> StoredFile | None:
