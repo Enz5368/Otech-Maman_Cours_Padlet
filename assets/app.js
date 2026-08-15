@@ -175,6 +175,7 @@
           const response = await fetch("assets/free-example/data.json?v=2026-08-13-1", { cache: "no-store" });
           if (!response.ok) throw new Error(`HTTP ${response.status}`);
           state = ensureDemoData(await response.json());
+          if (!state.schedule.length && state.classes[0]) state.schedule.push({ id: uid("schedule"), day: ["dimanche","lundi","mardi","mercredi","jeudi","vendredi","samedi"][new Date().getDay()], start: 0, end: 1439, level: state.classes[0].title, groupTitle: state.studentClasses[0]?.title || "Groupe exemple", description: "Cours de démonstration prévu aujourd’hui.", classId: state.classes[0].id });
           await convertFreePptxDocuments();
         } catch (error) {
           console.error("Chargement de l’exemple gratuit impossible", error);
@@ -374,7 +375,6 @@
         data.studentClasses = Array.isArray(data.studentClasses) ? data.studentClasses : [];
         data.studentClasses.forEach((group) => { group.seatingPlan = group.seatingPlan || { rows: 3, columns: 4, desks: [] }; });
         data.schedule = Array.isArray(data.schedule) ? data.schedule : [];
-        if (freeExampleOpen && !data.schedule.length && data.classes[0]) data.schedule.push({ id: uid("schedule"), day: ["dimanche","lundi","mardi","mercredi","jeudi","vendredi","samedi"][new Date().getDay()], start: 0, end: 1439, level: data.classes[0].title, groupTitle: data.studentClasses[0]?.title || "Groupe exemple", description: "Cours de démonstration prévu aujourd’hui.", classId: data.classes[0].id });
         data.tools = data.tools && typeof data.tools === "object" ? data.tools : {};
         data.tools.wheelHistory = data.tools.wheelHistory && typeof data.tools.wheelHistory === "object" ? data.tools.wheelHistory : {};
         data.tools.wheelCounts = data.tools.wheelCounts && typeof data.tools.wheelCounts === "object" ? data.tools.wheelCounts : {};
