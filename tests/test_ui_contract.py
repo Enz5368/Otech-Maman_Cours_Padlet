@@ -465,10 +465,16 @@ def test_export_impression_et_documents_libreoffice() -> None:
     assert 'value="landscape">Paysage' in APP_JS
     assert "une diapo par page" in APP_JS
     assert "espace-prof-26" in INDEX
-    assert "espace-prof-46" in INDEX
+    assert "espace-prof-47" in INDEX
     assert "Précédent" in APP_JS
     assert "Suivant" in APP_JS
     assert "setTimeout(startFreeExampleTutorial, 250);" in APP_JS
+    tutorial_block = APP_JS.split("const tutorialSteps = [", 1)[1].split("];", 1)[0]
+    assert tutorial_block.count("{ view:") >= 20
+    assert "mène à un autre site" in APP_JS
+    assert 'id="pronoteExternalLink"' in INDEX
+    assert 'id="messagingExternalLink"' in INDEX
+    assert "window.innerHeight - panel.offsetHeight - 16" in APP_JS
 
 
 def test_description_publique_ne_divulgue_aucun_identifiant() -> None:
@@ -515,7 +521,7 @@ def test_plan_de_classe_style_cinema_et_emploi_du_temps_lycee() -> None:
     assert 'aria-label="Emploi du temps du lundi au vendredi"' in APP_JS
     assert ".timetable-course" in STYLES
     assert "assets/styles.css?v=espace-prof-26" in INDEX
-    assert "assets/app.js?v=espace-prof-46" in INDEX
+    assert "assets/app.js?v=espace-prof-47" in INDEX
     assert "function startDeskMove(" in APP_JS
     assert "function deleteDesk(" in APP_JS
     assert "function addDesk(" in APP_JS

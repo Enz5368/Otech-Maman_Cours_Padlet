@@ -1012,7 +1012,7 @@
             <p class="muted">Cette vue sert uniquement à trouver et afficher une activité.</p>
           </section>
           <nav class="dashboard-shortcuts" aria-label="Accès rapides">
-            ${workspaceShortcuts.map((shortcut) => `<a class="shortcut-card" href="${escapeAttr(shortcut.url)}" target="_blank" rel="noopener noreferrer"><span>Accès rapide</span><strong>${escapeHtml(shortcut.title)}</strong><small>${escapeHtml(shortcut.description)}</small></a>`).join("")}
+            ${workspaceShortcuts.map((shortcut) => `<a class="shortcut-card" data-shortcut-title="${escapeAttr(shortcut.title)}" href="${escapeAttr(shortcut.url)}" target="_blank" rel="noopener noreferrer"><span>Accès rapide</span><strong>${escapeHtml(shortcut.title)}</strong><small>${escapeHtml(shortcut.description)}</small></a>`).join("")}
             ${renderUpcomingCoursesShortcut()}
           </nav>
           <section class="page-grid">${state.classes.filter((classe) => classe.isVisible !== false).map(tableauClassCard).join("")}</section>
@@ -2295,18 +2295,26 @@
       }
 
       const tutorialSteps = [
-        { view: "dashboard", selector: "[data-view='dashboard']", title: "Cours par niveau à projeter", text: "Parcourez les classes, séquences et séances pour ouvrir une activité devant les élèves." },
-        { view: "dashboard", selector: ".upcoming-courses-card", title: "Trois prochains cours", text: "Consultez les trois prochains cours de la journée et ouvrez directement le cours associé." },
-        { view: "classes", selector: "[data-view='classes']", title: "Cours modifiables", text: "Préparez ici vos classes pédagogiques, séquences, séances, activités et ressources." },
-        { view: "classes", selector: "#content", title: "Créer et organiser", text: "Ouvrez une classe, puis une séquence et une séance pour ajouter, modifier, déplacer ou masquer les contenus." },
-        { view: "tree", selector: "[data-view='tree']", title: "Arbre", text: "L’arbre affiche toute l’organisation des cours et donne un accès direct à chaque élément." },
-        { view: "studentClasses", selector: "[data-view='studentClasses']", title: "Groupes Classes", text: "Créez les groupes d’élèves utilisés par la roue, les absences et les outils de classe." },
-        { view: "tools", selector: "[data-view='tools']", title: "Outils", text: "Utilisez la roue de la fortune, les absents, les compteurs, l’historique et le chronomètre." },
-        { view: "schedule", selector: "[data-view='schedule']", title: "Emploi du temps", text: "Cliquez dans le calendrier pour ajouter un cours, glissez-le pour changer son horaire et cliquez dessus pour créer le raccourci « Cours associé » à gauche." },
-        { view: "search", selector: "[data-view='search']", title: "Recherche", text: "Retrouvez rapidement une activité ou une ressource dans tout votre espace." },
-        { view: "settings", selector: "[data-view='settings']", title: "Réglages et sauvegardes", text: "Consultez le mode de stockage, exportez vos données et gérez les sauvegardes disponibles." },
-        { view: "dashboard", selector: "#openBoardBtn", title: "Mode tableau", text: "Ouvrez une activité en plein écran pour la projeter et naviguer entre ses diapos (activités)." },
-        { view: "tutorial", selector: ".sidebar-mail", title: "Aide et contact", text: "Relancez ce tutoriel à tout moment. Les coordonnées d’assistance restent accessibles dans la barre latérale." }
+        { view: "dashboard", selector: "[data-view='dashboard']", title: "Cours à projeter", text: "Cette partie sert à retrouver rapidement une classe, une séquence, une séance puis l’activité à présenter devant les élèves. Elle ne modifie pas le contenu." },
+        { view: "dashboard", selector: ".upcoming-courses-card", title: "Trois prochains cours", text: "Cette carte affiche les trois prochains cours prévus aujourd’hui. Cliquez sur un cours pour ouvrir directement le cours associé dans votre espace." },
+        { view: "dashboard", selector: "[data-shortcut-title='Cahier de texte']", title: "Cahier de texte externe", text: "Ce raccourci quitte MON ESPACE PROF et ouvre le site Pronote professeur dans un nouvel onglet. Vos données Pronote ne sont pas stockées ici." },
+        { view: "dashboard", selector: "[data-shortcut-title='Messagerie']", title: "Messagerie externe", text: "Ce raccourci ouvre la messagerie de l’académie de Grenoble sur un autre site, dans un nouvel onglet." },
+        { view: "classes", selector: "[data-view='classes']", title: "Cours modifiables", text: "C’est ici que vous préparez la structure complète : classes, séquences, séances, activités et ressources. Les modifications sont enregistrées dans votre espace." },
+        { view: "classes", selector: "#content", title: "Créer et organiser", text: "Ouvrez chaque niveau successivement. Vous pouvez ajouter, renommer, réordonner ou supprimer les éléments, puis organiser les activités d’une séance." },
+        { view: "classes", selector: "#content", title: "Éditeur des activités", text: "Dans une activité, ajoutez des diapos, du texte, des URL, PDF, ODT, images, vidéos ou MP3. Les objets et les diapos se déplacent par glisser-déposer ; Annuler permet de récupérer une suppression accidentelle." },
+        { view: "classes", selector: "#content", title: "Impression et export", text: "L’aperçu d’impression permet de choisir Portrait ou Paysage et place chaque diapo sur une page. Le ZIP conserve aussi les PDF, documents LibreOffice et médias." },
+        { view: "tree", selector: "[data-view='tree']", title: "Arbre", text: "L’arbre présente toute la hiérarchie du cours sur une seule page et fournit un accès direct à chaque classe, séquence, séance ou activité." },
+        { view: "studentClasses", selector: "[data-view='studentClasses']", title: "Groupes Classes", text: "Créez vos groupes et renseignez les élèves. Ces listes alimentent le plan de classe, la roue de la fortune et le suivi des absences." },
+        { view: "studentClasses", selector: "#content", title: "Plan de classe", text: "Choisissez jusqu’à 40 bureaux, nommez-les, supprimez ceux qui sont inutiles et déplacez librement les sièges dans ou hors de la grille." },
+        { view: "tools", selector: "[data-view='tools']", title: "Outils de classe", text: "Utilisez la roue de la fortune, la liste des absents, les compteurs, l’historique et le chronomètre avec le groupe sélectionné." },
+        { view: "schedule", selector: "[data-view='schedule']", title: "Emploi du temps", text: "Cliquez dans le calendrier pour ajouter un cours. Seuls les horaires sont obligatoires ; le groupe, la description et le cours associé restent facultatifs." },
+        { view: "schedule", selector: "#content", title: "Déplacer un cours", text: "Faites glisser un cours vers une autre case pour modifier son jour ou son heure. Cliquez dessus pour le modifier, le supprimer ou ouvrir son cours associé." },
+        { view: "search", selector: "[data-view='search']", title: "Recherche", text: "Saisissez un mot du titre, de la consigne, du niveau ou d’une ressource pour retrouver rapidement un contenu dans tout votre espace." },
+        { view: "settings", selector: "[data-view='settings']", title: "Réglages et sauvegardes", text: "Vérifiez le stockage, exportez une sauvegarde ZIP complète et consultez les sauvegardes disponibles avant toute opération importante." },
+        { view: "dashboard", selector: "#openBoardBtn", title: "Mode tableau", text: "Le mode tableau présente l’activité en plein écran. Utilisez les commandes pour passer d’une diapo à l’autre pendant le cours." },
+        { view: "dashboard", selector: "#pronoteExternalLink", title: "Lien vers Pronote", text: "Le bouton « Cahier de texte » mène à un autre site : Pronote s’ouvre dans un nouvel onglet afin de ne pas fermer MON ESPACE PROF." },
+        { view: "dashboard", selector: "#messagingExternalLink", title: "Lien vers la messagerie", text: "Le bouton « Messagerie » mène lui aussi à un autre site et s’ouvre dans un nouvel onglet." },
+        { view: "tutorial", selector: ".sidebar-mail", title: "OrellanaTech et assistance", text: "Le nom « OrellanaTech » mène au site externe d’OrellanaTech dans un nouvel onglet. Un clic sur le téléphone ou l’adresse e-mail copie simplement l’information pour pouvoir la réutiliser." }
       ];
 
       function renderTutorial() {
@@ -2349,7 +2357,9 @@
           { view: "schedule", selector: "#content", title: "Emploi du temps", text: "Cliquez sur une case : seules les heures sont obligatoires. Le cours, la description et le groupe choisi dans la liste déroulante restent facultatifs." },
           { view: "search", selector: "#content", title: "Recherche", text: "Retrouvez rapidement une activité ou une ressource dans toutes les données de démonstration." },
           { view: "tutorial", selector: "#content", title: "Tutoriel", text: "Relancez cette visite complète à tout moment ou passez-la avec le bouton prévu." },
-          { view: "tutorial", selector: "#exampleAd", title: "Contact OrellanaTech", text: "Dans l'exemple gratuit, la pub est visible ici. Le téléphone et le mail se copient au clic." },
+          { view: "dashboard", selector: "[data-shortcut-title='Cahier de texte']", title: "Cahier de texte externe", text: "Ce raccourci mène à Pronote, un autre site, qui s’ouvre dans un nouvel onglet." },
+          { view: "dashboard", selector: "[data-shortcut-title='Messagerie']", title: "Messagerie externe", text: "Ce raccourci mène à la messagerie académique, sur un autre site ouvert dans un nouvel onglet." },
+          { view: "tutorial", selector: "#exampleAd", title: "OrellanaTech et contact", text: "Le nom « OrellanaTech » mène au site externe d’OrellanaTech dans un nouvel onglet. Le téléphone et l’adresse e-mail se copient au clic." },
           { view: "settings", selector: "#content", title: "Réglages", text: "Exportez un ZIP complet : les PDF, documents LibreOffice, MP3 et autres médias sont inclus pour rester consultables hors ligne." },
           { view: "dashboard", selector: "#content", title: "Classe 5eme", text: "On commence par la classe 5eme.", enter: () => firstClass && openTableauClass(firstClass.id) },
           { view: "dashboard", selector: "#content", title: "Séquence", text: "Le tutoriel ouvre la première séquence de l'exemple.", enter: () => firstClass && firstSequence && openTableauSequence(firstClass.id, firstSequence.id) },
@@ -2391,7 +2401,7 @@
         const width = Math.min(window.innerWidth - left - 8, rect.width + padding * 2);
         const height = Math.min(window.innerHeight - top - 8, rect.height + padding * 2);
         const panelLeft = left + width + 18 + 360 < window.innerWidth ? left + width + 18 : Math.max(16, Math.min(window.innerWidth - 376, left));
-        const panelTop = top + height + 18 + 230 < window.innerHeight ? top + height + 18 : Math.max(16, top - 18);
+        const panelTop = top + height + 18 + 230 < window.innerHeight ? top + height + 18 : Math.max(16, Math.min(window.innerHeight - 246, top - 18));
         overlay.hidden = false;
         overlay.innerHTML = `
           <div class="tour-highlight" style="left:${left}px;top:${top}px;width:${width}px;height:${height}px"></div>
@@ -2406,6 +2416,12 @@
             </div>
           </section>
         `;
+        requestAnimationFrame(() => {
+          const panel = overlay.querySelector(".tour-panel");
+          if (!panel) return;
+          const safeTop = Math.max(16, Math.min(Number.parseFloat(panel.style.top) || 16, window.innerHeight - panel.offsetHeight - 16));
+          panel.style.top = `${safeTop}px`;
+        });
       }
 
       function nextTutorialStep() {
