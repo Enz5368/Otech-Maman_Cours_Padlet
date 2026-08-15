@@ -484,8 +484,12 @@ def test_plan_de_classe_style_cinema_et_emploi_du_temps_lycee() -> None:
     assert '["lundi", "mardi", "mercredi", "jeudi", "vendredi"]' in APP_JS
     assert 'aria-label="Emploi du temps du lundi au vendredi"' in APP_JS
     assert ".timetable-course" in STYLES
-    assert "assets/styles.css?v=espace-prof-20" in INDEX
-    assert "assets/app.js?v=espace-prof-39" in INDEX
+    assert "assets/styles.css?v=espace-prof-21" in INDEX
+    assert "assets/app.js?v=espace-prof-40" in INDEX
+    assert "function startDeskMove(" in APP_JS
+    assert "function deleteDesk(" in APP_JS
+    assert "function addDesk(" in APP_JS
+    assert ".desk-delete" in STYLES
 
 
 def test_initialisation_ne_lit_pas_le_mode_demo_avant_sa_declaration() -> None:
