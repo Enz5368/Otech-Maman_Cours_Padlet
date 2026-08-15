@@ -28,7 +28,8 @@ docker_cmd compose stop backend nginx
 docker_cmd compose exec -T postgres dropdb -U "${POSTGRES_USER:-monespaceprof}" --if-exists "${POSTGRES_DB:-monespaceprof}"
 docker_cmd compose exec -T postgres createdb -U "${POSTGRES_USER:-monespaceprof}" "${POSTGRES_DB:-monespaceprof}"
 docker_cmd compose exec -T postgres pg_restore -U "${POSTGRES_USER:-monespaceprof}" -d "${POSTGRES_DB:-monespaceprof}" --clean --if-exists < "$TARGET/postgres.dump"
-tar -C "$USERS" -xzf "$TARGET/users.tar.gz"
+docker_cmd run --rm -v "$TARGET:/restore:ro" -v "$USERS:/users" postgres:17-alpine \
+  tar -C /users -xzf /restore/users.tar.gz
 docker_cmd compose up -d backend nginx
 echo "Restauration terminée depuis $TARGET"
 
