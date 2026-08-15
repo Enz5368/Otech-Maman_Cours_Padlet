@@ -12,6 +12,7 @@ APP_JS = (
     if (ROOT / "assets" / "app.js").exists()
     else INDEX
 )
+STYLES = (ROOT / "assets" / "styles.css").read_text(encoding="utf-8")
 CONTRACT = json.loads((ROOT / "tests" / "ui_contract.json").read_text(encoding="utf-8"))
 
 
@@ -473,6 +474,17 @@ def test_plan_de_classe_et_emploi_du_temps_sont_disponibles() -> None:
     assert 'data-view="schedule"' in INDEX
     assert "function renderSchedule()" in APP_JS
     assert 'id="currentCourseShortcut"' in INDEX
+
+
+def test_plan_de_classe_style_cinema_et_emploi_du_temps_lycee() -> None:
+    assert 'class="cinema-room"' in APP_JS
+    assert "Sièges par rangée" in APP_JS
+    assert ".desk::before" in STYLES
+    assert "function renderTimetableGrid()" in APP_JS
+    assert '["lundi", "mardi", "mercredi", "jeudi", "vendredi"]' in APP_JS
+    assert 'aria-label="Emploi du temps du lundi au vendredi"' in APP_JS
+    assert ".timetable-course" in STYLES
+    assert "assets/styles.css?v=espace-prof-20" in INDEX
 
 
 def test_initialisation_ne_lit_pas_le_mode_demo_avant_sa_declaration() -> None:
