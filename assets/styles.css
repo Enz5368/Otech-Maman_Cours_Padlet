@@ -1105,6 +1105,8 @@
         flex-wrap: wrap;
         gap: 8px;
       }
+      .studio-general-actions { display:flex; flex-wrap:wrap; align-items:center; gap:8px; }
+      .studio-general-actions[hidden] { display:none !important; }
       .studio-text-format {
         display: inline-flex;
         flex-wrap: wrap;

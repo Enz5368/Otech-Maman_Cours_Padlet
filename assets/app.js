@@ -2737,6 +2737,7 @@
                   <button class="btn format-button studio-highlight-button" type="button" title="Surligner en jaune" aria-label="Surligner en jaune" onmousedown="formatStudioText('hiliteColor',event,'#fff176')">ab</button>
                   <select class="studio-format-select studio-color-select" aria-label="Couleur du texte" title="Couleur du texte" onmousedown="rememberStudioTextSelection()" onchange="formatStudioText('foreColor',event,this.value);this.selectedIndex=0"><option value="">Couleur du texte…</option>${[["#24171a","Noir"],["#555555","Gris foncé"],["#888888","Gris"],["#b21f3d","Rouge"],["#7b1830","Bordeaux"],["#d06b16","Orange"],["#d4a400","Jaune foncé"],["#187b51","Vert"],["#16877d","Turquoise"],["#2457b2","Bleu"],["#173b7a","Bleu foncé"],["#713c9b","Violet"],["#c04b91","Rose"],["#ffffff","Blanc"]].map(([color,label])=>`<option value="${color}">${label}</option>`).join("")}</select>
                 </div>
+                <div id="studioGeneralActions" class="studio-general-actions">
                 <button class="btn" onclick="renameActivity('${activity.id}')">Titre</button>
                 <button class="btn" onclick="renameStudioSlideInstruction('${activity.id}')">Consigne diapo</button>
                 <button class="btn" onclick="addSlide('${activity.id}')">+ Diapo (activité)</button>
@@ -2758,6 +2759,7 @@
                 <button class="btn" onclick="showBoard('${activity.id}',0)">Présenter</button>
                 <button class="btn" onclick="previewStudioActivity('${activity.id}',this)">Imprimer / Word</button>
                 <button class="btn" onclick="closeEditor()">Fermer</button>
+                </div>
               </div>
             </header>
             <div class="studio-workspace">
@@ -2975,6 +2977,7 @@
         studio.addEventListener("pointerdown", (event) => {
           if (event.target.closest(".slide-el,.studio-text-format")) return;
           document.querySelectorAll(".studio .slide-el.selected").forEach((item) => item.classList.remove("selected"));
+          updateStudioTextToolbarVisibility();
         });
         studio.addEventListener("dblclick", (event) => {
           if (event.target.closest(".slide-el,button,input,select,label,a")) return;
@@ -3044,17 +3047,23 @@
 
       function updateStudioTextToolbarVisibility() {
         const toolbar = document.querySelector("#studioTextFormatToolbar");
+        const generalActions = document.querySelector("#studioGeneralActions");
         if (!toolbar) return;
-        const hasSelection = rememberStudioTextSelection();
+        rememberStudioTextSelection();
+        const hasSelectedTextItem = Boolean(document.querySelector(".studio .slide-el.selected[data-kind='text']"));
         const usingToolbar = toolbar.contains(document.activeElement) || toolbar.matches(":hover");
-        toolbar.hidden = !hasSelection && !usingToolbar;
-        if (!hasSelection && !usingToolbar) studioTextSelectionRange = null;
+        const showFormatting = hasSelectedTextItem || usingToolbar;
+        toolbar.hidden = !showFormatting;
+        if (generalActions) generalActions.hidden = showFormatting;
+        if (!showFormatting) studioTextSelectionRange = null;
       }
 
       function initStudioTextToolbarVisibility() {
         studioTextSelectionRange = null;
         const toolbar = document.querySelector("#studioTextFormatToolbar");
         if (toolbar) toolbar.hidden = true;
+        const generalActions = document.querySelector("#studioGeneralActions");
+        if (generalActions) generalActions.hidden = false;
         if (studioTextSelectionListenerReady) return;
         studioTextSelectionListenerReady = true;
         document.addEventListener("selectionchange", updateStudioTextToolbarVisibility);
@@ -3070,7 +3079,14 @@
           return;
         }
         text.focus({ preventScroll: true });
-        restoreStudioTextSelection();
+        if (!restoreStudioTextSelection()) {
+          const range = document.createRange();
+          range.selectNodeContents(text);
+          const selection = window.getSelection();
+          selection.removeAllRanges();
+          selection.addRange(range);
+          studioTextSelectionRange = range.cloneRange();
+        }
         if (command === "foreColor" || command === "hiliteColor" || command.startsWith("justify")) document.execCommand("styleWithCSS", false, true);
         document.execCommand(command, false, value);
         rememberStudioTextSelection();
@@ -3703,6 +3719,7 @@
             const slideStep = slideSize.height + slideSize.gap;
             const elementTop = parseFloat(node.style.top) || 0;
             selectStudioSlide(Math.max(0, Math.floor(elementTop / slideStep)));
+            updateStudioTextToolbarVisibility();
           };
           node.addEventListener("pointerdown", (event) => {
             select();
