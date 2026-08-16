@@ -91,5 +91,19 @@ class AdminPasswordResetRequest(BaseModel):
     temporary_password: str = Field(min_length=10, max_length=256)
 
 
+class AdminCreateUserRequest(BaseModel):
+    username: str = Field(min_length=1, max_length=80)
+    temporary_password: str = Field(min_length=10, max_length=256)
+    email: str | None = Field(default=None, max_length=320)
+    display_name: str | None = Field(default=None, max_length=160)
+
+    @field_validator("username")
+    @classmethod
+    def validate_username(cls, value: str) -> str:
+        if not normalize_username(value):
+            raise ValueError("Identifiant invalide")
+        return value.strip()
+
+
 class AdminQuotaRequest(BaseModel):
     quota_bytes: int = Field(ge=0)

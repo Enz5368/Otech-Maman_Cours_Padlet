@@ -25,6 +25,7 @@ class Settings(BaseSettings):
     default_quota_bytes: int = 10_737_418_240
     login_attempts_per_window: int = 8
     login_window_seconds: int = 900
+    allow_self_registration: bool = False
     allowed_origins: list[str] = Field(default_factory=lambda: ["http://localhost:30080"])
     initial_rose_password: str | None = None
     public_base_url: str = "https://monespaceprof.com"

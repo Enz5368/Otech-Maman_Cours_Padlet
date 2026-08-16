@@ -637,6 +637,34 @@
         }
       }
 
+      async function createAdminAccount(event) {
+        event.preventDefault();
+        const form = event.currentTarget;
+        const data = new FormData(form);
+        const password = String(data.get("temporaryPassword") || "");
+        const confirmation = String(data.get("passwordConfirmation") || "");
+        const errorBox = form.querySelector(".form-error");
+        if (password.length < 10) return showPasswordError(errorBox, "Le mot de passe doit contenir au moins 10 caractères.");
+        if (password !== confirmation) return showPasswordError(errorBox, "Les deux mots de passe ne correspondent pas.");
+        const finishSaveLock = beginSaveLock(event.submitter);
+        try {
+          const created = await window.ServerAPI.adminCreateUser({
+            username: String(data.get("username") || "").trim(),
+            display_name: String(data.get("displayName") || "").trim() || null,
+            email: String(data.get("email") || "").trim() || null,
+            temporary_password: password
+          });
+          form.reset();
+          adminUsersLoaded = false;
+          toast(`Compte ${created.username} créé.`);
+          await loadAdminUsers();
+        } catch (error) {
+          showPasswordError(errorBox, error.message || "Création du compte impossible.");
+        } finally {
+          finishSaveLock();
+        }
+      }
+
       function retryAdminUsers() {
         adminUsersLoaded = false;
         adminUsersError = "";
@@ -2493,6 +2521,14 @@
             ${isAdmin ? `<section class="card" style="grid-column:1/-1">
               <h2>Gestion des comptes</h2>
               <p class="small muted">Les mots de passe sont protégés et ne peuvent pas être affichés. En tant qu'administrateur, vous pouvez remplacer le mot de passe d'un compte par un nouveau mot de passe que vous connaissez.</p>
+              <form class="form-grid admin-create-account" style="margin-top:16px" onsubmit="createAdminAccount(event)">
+                <label class="label">Identifiant *<input class="input" name="username" maxlength="80" autocomplete="off" required></label>
+                <label class="label">Nom affiché<input class="input" name="displayName" maxlength="160" autocomplete="off"></label>
+                <label class="label">Adresse e-mail<input class="input" name="email" type="email" maxlength="320" autocomplete="off"></label>
+                <label class="label">Mot de passe initial *<input class="input" name="temporaryPassword" type="password" minlength="10" autocomplete="new-password" required></label>
+                <label class="label">Confirmer le mot de passe *<input class="input" name="passwordConfirmation" type="password" minlength="10" autocomplete="new-password" required></label>
+                <div class="wide"><p class="form-error" role="alert" hidden></p><button class="btn primary" type="submit">Créer le compte enseignant</button></div>
+              </form>
               <div class="list-table" style="margin-top:12px">
                 ${adminUsersError ? `<p class="muted">Chargement impossible : ${escapeHtml(adminUsersError)}. <button class="btn" onclick="retryAdminUsers()">Réessayer</button></p>` : adminUsersLoaded ? adminUsers.map((user) => `<article class="list-row">
                   <div><strong>${escapeHtml(user.username)}</strong><p class="small muted">${escapeHtml(user.role)} · ${escapeHtml(user.status)}</p></div>

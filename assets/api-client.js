@@ -37,7 +37,7 @@
     request,
 
     login(username, password) {
-      return request("/auth/login", { method: "POST", body: JSON.stringify({ username, password, auto_register: true }) });
+      return request("/auth/login", { method: "POST", body: JSON.stringify({ username, password, auto_register: false }) });
     },
 
     register(username, password) {
@@ -65,6 +65,10 @@
 
     adminUsers() {
       return request("/admin/users");
+    },
+
+    adminCreateUser(payload) {
+      return request("/admin/users", { method: "POST", body: JSON.stringify(payload) });
     },
 
     adminResetPassword(userId, temporaryPassword) {

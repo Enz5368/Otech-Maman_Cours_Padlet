@@ -10,8 +10,9 @@ from sqlalchemy import select, update
 from ..config import get_settings
 from ..dependencies import AdminUser, CsrfGuard, DbDep
 from ..models import AuditLog, Backup, ServerSession, User, UserQuota
-from ..schemas import AdminPasswordResetRequest, AdminQuotaRequest, UserResponse
-from ..security import hash_password
+from ..schemas import AdminCreateUserRequest, AdminPasswordResetRequest, AdminQuotaRequest, UserResponse
+from ..security import hash_password, normalize_username
+from ..services.accounts import create_user
 from ..services.audit import record_audit
 from ..services.workspace import save_workspace
 
@@ -21,6 +22,29 @@ router = APIRouter(prefix="/admin", tags=["admin"])
 @router.get("/users", response_model=list[UserResponse])
 def list_users(_admin: AdminUser, db: DbDep) -> list[User]:
     return list(db.scalars(select(User).order_by(User.created_at.desc())).all())
+
+
+@router.post("/users", response_model=UserResponse, status_code=201)
+def create_admin_user(
+    payload: AdminCreateUserRequest, admin: AdminUser, db: DbDep, _csrf: CsrfGuard
+) -> User:
+    normalized = normalize_username(payload.username)
+    if db.scalar(select(User.id).where(User.username_normalized == normalized)):
+        raise HTTPException(status_code=409, detail="Cet identifiant existe déjà")
+    user = create_user(
+        db,
+        get_settings(),
+        username=payload.username,
+        password=payload.temporary_password,
+        email=payload.email or None,
+        display_name=payload.display_name or None,
+        role="teacher",
+        must_change_password=False,
+    )
+    record_audit(db, "admin.user_created", user_id=admin.id, resource_id=str(user.id))
+    db.commit()
+    db.refresh(user)
+    return user
 
 
 @router.post("/users/{user_id}/disable")

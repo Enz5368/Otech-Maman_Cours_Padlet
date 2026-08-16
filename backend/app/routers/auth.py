@@ -93,6 +93,8 @@ def _new_session(db: DbDep, request: Request, response: Response, user: User) ->
 @router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
 def register(payload: RegisterRequest, request: Request, response: Response, db: DbDep) -> User:
     settings = get_settings()
+    if not settings.allow_self_registration:
+        raise HTTPException(status_code=403, detail="La création de compte est réservée à l'administrateur")
     normalized = normalize_username(payload.username)
     _check_rate_limit(f"register:{request.client.host if request.client else 'unknown'}:{normalized}")
     if len(payload.password) < 10:
@@ -122,7 +124,7 @@ def login(payload: AuthCredentials, request: Request, response: Response, db: Db
     rate_key = f"login:{request.client.host if request.client else 'unknown'}:{normalized}"
     _check_rate_limit(rate_key)
     user = db.scalar(select(User).where(User.username_normalized == normalized))
-    if user is None and payload.auto_register:
+    if user is None and payload.auto_register and settings.allow_self_registration:
         if len(payload.password) < 10:
             raise HTTPException(
                 status_code=422, detail="Un nouveau mot de passe doit contenir au moins 10 caractères"

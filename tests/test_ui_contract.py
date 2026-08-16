@@ -370,6 +370,22 @@ def test_identite_mon_espace_pro_est_affichee() -> None:
     assert "MON ESPACE PROF · Cartable numérique" in INDEX
 
 
+def test_description_publique_est_professionnelle_et_connexion_exclue_des_snippets() -> None:
+    assert "MON ESPACE PROF est le cartable numérique des enseignants" in INDEX
+    assert 'id="loginForm" class="login-card" data-nosnippet' in INDEX
+    assert "root / root" not in INDEX
+    assert "rose / it" not in INDEX
+
+
+def test_root_peut_creer_un_compte_enseignant() -> None:
+    api_client = (ROOT / "assets" / "api-client.js").read_text(encoding="utf-8")
+    assert "adminCreateUser(payload)" in api_client
+    assert 'request("/admin/users", { method: "POST"' in api_client
+    assert "async function createAdminAccount(event)" in APP_JS
+    assert "Créer le compte enseignant" in APP_JS
+    assert 'auto_register: false' in api_client
+
+
 def test_liens_professeur_sont_accessibles_depuis_outils_et_accueil() -> None:
     for url in (
         "https://turboscribe.ai/fr/downloader/youtube/video",
@@ -477,7 +493,7 @@ def test_serveur_accepte_les_formats_opendocument_du_selecteur() -> None:
         assert f'"{extension}": "{mime_type}"' in storage
         assert f'"{mime_type}"' in storage
     assert "extension in OPENDOCUMENT_MIME_BY_EXTENSION" in storage
-    assert "espace-prof-48" in INDEX
+    assert "espace-prof-49" in INDEX
     assert "Précédent" in APP_JS
     assert "Suivant" in APP_JS
     assert "setTimeout(startFreeExampleTutorial, 250);" in APP_JS
@@ -533,8 +549,8 @@ def test_plan_de_classe_style_cinema_et_emploi_du_temps_lycee() -> None:
     assert 'aria-label="Emploi du temps du lundi au vendredi"' in APP_JS
     assert ".timetable-course" in STYLES
     assert "assets/styles.css?v=espace-prof-26" in INDEX
-    assert "assets/app.js?v=espace-prof-48" in INDEX
-    assert "assets/api-client.js?v=espace-prof-5" in INDEX
+    assert "assets/app.js?v=espace-prof-49" in INDEX
+    assert "assets/api-client.js?v=espace-prof-6" in INDEX
 
 
 def test_les_videos_non_natives_sont_converties_pour_le_navigateur() -> None:

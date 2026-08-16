@@ -14,6 +14,7 @@ os.environ["MEP_USERS_ROOT"] = str(TEST_ROOT / "users")
 os.environ["MEP_BACKUPS_ROOT"] = str(TEST_ROOT / "backups")
 os.environ["MEP_LOGS_ROOT"] = str(TEST_ROOT / "logs")
 os.environ["MEP_COOKIE_SECURE"] = "false"
+os.environ["MEP_ALLOW_SELF_REGISTRATION"] = "true"
 
 from app.main import app  # noqa: E402
 

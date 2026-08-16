@@ -79,3 +79,44 @@ def test_password_change_remains_optional_even_for_legacy_flag(client: TestClien
     )
     assert changed.status_code == 204
     assert client.get("/api/v1/workspace").status_code == 200
+
+
+def test_admin_can_create_an_isolated_teacher_account(client: TestClient) -> None:
+    admin_username = f"admin-{uuid.uuid4().hex[:8]}"
+    admin = register(client, admin_username)
+    with SessionLocal() as db:
+        user = db.get(User, uuid.UUID(admin["id"]))
+        assert user is not None
+        user.role = "admin"
+        db.commit()
+
+    teacher_username = f"enseignant-{uuid.uuid4().hex[:8]}"
+    created = client.post(
+        "/api/v1/admin/users",
+        json={
+            "username": teacher_username,
+            "display_name": "Nouveau professeur",
+            "email": "prof@example.com",
+            "temporary_password": "MotDePasseInitial!123",
+        },
+        headers=csrf_headers(client),
+    )
+    assert created.status_code == 201, created.text
+    assert created.json()["username"] == teacher_username
+    assert created.json()["role"] == "teacher"
+    assert created.json()["storage_used_bytes"] == 0
+
+    duplicate = client.post(
+        "/api/v1/admin/users",
+        json={"username": teacher_username, "temporary_password": "AutreMotDePasse!123"},
+        headers=csrf_headers(client),
+    )
+    assert duplicate.status_code == 409
+
+    with TestClient(client.app) as teacher_client:
+        login = teacher_client.post(
+            "/api/v1/auth/login",
+            json={"username": teacher_username, "password": "MotDePasseInitial!123", "auto_register": False},
+        )
+        assert login.status_code == 200
+        assert teacher_client.get("/api/v1/workspace").json()["content"] == {}
