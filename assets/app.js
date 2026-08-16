@@ -3431,7 +3431,7 @@
         if (await saveData("Titre enregistré sur le serveur.")) openActivityStudio(activityId);
       }
 
-      async function saveStudio(activityId, close = false, triggerButton = null, refreshStudio = true) {
+      async function saveStudio(activityId, close = false, triggerButton = null, refreshStudio = true, successMessage = "Activité enregistrée sur le serveur.") {
         const selectedIndex = currentStudioSlideIndex;
         const activity = findItem("activity", activityId);
         const previousSlides = activity.slides || [];
@@ -3446,7 +3446,7 @@
           delete element.slideIndex;
         });
         activity.updatedAt = new Date().toISOString();
-        const saved = await saveData("Activité enregistrée sur le serveur.", triggerButton);
+        const saved = await saveData(successMessage, triggerButton);
         if (saved && close) {
           closeEditor();
           render();
@@ -3608,16 +3608,23 @@
         });
       }
 
-      function deleteSelectedElement() {
+      async function deleteSelectedElement() {
         const selected = document.querySelector(".slide-el.selected");
-        if (selected) { recordStudioHistory(document.querySelector(".studio")?.dataset.activityId); selected.remove(); }
+        const activityId = document.querySelector(".studio")?.dataset.activityId;
+        if (!selected || !activityId) return;
+        recordStudioHistory(activityId);
+        selected.remove();
+        await saveStudio(activityId, false, null, true, "Objet supprimé et enregistré.");
       }
 
-      function deleteStudioElement(button, event) {
+      async function deleteStudioElement(button, event) {
         event?.preventDefault();
         event?.stopPropagation();
-        recordStudioHistory(document.querySelector(".studio")?.dataset.activityId);
+        const activityId = document.querySelector(".studio")?.dataset.activityId;
+        if (!activityId) return;
+        recordStudioHistory(activityId);
         button.closest(".slide-el")?.remove();
+        await saveStudio(activityId, false, null, true, "Objet supprimé et enregistré.");
       }
 
       async function saveEditor(event, type, id) {

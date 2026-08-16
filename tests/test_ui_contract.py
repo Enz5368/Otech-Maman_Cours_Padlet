@@ -623,6 +623,18 @@ def test_removed_wikimedia_photo_is_repaired_in_seed_and_saved_workspaces() -> N
     assert "repairKnownBrokenImageUrls(data);" in APP_JS
 
 
+def test_suppression_objet_studio_est_enregistree_immediatement() -> None:
+    selected_delete = APP_JS.split("async function deleteSelectedElement()", 1)[1].split(
+        "async function deleteStudioElement", 1
+    )[0]
+    direct_delete = APP_JS.split("async function deleteStudioElement", 1)[1].split(
+        "async function saveEditor", 1
+    )[0]
+    assert "await saveStudio(activityId" in selected_delete
+    assert "await saveStudio(activityId" in direct_delete
+    assert "Objet supprimé et enregistré." in selected_delete
+
+
 def test_schedule_precedes_pronote_in_sidebar() -> None:
     assert INDEX.index('data-view="schedule"') < INDEX.index('id="pronoteExternalLink"')
 
