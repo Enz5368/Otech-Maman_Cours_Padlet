@@ -1116,6 +1116,7 @@
         background: #3b3b3b;
         padding: 4px;
       }
+      .studio-text-format[hidden] { display:none !important; }
       .studio-text-format .format-button {
         min-width: 34px;
         padding: 6px 8px;
@@ -1128,10 +1129,8 @@
       .studio-format-select { height:30px; border:1px solid #777; border-radius:2px; background:#4a4a4a; color:#fff; padding:3px 24px 3px 7px; }
       .studio-font-family { width:120px; }
       .studio-font-size { width:62px; }
+      .studio-color-select { width:150px; max-height:220px; }
       .studio-highlight-button { color:#171717 !important; background:linear-gradient(transparent 58%,#fff176 58%) !important; }
-      .studio-color-palette { display:inline-flex; align-items:center; gap:4px; padding:0 5px; border-left:1px solid #777; }
-      .studio-color-button { width:22px; height:22px; padding:0; border:2px solid white; border-radius:50%; background:var(--text-color); box-shadow:0 0 0 1px var(--line); cursor:pointer; }
-      .studio-color-button:hover { transform:scale(1.13); box-shadow:0 0 0 2px var(--wine-300); }
       .studio-tool-picker {
         display: grid;
         gap: 3px;

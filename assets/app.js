@@ -56,6 +56,8 @@
       let studioHistoryActivityId = "";
       let studioUndoStack = [];
       let studioRedoStack = [];
+      let studioTextSelectionRange = null;
+      let studioTextSelectionListenerReady = false;
       let timerRemaining = 5 * 60;
       let timerTotal = 5 * 60;
       let timerInterval = null;
@@ -2712,9 +2714,9 @@
                 <div class="studio-save-status" id="studioSaveStatus" role="status" hidden></div>
               </div>
               <div class="studio-actions">
-                <div class="studio-text-format" role="toolbar" aria-label="Mise en forme du texte">
-                  <select class="studio-format-select studio-font-family" aria-label="Police" title="Police" onchange="setStudioTextFont(this.value,event)"><option>Calibri</option><option>Arial</option><option>Aptos</option><option>Verdana</option><option>Georgia</option><option>Times New Roman</option><option>Trebuchet MS</option></select>
-                  <select class="studio-format-select studio-font-size" aria-label="Taille des lettres" title="Taille des lettres" onchange="setStudioTextSize(this.value,event)">${[10,12,14,16,18,20,24,28,32,36,40,48,54,60,72,84,96].map(size=>`<option value="${size}" ${size===32?"selected":""}>${size}</option>`).join("")}</select>
+                <div id="studioTextFormatToolbar" class="studio-text-format" role="toolbar" aria-label="Mise en forme du texte" hidden>
+                  <select class="studio-format-select studio-font-family" aria-label="Police" title="Police" onmousedown="rememberStudioTextSelection()" onchange="setStudioTextFont(this.value,event)"><option>Calibri</option><option>Arial</option><option>Aptos</option><option>Verdana</option><option>Georgia</option><option>Times New Roman</option><option>Trebuchet MS</option></select>
+                  <select class="studio-format-select studio-font-size" aria-label="Taille des lettres" title="Taille des lettres" onmousedown="rememberStudioTextSelection()" onchange="setStudioTextSize(this.value,event)">${[10,12,14,16,18,20,24,28,32,36,40,48,54,60,72,84,96].map(size=>`<option value="${size}" ${size===32?"selected":""}>${size}</option>`).join("")}</select>
                   <button class="btn format-button" type="button" title="Réduire la taille" aria-label="Réduire la taille du texte" onmousedown="resizeStudioText(-2,event)">A−</button>
                   <button class="btn format-button" type="button" title="Augmenter la taille" aria-label="Augmenter la taille du texte" onmousedown="resizeStudioText(2,event)">A+</button>
                   <button class="btn format-button" type="button" title="Gras (Ctrl+B)" aria-label="Gras" onmousedown="formatStudioText('bold',event)"><strong>G</strong></button>
@@ -2733,9 +2735,7 @@
                   <button class="btn format-button" type="button" title="Justifier" aria-label="Justifier" onmousedown="formatStudioText('justifyFull',event)">▤</button>
                   <button class="btn format-button" type="button" title="Effacer la mise en forme" aria-label="Effacer la mise en forme" onmousedown="formatStudioText('removeFormat',event)">× Style</button>
                   <button class="btn format-button studio-highlight-button" type="button" title="Surligner en jaune" aria-label="Surligner en jaune" onmousedown="formatStudioText('hiliteColor',event,'#fff176')">ab</button>
-                  <span class="studio-color-palette" role="group" aria-label="Couleur du texte">
-                    ${[["#24171a","Noir"],["#b21f3d","Rouge"],["#2457b2","Bleu"],["#187b51","Vert"],["#d06b16","Orange"]].map(([color,label])=>`<button class="studio-color-button" type="button" title="Texte ${label.toLowerCase()}" aria-label="Couleur ${label}" style="--text-color:${color}" onmousedown="formatStudioText('foreColor',event,'${color}')"></button>`).join("")}
-                  </span>
+                  <select class="studio-format-select studio-color-select" aria-label="Couleur du texte" title="Couleur du texte" onmousedown="rememberStudioTextSelection()" onchange="formatStudioText('foreColor',event,this.value);this.selectedIndex=0"><option value="">Couleur du texte…</option>${[["#24171a","Noir"],["#555555","Gris foncé"],["#888888","Gris"],["#b21f3d","Rouge"],["#7b1830","Bordeaux"],["#d06b16","Orange"],["#d4a400","Jaune foncé"],["#187b51","Vert"],["#16877d","Turquoise"],["#2457b2","Bleu"],["#173b7a","Bleu foncé"],["#713c9b","Violet"],["#c04b91","Rose"],["#ffffff","Blanc"]].map(([color,label])=>`<option value="${color}">${label}</option>`).join("")}</select>
                 </div>
                 <button class="btn" onclick="renameActivity('${activity.id}')">Titre</button>
                 <button class="btn" onclick="renameStudioSlideInstruction('${activity.id}')">Consigne diapo</button>
@@ -2773,6 +2773,7 @@
         `;
         initStudioDrag();
         initStudioCanvasInput();
+        initStudioTextToolbarVisibility();
         hydrateDocumentPreviews();
       }
 
@@ -3021,17 +3022,58 @@
         return template.innerHTML;
       }
 
+      function rememberStudioTextSelection() {
+        const selection = window.getSelection();
+        if (!selection?.rangeCount || selection.isCollapsed) return false;
+        const range = selection.getRangeAt(0);
+        const container = range.commonAncestorContainer.nodeType === Node.ELEMENT_NODE ? range.commonAncestorContainer : range.commonAncestorContainer.parentElement;
+        const text = container?.closest?.(".studio .slide-text");
+        if (!text) return false;
+        studioTextSelectionRange = range.cloneRange();
+        document.querySelectorAll(".studio .slide-el").forEach(node=>node.classList.toggle("selected",node===text.closest(".slide-el")));
+        return true;
+      }
+
+      function restoreStudioTextSelection() {
+        if (!studioTextSelectionRange) return false;
+        const selection = window.getSelection();
+        selection.removeAllRanges();
+        selection.addRange(studioTextSelectionRange);
+        return true;
+      }
+
+      function updateStudioTextToolbarVisibility() {
+        const toolbar = document.querySelector("#studioTextFormatToolbar");
+        if (!toolbar) return;
+        const hasSelection = rememberStudioTextSelection();
+        const usingToolbar = toolbar.contains(document.activeElement) || toolbar.matches(":hover");
+        toolbar.hidden = !hasSelection && !usingToolbar;
+        if (!hasSelection && !usingToolbar) studioTextSelectionRange = null;
+      }
+
+      function initStudioTextToolbarVisibility() {
+        studioTextSelectionRange = null;
+        const toolbar = document.querySelector("#studioTextFormatToolbar");
+        if (toolbar) toolbar.hidden = true;
+        if (studioTextSelectionListenerReady) return;
+        studioTextSelectionListenerReady = true;
+        document.addEventListener("selectionchange", updateStudioTextToolbarVisibility);
+      }
+
       function formatStudioText(command, event, value = null) {
         event?.preventDefault();
         event?.stopPropagation();
+        rememberStudioTextSelection();
         const text = document.querySelector(".studio .slide-el.selected .slide-text");
         if (!text) {
           toast("Sélectionnez d'abord une zone de texte.");
           return;
         }
         text.focus({ preventScroll: true });
+        restoreStudioTextSelection();
         if (command === "foreColor" || command === "hiliteColor" || command.startsWith("justify")) document.execCommand("styleWithCSS", false, true);
         document.execCommand(command, false, value);
+        rememberStudioTextSelection();
         fitStudioText(text.closest(".slide-el"));
       }
 
