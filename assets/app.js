@@ -2727,6 +2727,7 @@
                   </span>
                 </div>
                 <button class="btn" onclick="renameActivity('${activity.id}')">Titre</button>
+                <button class="btn" onclick="renameStudioSlideInstruction('${activity.id}')">Consigne diapo</button>
                 <button class="btn" onclick="addSlide('${activity.id}')">+ Diapo (activité)</button>
                 <button class="btn" id="studioUndoBtn" onclick="undoStudioChange('${activity.id}')" ${studioUndoStack.length?"":"disabled"}>↶ Annuler</button>
                 <button class="btn" id="studioRedoBtn" onclick="redoStudioChange('${activity.id}')" ${studioRedoStack.length?"":"disabled"}>↷ Rétablir</button>
@@ -2766,7 +2767,11 @@
 
       function renderStudioSlide(slide, index) {
         const top = index * (slideSize.height + slideSize.gap);
-        return `<article class="slide-frame ${index === currentStudioSlideIndex ? "current" : ""}" data-slide-id="${slide.id}" data-slide-index="${index}" data-label="Diapo (activité) ${index + 1}" tabindex="0" onclick="selectStudioSlide(${index})" style="position:absolute;left:0;top:${top}px"></article>`;
+        return `<article class="slide-frame ${index === currentStudioSlideIndex ? "current" : ""}" data-slide-id="${slide.id}" data-slide-index="${index}" data-label="${escapeAttr(slideInstruction(slide,index))}" tabindex="0" onclick="selectStudioSlide(${index})" style="position:absolute;left:0;top:${top}px"></article>`;
+      }
+
+      function slideInstruction(slide, index) {
+        return String(slide?.instruction || "").trim() || `Consigne de l’activité ${index + 1}`;
       }
 
       function seatingPlanFor(group) {
@@ -2802,13 +2807,13 @@
       function renderSlideThumbnail(slide, index) {
         const preview = (slide.elements || []).filter((element) => element.kind === "text").map((element) => element.value || "").join(" ").slice(0, 70);
         const slideCount = findItem("activity", studioHistoryActivityId)?.slides?.length || 0;
-        return `<div class="slide-thumbnail ${index === currentStudioSlideIndex ? "current" : ""}" role="button" tabindex="0" draggable="true" data-index="${index}" onclick="if(!event.target.closest('input,button')){selectStudioSlide(${index});selectedSlide()?.scrollIntoView({behavior:'smooth',block:'center'})}" ondragstart="startStudioSlideReorder(${index},event)" ondragover="event.preventDefault();this.classList.add('drop-target')" ondragleave="this.classList.remove('drop-target')" ondragend="clearStudioSlideDropTargets()" ondrop="reorderStudioSlide(${index},event)"><div class="slide-thumbnail-actions"><button type="button" title="Remonter cette diapo" aria-label="Remonter la diapo ${index+1}" onclick="moveStudioSlideBy(${index},-1,event)" ${index === 0 ? "disabled" : ""}>↑</button><button type="button" title="Descendre cette diapo" aria-label="Descendre la diapo ${index+1}" onclick="moveStudioSlideBy(${index},1,event)" ${index >= slideCount - 1 ? "disabled" : ""}>↓</button><button class="slide-thumbnail-delete" type="button" title="Supprimer cette diapo" aria-label="Supprimer la diapo ${index+1}" onclick="deleteStudioSlide('${studioHistoryActivityId}',${index},event)">×</button></div><span>${index + 1}</span><strong>Diapo (activité)</strong><small>${escapeHtml(preview || "Sans texte")}</small><label class="slide-duration">Temps prévu <input draggable="false" value="${escapeAttr(slide.duration || "5 min")}" aria-label="Temps prévu pour la diapo ${index+1}" onclick="event.stopPropagation()" onpointerdown="event.stopPropagation()" oninput="updateSlideDuration(${index},this.value)"></label></div>`;
+        return `<div class="slide-thumbnail ${index === currentStudioSlideIndex ? "current" : ""}" role="button" tabindex="0" draggable="true" data-index="${index}" onclick="if(!event.target.closest('input,button')){selectStudioSlide(${index});selectedSlide()?.scrollIntoView({behavior:'smooth',block:'center'})}" ondragstart="startStudioSlideReorder(${index},event)" ondragover="event.preventDefault();this.classList.add('drop-target')" ondragleave="this.classList.remove('drop-target')" ondragend="clearStudioSlideDropTargets()" ondrop="reorderStudioSlide(${index},event)"><div class="slide-thumbnail-actions"><button type="button" title="Remonter cette diapo" aria-label="Remonter la diapo ${index+1}" onclick="moveStudioSlideBy(${index},-1,event)" ${index === 0 ? "disabled" : ""}>↑</button><button type="button" title="Descendre cette diapo" aria-label="Descendre la diapo ${index+1}" onclick="moveStudioSlideBy(${index},1,event)" ${index >= slideCount - 1 ? "disabled" : ""}>↓</button><button class="slide-thumbnail-delete" type="button" title="Supprimer cette diapo" aria-label="Supprimer la diapo ${index+1}" onclick="deleteStudioSlide('${studioHistoryActivityId}',${index},event)">×</button></div><span>${index + 1}</span><strong>${escapeHtml(slideInstruction(slide,index))}</strong><small>${escapeHtml(preview || "Sans texte")}</small><label class="slide-duration">Temps prévu <input draggable="false" value="${escapeAttr(slide.duration || "5 min")}" aria-label="Temps prévu pour la diapo ${index+1}" onclick="event.stopPropagation()" onpointerdown="event.stopPropagation()" oninput="updateSlideDuration(${index},this.value)"></label></div>`;
       }
 
       function updateSlideDuration(index,value){ const activity=findItem("activity",document.querySelector(".studio")?.dataset.activityId); if(activity?.slides[index]) activity.slides[index].duration=String(value||"").trim()||"5 min"; }
 
       function cloneStudioSlides(slides){ return JSON.parse(JSON.stringify(slides||[])); }
-      function captureStudioSlides(activityId){ const activity=findItem("activity",activityId); const frames=[...document.querySelectorAll(`.studio[data-activity-id="${activityId}"] .slide-frame`)]; if(!frames.length)return deduplicateSlideElements(cloneStudioSlides(activity?.slides)); const previous=activity?.slides||[], slides=frames.map(frame=>({id:frame.dataset.slideId||uid("slide"),duration:previous.find(slide=>slide.id===frame.dataset.slideId)?.duration||"5 min",elements:[]})); [...document.querySelectorAll(`.studio[data-activity-id="${activityId}"] .slide-el`)].map(readSlideElement).forEach(element=>{const target=slides[element.slideIndex]||slides[0],clean={...element};delete clean.slideIndex;target.elements.push(clean);}); return deduplicateSlideElements(slides); }
+      function captureStudioSlides(activityId){ const activity=findItem("activity",activityId); const frames=[...document.querySelectorAll(`.studio[data-activity-id="${activityId}"] .slide-frame`)]; if(!frames.length)return deduplicateSlideElements(cloneStudioSlides(activity?.slides)); const previous=activity?.slides||[], slides=frames.map(frame=>{const saved=previous.find(slide=>slide.id===frame.dataset.slideId);return {id:frame.dataset.slideId||uid("slide"),duration:saved?.duration||"5 min",instruction:saved?.instruction||"",elements:[]};}); [...document.querySelectorAll(`.studio[data-activity-id="${activityId}"] .slide-el`)].map(readSlideElement).forEach(element=>{const target=slides[element.slideIndex]||slides[0],clean={...element};delete clean.slideIndex;target.elements.push(clean);}); return deduplicateSlideElements(slides); }
       function updateStudioHistoryButtons(){ const undo=document.querySelector("#studioUndoBtn"),redo=document.querySelector("#studioRedoBtn");if(undo)undo.disabled=!studioUndoStack.length;if(redo)redo.disabled=!studioRedoStack.length; }
       function recordStudioHistory(activityId){ const snapshot=captureStudioSlides(activityId); if(!snapshot?.length)return; studioUndoStack.push(snapshot); if(studioUndoStack.length>30)studioUndoStack.shift(); studioRedoStack=[]; updateStudioHistoryButtons(); }
       async function undoStudioChange(activityId){ if(!studioUndoStack.length)return; const activity=findItem("activity",activityId);studioRedoStack.push(captureStudioSlides(activityId));activity.slides=cloneStudioSlides(studioUndoStack.pop());const selected=Math.min(currentStudioSlideIndex,activity.slides.length-1);await saveData("Modification annulée.");openActivityStudio(activityId);currentStudioSlideIndex=selected;selectStudioSlide(selected);updateStudioHistoryButtons(); }
@@ -3216,11 +3221,26 @@
         document.querySelectorAll(".slide-thumbnail").forEach((node) => node.classList.toggle("current", Number(node.dataset.index) === currentStudioSlideIndex));
       }
 
+      async function renameStudioSlideInstruction(activityId) {
+        const activity = findItem("activity", activityId);
+        if (!activity) return;
+        activity.slides = captureStudioSlides(activityId);
+        const index = Math.max(0, Math.min(currentStudioSlideIndex, activity.slides.length - 1));
+        const slide = activity.slides[index];
+        const instruction = prompt("Consigne de cette diapo", slide.instruction || slideInstruction(slide, index));
+        if (instruction === null) return;
+        slide.instruction = instruction.trim();
+        if (!await saveData("Consigne de la diapo enregistrée.")) return;
+        openActivityStudio(activityId);
+        currentStudioSlideIndex = index;
+        selectStudioSlide(index);
+      }
+
       function addSlide(activityId) {
         const activity = findItem("activity", activityId);
         recordStudioHistory(activityId);
         activity.slides = captureStudioSlides(activityId);
-        activity.slides.push({ id: uid("slide"), duration: "5 min", elements: [] });
+        activity.slides.push({ id: uid("slide"), duration: "5 min", instruction: "", elements: [] });
         openActivityStudio(activityId);
         currentStudioSlideIndex = activity.slides.length - 1;
         selectStudioSlide(currentStudioSlideIndex);
@@ -3530,6 +3550,7 @@
         activity.slides = Array.from(document.querySelectorAll(".slide-frame")).map((slide) => ({
           id: slide.dataset.slideId || uid("slide"),
           duration: previousSlides.find(item=>item.id===slide.dataset.slideId)?.duration || "5 min",
+          instruction: previousSlides.find(item=>item.id===slide.dataset.slideId)?.instruction || "",
           elements: []
         }));
         Array.from(document.querySelectorAll(".slide-el")).map(readSlideElement).forEach((element) => {
@@ -4216,7 +4237,7 @@
 
       function renderPrintableSlide(activity, slide, index) {
         return `<section class="print-slide-page">
-          <h2>Diapo (activité) ${index + 1}</h2>
+          <h2>${escapeHtml(slideInstruction(slide,index))}</h2>
           <div class="print-slide-canvas">
             ${elementsForBoardSlide(activity, index).map(renderPrintableElement).join("")}
           </div>
@@ -4282,7 +4303,7 @@
           docxParagraph([activity.estimatedDuration && `Durée : ${activity.estimatedDuration}`, activity.modality && `Modalité : ${activity.modality}`, activity.level && `Niveau : ${activity.level}`].filter(Boolean).join(" · "), false, 20)
         ];
         (activity.slides || []).forEach((slide, index) => {
-          paragraphs.push(docxParagraph(`Diapo (activité) ${index + 1}`, true, 28, index > 0));
+          paragraphs.push(docxParagraph(slideInstruction(slide,index), true, 28, index > 0));
           elementsForBoardSlide(activity, index)
             .sort((a, b) => Number(a.y || 0) - Number(b.y || 0) || Number(a.x || 0) - Number(b.x || 0))
             .forEach((element) => {
