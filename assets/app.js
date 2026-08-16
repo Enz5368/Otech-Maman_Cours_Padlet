@@ -2747,13 +2747,13 @@
                 <button class="btn" onclick="addTextElement('${activity.id}')">+ Texte</button>
                 <button class="btn" onclick="addUrlElement('${activity.id}')">+ URL</button>
                 <label class="btn">+ Fichier <input type="file" accept="image/*,audio/*,video/*,.avi,.mkv,.wmv,.flv,.m4v,.mpeg,.mpg,.3gp,.ts,.m2ts,.pdf,.doc,.docx,.odt,.xls,.xlsx,.ods,.ppt,.pptx,.odp,.txt,.rtf,.csv,.json,.xml,.html,.htm,.zip" hidden onchange="addFileElement('${activity.id}',this.files[0],this);this.value=''"></label>
-                <label class="studio-tool-picker">Outil
-                  <select id="studioToolSelect">${Object.entries(slideTools).map(([value, tool]) => `<option value="${value}">${escapeHtml(tool.title)}</option>`).join("")}</select>
-                </label>
-                <label class="studio-tool-picker">Groupe
-                  <select id="studioToolClass">${(state.studentClasses || []).map((classe) => `<option value="${escapeAttr(classe.id)}">${escapeHtml(classe.title)}</option>`).join("") || '<option value="">Aucun groupe</option>'}</select>
-                </label>
-                <button class="btn" onclick="addToolElement('${activity.id}')">+ Outil</button>
+                <div class="studio-tool-actions">
+                  <label class="studio-tool-picker">Groupe pour la roue
+                    <select id="studioToolClass">${(state.studentClasses || []).map((classe) => `<option value="${escapeAttr(classe.id)}">${escapeHtml(classe.title)}</option>`).join("") || '<option value="">Aucun groupe</option>'}</select>
+                  </label>
+                  <button class="btn studio-tool-button wheel" onclick="addToolElement('${activity.id}','wheel')">+ Roue</button>
+                  <button class="btn studio-tool-button timer" onclick="addToolElement('${activity.id}','timer')">+ Chrono</button>
+                </div>
                 <button class="btn danger" onclick="deleteSelectedElement()">Suppr. objet</button>
                 <button class="btn primary" onclick="saveStudio('${activity.id}',false,this)">Enregistrer</button>
                 <button class="btn" onclick="showBoard('${activity.id}',0)">Présenter</button>
@@ -3359,8 +3359,8 @@
         initStudioDrag();
       }
 
-      function addToolElement(activityId) {
-        const toolId = document.querySelector("#studioToolSelect")?.value || "timer";
+      function addToolElement(activityId, toolId = "timer") {
+        toolId = toolId === "wheel" ? "wheel" : "timer";
         const classId = document.querySelector("#studioToolClass")?.value || "";
         if (toolId === "wheel" && !classId) {
           toast("Ajoutez d'abord un groupe dans Groupes Classes pour utiliser la roue.");
@@ -3706,8 +3706,22 @@
         };
       }
 
+      function initResponsiveSlideTool(node) {
+        if (!node || node.dataset.kind !== "tool" || node.dataset.toolResizeReady === "true") return;
+        node.dataset.toolResizeReady = "true";
+        const update = () => {
+          const width = node.clientWidth;
+          const height = node.clientHeight;
+          node.classList.toggle("tool-compact", width < 350 || height < 350);
+          node.classList.toggle("tool-tiny", width < 250 || height < 250);
+        };
+        update();
+        if (window.ResizeObserver) new ResizeObserver(update).observe(node);
+      }
+
       function initStudioDrag() {
         document.querySelectorAll(".slide-el").forEach((node) => {
+          initResponsiveSlideTool(node);
           if (node.dataset.interactionsReady === "true") return;
           node.dataset.interactionsReady = "true";
           node.tabIndex = 0;
@@ -4222,7 +4236,8 @@
       }
 
       function renderBoardSlideElement(element) {
-        return `<div class="slide-el" data-el-id="${escapeAttr(element.id || "")}" data-kind="${escapeAttr(element.kind || "text")}" data-value="${escapeAttr(element.value || "")}" style="left:${Number(element.x || 0)}px;top:${Number(element.y || 0)}px;width:${Number(element.w || 320)}px;height:${Number(element.h || 160)}px">${renderElementContent(element, false)}</div>`;
+        const toolSizeClass = element.kind === "tool" ? (Number(element.w || 0) < 250 || Number(element.h || 0) < 250 ? " tool-compact tool-tiny" : Number(element.w || 0) < 350 || Number(element.h || 0) < 350 ? " tool-compact" : "") : "";
+        return `<div class="slide-el${toolSizeClass}" data-el-id="${escapeAttr(element.id || "")}" data-kind="${escapeAttr(element.kind || "text")}" data-value="${escapeAttr(element.value || "")}" style="left:${Number(element.x || 0)}px;top:${Number(element.y || 0)}px;width:${Number(element.w || 320)}px;height:${Number(element.h || 160)}px">${renderElementContent(element, false)}</div>`;
       }
 
       function fitBoardSlide() {
