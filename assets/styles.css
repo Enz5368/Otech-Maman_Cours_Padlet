@@ -1121,6 +1121,9 @@
         background: transparent;
       }
       .studio-text-format .format-button:hover { background: white; }
+      .studio-color-palette { display:inline-flex; align-items:center; gap:4px; padding:0 5px; border-left:1px solid var(--line); }
+      .studio-color-button { width:22px; height:22px; padding:0; border:2px solid white; border-radius:50%; background:var(--text-color); box-shadow:0 0 0 1px var(--line); cursor:pointer; }
+      .studio-color-button:hover { transform:scale(1.13); box-shadow:0 0 0 2px var(--wine-300); }
       .studio-tool-picker {
         display: grid;
         gap: 3px;

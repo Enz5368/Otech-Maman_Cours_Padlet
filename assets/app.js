@@ -2713,6 +2713,8 @@
               </div>
               <div class="studio-actions">
                 <div class="studio-text-format" role="toolbar" aria-label="Mise en forme du texte">
+                  <button class="btn format-button" type="button" title="Réduire la taille" aria-label="Réduire la taille du texte" onmousedown="resizeStudioText(-2,event)">A−</button>
+                  <button class="btn format-button" type="button" title="Augmenter la taille" aria-label="Augmenter la taille du texte" onmousedown="resizeStudioText(2,event)">A+</button>
                   <button class="btn format-button" type="button" title="Gras (Ctrl+B)" aria-label="Gras" onmousedown="formatStudioText('bold',event)"><strong>G</strong></button>
                   <button class="btn format-button" type="button" title="Italique (Ctrl+I)" aria-label="Italique" onmousedown="formatStudioText('italic',event)"><em>I</em></button>
                   <button class="btn format-button" type="button" title="Souligné (Ctrl+U)" aria-label="Souligné" onmousedown="formatStudioText('underline',event)"><u>S</u></button>
@@ -2720,6 +2722,9 @@
                   <button class="btn format-button" type="button" title="Liste à puces" aria-label="Liste à puces" onmousedown="formatStudioText('insertUnorderedList',event)">• Liste</button>
                   <button class="btn format-button" type="button" title="Liste numérotée" aria-label="Liste numérotée" onmousedown="formatStudioText('insertOrderedList',event)">1. Liste</button>
                   <button class="btn format-button" type="button" title="Effacer la mise en forme" aria-label="Effacer la mise en forme" onmousedown="formatStudioText('removeFormat',event)">× Style</button>
+                  <span class="studio-color-palette" role="group" aria-label="Couleur du texte">
+                    ${[["#24171a","Noir"],["#b21f3d","Rouge"],["#2457b2","Bleu"],["#187b51","Vert"],["#d06b16","Orange"]].map(([color,label])=>`<button class="studio-color-button" type="button" title="Texte ${label.toLowerCase()}" aria-label="Couleur ${label}" style="--text-color:${color}" onmousedown="formatStudioText('foreColor',event,'${color}')"></button>`).join("")}
+                  </span>
                 </div>
                 <button class="btn" onclick="renameActivity('${activity.id}')">Titre</button>
                 <button class="btn" onclick="addSlide('${activity.id}')">+ Diapo (activité)</button>
@@ -2992,7 +2997,7 @@
         return template.innerHTML;
       }
 
-      function formatStudioText(command, event) {
+      function formatStudioText(command, event, value = null) {
         event?.preventDefault();
         event?.stopPropagation();
         const text = document.querySelector(".studio .slide-el.selected .slide-text");
@@ -3001,8 +3006,22 @@
           return;
         }
         text.focus({ preventScroll: true });
-        document.execCommand(command, false, null);
+        if (command === "foreColor") document.execCommand("styleWithCSS", false, true);
+        document.execCommand(command, false, value);
         fitStudioText(text.closest(".slide-el"));
+      }
+
+      function resizeStudioText(delta, event) {
+        event?.preventDefault();
+        event?.stopPropagation();
+        const node = document.querySelector(".studio .slide-el.selected[data-kind='text']");
+        const text = node?.querySelector(".slide-text");
+        if (!node || !text) return toast("Sélectionnez d'abord une zone de texte.");
+        const current = Number(node.dataset.maxFontSize || parseFloat(text.style.fontSize) || 34);
+        const size = Math.max(8, Math.min(96, current + Number(delta || 0)));
+        node.dataset.maxFontSize = String(size);
+        text.style.fontSize = `${size}px`;
+        fitStudioText(node);
       }
 
       function fitStudioText(node) {
