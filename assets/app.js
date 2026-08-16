@@ -2751,8 +2751,8 @@
                   <label class="studio-tool-picker">Groupe pour la roue
                     <select id="studioToolClass">${(state.studentClasses || []).map((classe) => `<option value="${escapeAttr(classe.id)}">${escapeHtml(classe.title)}</option>`).join("") || '<option value="">Aucun groupe</option>'}</select>
                   </label>
-                  <button class="btn studio-tool-button wheel" onclick="addToolElement('${activity.id}','wheel')">+ Roue</button>
-                  <button class="btn studio-tool-button timer" onclick="addToolElement('${activity.id}','timer')">+ Chrono</button>
+                  <button class="btn studio-tool-button studio-wheel-button" onclick="addToolElement('${activity.id}','wheel')">+ Roue</button>
+                  <button class="btn studio-tool-button studio-timer-button" onclick="addToolElement('${activity.id}','timer')">+ Chrono</button>
                 </div>
                 <button class="btn danger" onclick="deleteSelectedElement()">Suppr. objet</button>
                 <button class="btn primary" onclick="saveStudio('${activity.id}',false,this)">Enregistrer</button>
