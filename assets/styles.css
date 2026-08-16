@@ -1610,6 +1610,10 @@
       .slide-el.tool-compact .slide-tool-buttons .btn { min-height:27px; padding:4px 7px; font-size:9px; }
       .slide-el.tool-tiny .slide-tool-head, .slide-el.tool-tiny .slide-tool-summary, .slide-el.tool-tiny .slide-tool-settings, .slide-el.tool-tiny .slide-timer-setting { display:none; }
       .slide-el.tool-tiny .slide-tool { place-content:center; }
+      .slide-el.tool-tiny .slide-timer .timer-face-small { width:min(100px,46cqw,46cqh); min-width:54px; }
+      .slide-el.tool-tiny .slide-timer .embedded-timer-display { max-width:100%; overflow:hidden; font-size:clamp(11px,7cqw,24px); white-space:nowrap; }
+      .slide-el.tool-tiny .slide-tool-buttons { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); width:100%; }
+      .slide-el.tool-tiny .slide-tool-buttons .btn { min-width:0; width:100%; padding:4px 3px; overflow:hidden; text-overflow:ellipsis; }
       .slide-wheel.spinning .slide-tool-result { animation: toolPulse .18s ease-in-out infinite alternate; }
       @keyframes toolPulse { to { transform: scale(1.08); opacity: .55; } }
 
