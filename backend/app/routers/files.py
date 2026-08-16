@@ -2,9 +2,12 @@ from __future__ import annotations
 
 import re
 import shutil
+import unicodedata
 import uuid
 from datetime import UTC, datetime
+from pathlib import Path
 from typing import Annotated
+from urllib.parse import quote
 
 from fastapi import APIRouter, File, Header, HTTPException, Response, UploadFile, status
 from fastapi.responses import StreamingResponse
@@ -18,6 +21,13 @@ from ..services.storage import convert_stored_video, iter_file_range, resolve_us
 
 router = APIRouter(prefix="/files", tags=["files"])
 RANGE_RE = re.compile(r"bytes=(\d*)-(\d*)$")
+
+
+def inline_content_disposition(filename: str) -> str:
+    clean_name = Path(filename).name.replace('"', "")
+    ascii_name = unicodedata.normalize("NFKD", clean_name).encode("ascii", "ignore").decode("ascii")
+    ascii_name = re.sub(r"[^A-Za-z0-9._ -]", "_", ascii_name).strip() or "fichier"
+    return f'inline; filename="{ascii_name}"; filename*=UTF-8\'\'{quote(clean_name, safe="")}'
 
 
 def owned_file(
@@ -104,7 +114,7 @@ def file_content(
     size = path.stat().st_size
     headers = {
         "Accept-Ranges": "bytes",
-        "Content-Disposition": f'inline; filename="{record.original_name.replace(chr(34), "")}"',
+        "Content-Disposition": inline_content_disposition(record.original_name),
         "Cache-Control": "private, max-age=300",
     }
     if range_header:

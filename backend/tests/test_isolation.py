@@ -50,6 +50,24 @@ def test_two_users_cannot_download_same_file(client: TestClient) -> None:
         assert bob.get(f"/api/v1/files/{file_id}/content").status_code == 404
 
 
+def test_image_with_unicode_filename_can_be_displayed(client: TestClient) -> None:
+    register(client, f"unicode-image-{uuid.uuid4().hex[:8]}")
+    image_bytes = b"\x89PNG\r\n\x1a\n" + b"contenu-image-test"
+    uploaded = client.post(
+        "/api/v1/files",
+        files={"upload": ("Capture d’écran été.png", image_bytes, "image/png")},
+        headers=csrf_headers(client),
+    )
+    assert uploaded.status_code == 201, uploaded.text
+
+    response = client.get(uploaded.json()["content_url"])
+    assert response.status_code == 200, response.text
+    assert response.content == image_bytes
+    disposition = response.headers["content-disposition"]
+    assert 'filename="Capture decran ete.png"' in disposition
+    assert "filename*=UTF-8''Capture%20d%E2%80%99%C3%A9cran%20%C3%A9t%C3%A9.png" in disposition
+
+
 def test_parent_from_another_user_is_rejected(client: TestClient) -> None:
     register(client, f"parent-a-{uuid.uuid4().hex[:8]}")
     level = client.post(
