@@ -19,6 +19,23 @@
         wheel: { title: "Roue de la fortune", description: "Tirer un élève au hasard dans un groupe classe." },
         timer: { title: "Chronomètre", description: "Afficher et piloter le minuteur de classe." }
       };
+      const siteThemes = {
+        default: { label: "Bordeaux", colors: ["#74182A", "#F8F1E8", "#C99A3D"] },
+        midnightOrange: { label: "Midnight Blue · Exotic Orange", colors: ["#1E223D", "#F54F1B"] },
+        tealYellow: { label: "Authentic Teal · Sidecar Yellow", colors: ["#035352", "#F3E8BC"] },
+        oliveYellow: { label: "Olive Green · Royal Yellow", colors: ["#202B22", "#FFD85F"] },
+        atlanticSky: { label: "Atlantic Blue · Soft Sky Blue", colors: ["#0F4B70", "#C4F8FF"] },
+        redWhite: { label: "Masterpiece Red · Dirty White", colors: ["#5A2132", "#EFE9E9"] },
+        championLavender: { label: "Champion Blue · Lavender Tonic", colors: ["#151130", "#C8BFEA"] },
+        imperialWhite: { label: "Imperial Blue · White Convolvulus", colors: ["#021F94", "#F5F2F3"] },
+        brownGreen: { label: "Creole Brown · Yellow Green Shade", colors: ["#1F0E06", "#C6E385"] },
+        irisMint: { label: "Royal Iris · Mint Frost", colors: ["#4C1D95", "#B7F7D4"] },
+        blackLilac: { label: "Chrome Black · Digital Lilac", colors: ["#0D0D0D", "#D9B8FF"] },
+        indigoVanilla: { label: "Nordic Indigo · Vanilla Mist", colors: ["#263BAA", "#FFF4D6"] },
+        slateMint: { label: "Slate Ocean · Cloud Mint", colors: ["#2F4858", "#DDFBEF"] },
+        oliveLemon: { label: "Dark Olive · Fresh Lemon", colors: ["#283113", "#F3FF74"] },
+        tealSand: { label: "Ink Teal · Warm Sand", colors: ["#053D3A", "#FFE2B8"] }
+      };
       const teacherToolLinks = [
         { group: "Télécharger des vidéos YouTube", title: "TurboScribe", description: "Télécharger une vidéo depuis son adresse YouTube.", url: "https://turboscribe.ai/fr/downloader/youtube/video" },
         { group: "Télécharger des vidéos YouTube", title: "Freemake", description: "Téléchargeur de vidéos en ligne.", url: "https://www.freemake.com/fr/free_video_downloader_choicest/" },
@@ -383,6 +400,8 @@
         data.studentClasses = Array.isArray(data.studentClasses) ? data.studentClasses : [];
         data.studentClasses.forEach((group) => { group.seatingPlan = group.seatingPlan || { rows: 3, columns: 4, desks: [] }; });
         data.schedule = Array.isArray(data.schedule) ? data.schedule : [];
+        data.preferences = data.preferences && typeof data.preferences === "object" ? data.preferences : {};
+        data.preferences.theme = siteThemes[data.preferences.theme] ? data.preferences.theme : "default";
         data.tools = data.tools && typeof data.tools === "object" ? data.tools : {};
         data.tools.wheelHistory = data.tools.wheelHistory && typeof data.tools.wheelHistory === "object" ? data.tools.wheelHistory : {};
         data.tools.wheelCounts = data.tools.wheelCounts && typeof data.tools.wheelCounts === "object" ? data.tools.wheelCounts : {};
@@ -1025,6 +1044,7 @@
       }
 
       function render() {
+        applySiteTheme(state.preferences?.theme);
         if (!isLoggedIn() && !freeExampleOpen) {
           showLogin();
           return;
@@ -2512,6 +2532,22 @@
         overlay.innerHTML = "";
       }
 
+      function applySiteTheme(themeId = "default") {
+        const safeTheme = siteThemes[themeId] ? themeId : "default";
+        document.documentElement.dataset.theme = safeTheme;
+        const theme = siteThemes[safeTheme];
+        document.documentElement.style.setProperty("--theme-primary", theme.colors[0]);
+        document.documentElement.style.setProperty("--theme-accent", theme.colors[1]);
+      }
+
+      async function changeSiteTheme(themeId, button) {
+        if (!canEdit() || !siteThemes[themeId]) return;
+        state.preferences = state.preferences && typeof state.preferences === "object" ? state.preferences : {};
+        state.preferences.theme = themeId;
+        applySiteTheme(themeId);
+        await saveData(`Thème ${siteThemes[themeId].label} enregistré.`, button);
+      }
+
       function renderSettings() {
         const formatBytes = (value) => `${(Number(value || 0) / (1024 * 1024)).toLocaleString("fr-FR", { maximumFractionDigits: 1 })} Mo`;
         const localMode = isLoggedIn() && isLocalFileMode();
@@ -2519,6 +2555,13 @@
         const isAdmin = authenticatedUser?.role === "admin" && !localMode;
         document.querySelector("#content").innerHTML = `
           <div class="grid two">
+            <section class="card theme-settings-card" style="grid-column:1/-1">
+              <h2>Thème de couleur</h2>
+              <p class="small muted">Le thème Bordeaux reste utilisé par défaut. Les 14 autres palettes correspondent aux couleurs fournies dans votre ZIP. Votre choix est enregistré uniquement dans votre espace.</p>
+              <div class="theme-choice-grid" role="group" aria-label="Choisir le thème du site">
+                ${Object.entries(siteThemes).map(([id,theme])=>`<button type="button" class="theme-choice ${state.preferences?.theme===id?"active":""}" aria-pressed="${state.preferences?.theme===id}" onclick="changeSiteTheme('${id}',this)"><span class="theme-swatches">${theme.colors.map(color=>`<i style="background:${color}"></i>`).join("")}</span><strong>${escapeHtml(theme.label)}</strong>${id==="default"?"<small>Par défaut</small>":""}</button>`).join("")}
+              </div>
+            </section>
             <section class="card">
               <h2>Compte et sécurité</h2>
               <p class="muted">Compte connecté : <strong>${isLoggedIn() ? escapeHtml(currentUsername()) : "visiteur public"}</strong></p>

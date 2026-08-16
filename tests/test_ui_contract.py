@@ -494,7 +494,7 @@ def test_export_impression_et_documents_libreoffice() -> None:
     assert 'value="portrait">Portrait' in APP_JS
     assert 'value="landscape">Paysage' in APP_JS
     assert "une diapo par page" in APP_JS
-    assert "espace-prof-30" in INDEX
+    assert "espace-prof-31" in INDEX
 
 
 def test_serveur_accepte_les_formats_opendocument_du_selecteur() -> None:
@@ -507,7 +507,7 @@ def test_serveur_accepte_les_formats_opendocument_du_selecteur() -> None:
         assert f'"{extension}": "{mime_type}"' in storage
         assert f'"{mime_type}"' in storage
     assert "extension in OPENDOCUMENT_MIME_BY_EXTENSION" in storage
-    assert "espace-prof-62" in INDEX
+    assert "espace-prof-63" in INDEX
     assert "Précédent" in APP_JS
     assert "Suivant" in APP_JS
     assert "setTimeout(startFreeExampleTutorial, 250);" in APP_JS
@@ -608,9 +608,36 @@ def test_plan_de_classe_style_cinema_et_emploi_du_temps_lycee() -> None:
     assert '["lundi", "mardi", "mercredi", "jeudi", "vendredi"]' in APP_JS
     assert 'aria-label="Emploi du temps du lundi au vendredi"' in APP_JS
     assert ".timetable-course" in STYLES
-    assert "assets/styles.css?v=espace-prof-30" in INDEX
-    assert "assets/app.js?v=espace-prof-62" in INDEX
+    assert "assets/styles.css?v=espace-prof-31" in INDEX
+    assert "assets/app.js?v=espace-prof-63" in INDEX
     assert "assets/api-client.js?v=espace-prof-6" in INDEX
+
+
+def test_tous_les_themes_du_zip_sont_disponibles_et_persistes() -> None:
+    assert 'default: { label: "Bordeaux"' in APP_JS
+    for label, primary, accent in (
+        ("Midnight Blue · Exotic Orange", "#1E223D", "#F54F1B"),
+        ("Authentic Teal · Sidecar Yellow", "#035352", "#F3E8BC"),
+        ("Olive Green · Royal Yellow", "#202B22", "#FFD85F"),
+        ("Atlantic Blue · Soft Sky Blue", "#0F4B70", "#C4F8FF"),
+        ("Masterpiece Red · Dirty White", "#5A2132", "#EFE9E9"),
+        ("Champion Blue · Lavender Tonic", "#151130", "#C8BFEA"),
+        ("Imperial Blue · White Convolvulus", "#021F94", "#F5F2F3"),
+        ("Creole Brown · Yellow Green Shade", "#1F0E06", "#C6E385"),
+        ("Royal Iris · Mint Frost", "#4C1D95", "#B7F7D4"),
+        ("Chrome Black · Digital Lilac", "#0D0D0D", "#D9B8FF"),
+        ("Nordic Indigo · Vanilla Mist", "#263BAA", "#FFF4D6"),
+        ("Slate Ocean · Cloud Mint", "#2F4858", "#DDFBEF"),
+        ("Dark Olive · Fresh Lemon", "#283113", "#F3FF74"),
+        ("Ink Teal · Warm Sand", "#053D3A", "#FFE2B8"),
+    ):
+        assert label in APP_JS
+        assert primary in APP_JS
+        assert accent in APP_JS
+    assert 'data.preferences.theme = siteThemes[data.preferences.theme] ? data.preferences.theme : "default"' in APP_JS
+    assert 'await saveData(`Thème ${siteThemes[themeId].label} enregistré.`' in APP_JS
+    assert '--theme-primary' in STYLES
+    assert '--theme-accent' in STYLES
 
 
 def test_les_videos_non_natives_sont_converties_pour_le_navigateur() -> None:
