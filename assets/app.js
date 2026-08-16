@@ -280,7 +280,7 @@
                     activities: [
                       makeActivity("Dans l'atelier", "Associer des mots italiens a des objets.", "Acquerir du vocabulaire culturel.", "Observe l'atelier et associe : pennello, quadro, disegno, macchina.", 1, [
                         titleSlide("La bottega", "Un artista lavora con idee, strumenti e pazienza."),
-                        imageSlide("Lessico", "il pennello\nil quadro\nil disegno\nla macchina", "https://upload.wikimedia.org/wikipedia/commons/4/4e/Leonardo_da_Vinci_-_study_of_hands.jpg")
+                        imageSlide("Lessico", "il pennello\nil quadro\nil disegno\nla macchina", "https://upload.wikimedia.org/wikipedia/commons/9/99/Leonardo_da_Vinci_-_Study_of_hands_-_WGA12812.jpg")
                       ])
                     ]
                   }
@@ -386,9 +386,28 @@
         data.tools.wheelCounts = data.tools.wheelCounts && typeof data.tools.wheelCounts === "object" ? data.tools.wheelCounts : {};
         data.tools.wheelLimits = data.tools.wheelLimits && typeof data.tools.wheelLimits === "object" ? data.tools.wheelLimits : {};
         data.tools.wheelAbsences = data.tools.wheelAbsences && typeof data.tools.wheelAbsences === "object" ? data.tools.wheelAbsences : {};
+        repairKnownBrokenImageUrls(data);
         data.classes.forEach((classe) => (classe.sequences || []).forEach((sequence) => (sequence.lessons || []).forEach((lesson) => (lesson.activities || []).forEach(ensureActivitySlides))));
         data.classes.sort((a, b) => Number(a.order || 0) - Number(b.order || 0));
         return data;
+      }
+
+      function repairKnownBrokenImageUrls(data) {
+        const replacements = new Map([
+          [
+            "https://upload.wikimedia.org/wikipedia/commons/4/4e/Leonardo_da_Vinci_-_study_of_hands.jpg",
+            "https://upload.wikimedia.org/wikipedia/commons/9/99/Leonardo_da_Vinci_-_Study_of_hands_-_WGA12812.jpg"
+          ]
+        ]);
+        const visit = (value) => {
+          if (Array.isArray(value)) return value.forEach(visit);
+          if (!value || typeof value !== "object") return;
+          for (const [key, item] of Object.entries(value)) {
+            if (typeof item === "string" && replacements.has(item)) value[key] = replacements.get(item);
+            else visit(item);
+          }
+        };
+        visit(data);
       }
 
       function ensureActivitySlides(activity) {
@@ -2770,7 +2789,7 @@
         if (element.kind === "text") return `<div class="slide-text" contenteditable="${editable ? "true" : "false"}" ${editable ? 'data-placeholder="Écrivez ici…"' : ""} style="font-size:${Number(element.fontSize || 34)}px">${element.html ? sanitizeRichText(element.html) : escapeHtml(element.value || "")}</div>`;
         if (element.kind === "tool") return renderSlideTool(element.value, editable, element.id);
         if (element.kind === "youtube" || youtubeId(element.value)) return youtubeCard(element.value);
-        if (element.kind === "image") return `<img src="${escapeAttr(element.value)}" alt="">`;
+        if (element.kind === "image") return `<img src="${escapeAttr(element.value)}" alt="" referrerpolicy="no-referrer" onerror="recoverSlideImage(this)">`;
         if (element.kind === "audio") return `<audio controls preload="metadata" src="${escapeAttr(element.value)}" onerror="reportMediaError(this)"></audio>`;
         if (element.kind === "video") return `<video controls preload="metadata" src="${escapeAttr(element.value)}" onerror="reportMediaError(this)"></video>`;
         if (element.kind === "document" || (element.kind === "embed" && isStoredDocumentUrl(element.value))) {
@@ -2778,6 +2797,35 @@
         }
         if (element.kind === "pdf") return `<iframe src="${toEmbedUrl(element.value)}" title="Document PDF"></iframe>`;
         return `<iframe src="${toEmbedUrl(element.value)}"></iframe>`;
+      }
+
+      async function recoverSlideImage(image) {
+        if (!image || image.dataset.recoveryAttempted === "true") {
+          showBrokenSlideImage(image);
+          return;
+        }
+        image.dataset.recoveryAttempted = "true";
+        const source = image.getAttribute("src") || "";
+        try {
+          const response = await fetch(source, { credentials: "include", cache: "no-store" });
+          if (!response.ok) throw new Error(`HTTP ${response.status}`);
+          const blob = await response.blob();
+          if (!blob.type.startsWith("image/")) throw new Error("format non reconnu");
+          const objectUrl = URL.createObjectURL(blob);
+          image.onload = () => setTimeout(() => URL.revokeObjectURL(objectUrl), 0);
+          image.onerror = () => showBrokenSlideImage(image);
+          image.src = objectUrl;
+        } catch (error) {
+          console.warn("Photo de diapositive inaccessible", source, error);
+          showBrokenSlideImage(image);
+        }
+      }
+
+      function showBrokenSlideImage(image) {
+        const container = image?.parentElement;
+        if (!container || container.querySelector(".slide-image-error")) return;
+        image.hidden = true;
+        container.insertAdjacentHTML("beforeend", `<div class="slide-image-error"><strong>Photo introuvable</strong><span>Le fichier a été déplacé ou supprimé. Sélectionnez cet objet puis remplacez la photo.</span></div>`);
       }
 
       function studioPointOnSlide(event, slide) {

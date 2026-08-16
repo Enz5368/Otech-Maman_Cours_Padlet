@@ -599,6 +599,26 @@ def test_zip_fourni_est_la_base_de_la_version_gratuite() -> None:
     assert "convertFreePptxDocuments()" in APP_JS
 
 
+def test_removed_wikimedia_photo_is_repaired_in_seed_and_saved_workspaces() -> None:
+    removed_url = "https://upload.wikimedia.org/wikipedia/commons/4/4e/Leonardo_da_Vinci_-_study_of_hands.jpg"
+    replacement_url = "https://upload.wikimedia.org/wikipedia/commons/9/99/Leonardo_da_Vinci_-_Study_of_hands_-_WGA12812.jpg"
+
+    assert APP_JS.count(removed_url) == 1
+    assert replacement_url in APP_JS
+    assert "repairKnownBrokenImageUrls(data);" in APP_JS
+
+
+def test_schedule_precedes_pronote_in_sidebar() -> None:
+    assert INDEX.index('data-view="schedule"') < INDEX.index('id="pronoteExternalLink"')
+
+
+def test_broken_private_slide_images_are_retried_with_session_cookie() -> None:
+    assert 'onerror="recoverSlideImage(this)"' in APP_JS
+    assert 'fetch(source, { credentials: "include", cache: "no-store" })' in APP_JS
+    assert "Photo introuvable" in APP_JS
+    assert ".slide-image-error" in STYLES
+
+
 def test_exemple_gratuit_est_a_jour_et_sans_texte_mal_encode() -> None:
     example = json.loads((ROOT / "assets" / "free-example" / "data.json").read_text(encoding="utf-8"))
     serialized = json.dumps(example, ensure_ascii=False)
