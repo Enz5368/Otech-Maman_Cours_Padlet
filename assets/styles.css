@@ -1113,10 +1113,12 @@
       .studio-general-actions[hidden] { display:none !important; }
       .studio-text-format {
         display: inline-flex;
-        flex-wrap: wrap;
+        flex-wrap: nowrap;
         align-items: center;
         gap: 2px;
-        max-width: 760px;
+        width: 100%;
+        max-width: none;
+        overflow: hidden;
         border: 1px solid #242424;
         border-radius: 4px;
         background: #3b3b3b;
@@ -1124,19 +1126,25 @@
       }
       .studio-text-format[hidden] { display:none !important; }
       .studio-text-format .format-button {
-        min-width: 34px;
-        padding: 6px 8px;
+        min-width: 27px;
+        min-height: 27px;
+        padding: 4px 6px;
         border: 0;
         background: transparent;
         color: #fff;
         border-radius: 2px;
+        font-size: 11px;
+        line-height: 1;
       }
       .studio-text-format .format-button:hover { background: #5a5a5a; }
-      .studio-format-select { height:30px; border:1px solid #777; border-radius:2px; background:#4a4a4a; color:#fff; padding:3px 24px 3px 7px; }
-      .studio-font-family { width:120px; }
-      .studio-font-size { width:62px; }
-      .studio-color-select { width:150px; max-height:220px; }
+      .studio-format-select { height:27px; border:1px solid #777; border-radius:2px; background:#4a4a4a; color:#fff; padding:2px 20px 2px 6px; font-size:11px; }
+      .studio-font-family { width:105px; }
+      .studio-font-size { width:50px; }
+      .studio-color-select { width:125px; max-height:220px; }
       .studio-highlight-button { color:#171717 !important; background:linear-gradient(transparent 58%,#fff176 58%) !important; }
+      @media (max-width: 1000px) {
+        .studio-text-format { flex-wrap:wrap; overflow:visible; }
+      }
       .studio-tool-picker {
         display: grid;
         gap: 3px;
