@@ -139,7 +139,8 @@ def test_les_outils_existants_peuvent_etre_inseres_dans_une_diapo() -> None:
     assert "studio-wheel-button" in APP_JS
     assert "studio-timer-button" in APP_JS
     assert 'studio-tool-button wheel"' not in APP_JS
-    assert "overflow-x:auto" in STYLES
+    assert "flex-wrap:wrap" in STYLES
+    assert "overflow:visible" in STYLES
     assert "grid-template-columns: minmax(0, 1fr)" in STYLES
 
 
@@ -493,7 +494,7 @@ def test_export_impression_et_documents_libreoffice() -> None:
     assert 'value="portrait">Portrait' in APP_JS
     assert 'value="landscape">Paysage' in APP_JS
     assert "une diapo par page" in APP_JS
-    assert "espace-prof-28" in INDEX
+    assert "espace-prof-29" in INDEX
 
 
 def test_serveur_accepte_les_formats_opendocument_du_selecteur() -> None:
@@ -607,7 +608,7 @@ def test_plan_de_classe_style_cinema_et_emploi_du_temps_lycee() -> None:
     assert '["lundi", "mardi", "mercredi", "jeudi", "vendredi"]' in APP_JS
     assert 'aria-label="Emploi du temps du lundi au vendredi"' in APP_JS
     assert ".timetable-course" in STYLES
-    assert "assets/styles.css?v=espace-prof-28" in INDEX
+    assert "assets/styles.css?v=espace-prof-29" in INDEX
     assert "assets/app.js?v=espace-prof-62" in INDEX
     assert "assets/api-client.js?v=espace-prof-6" in INDEX
 
