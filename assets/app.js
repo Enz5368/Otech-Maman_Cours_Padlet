@@ -2713,15 +2713,26 @@
               </div>
               <div class="studio-actions">
                 <div class="studio-text-format" role="toolbar" aria-label="Mise en forme du texte">
+                  <select class="studio-format-select studio-font-family" aria-label="Police" title="Police" onchange="setStudioTextFont(this.value,event)"><option>Calibri</option><option>Arial</option><option>Aptos</option><option>Verdana</option><option>Georgia</option><option>Times New Roman</option><option>Trebuchet MS</option></select>
+                  <select class="studio-format-select studio-font-size" aria-label="Taille des lettres" title="Taille des lettres" onchange="setStudioTextSize(this.value,event)">${[10,12,14,16,18,20,24,28,32,36,40,48,54,60,72,84,96].map(size=>`<option value="${size}" ${size===32?"selected":""}>${size}</option>`).join("")}</select>
                   <button class="btn format-button" type="button" title="Réduire la taille" aria-label="Réduire la taille du texte" onmousedown="resizeStudioText(-2,event)">A−</button>
                   <button class="btn format-button" type="button" title="Augmenter la taille" aria-label="Augmenter la taille du texte" onmousedown="resizeStudioText(2,event)">A+</button>
                   <button class="btn format-button" type="button" title="Gras (Ctrl+B)" aria-label="Gras" onmousedown="formatStudioText('bold',event)"><strong>G</strong></button>
                   <button class="btn format-button" type="button" title="Italique (Ctrl+I)" aria-label="Italique" onmousedown="formatStudioText('italic',event)"><em>I</em></button>
                   <button class="btn format-button" type="button" title="Souligné (Ctrl+U)" aria-label="Souligné" onmousedown="formatStudioText('underline',event)"><u>S</u></button>
                   <button class="btn format-button" type="button" title="Barré" aria-label="Barré" onmousedown="formatStudioText('strikeThrough',event)"><s>abc</s></button>
+                  <button class="btn format-button" type="button" title="Indice" aria-label="Indice" onmousedown="formatStudioText('subscript',event)">x₂</button>
+                  <button class="btn format-button" type="button" title="Exposant" aria-label="Exposant" onmousedown="formatStudioText('superscript',event)">x²</button>
                   <button class="btn format-button" type="button" title="Liste à puces" aria-label="Liste à puces" onmousedown="formatStudioText('insertUnorderedList',event)">• Liste</button>
                   <button class="btn format-button" type="button" title="Liste numérotée" aria-label="Liste numérotée" onmousedown="formatStudioText('insertOrderedList',event)">1. Liste</button>
+                  <button class="btn format-button" type="button" title="Diminuer le retrait" aria-label="Diminuer le retrait" onmousedown="formatStudioText('outdent',event)">⇤</button>
+                  <button class="btn format-button" type="button" title="Augmenter le retrait" aria-label="Augmenter le retrait" onmousedown="formatStudioText('indent',event)">⇥</button>
+                  <button class="btn format-button" type="button" title="Aligner à gauche" aria-label="Aligner à gauche" onmousedown="formatStudioText('justifyLeft',event)">☰</button>
+                  <button class="btn format-button" type="button" title="Centrer" aria-label="Centrer" onmousedown="formatStudioText('justifyCenter',event)">≡</button>
+                  <button class="btn format-button" type="button" title="Aligner à droite" aria-label="Aligner à droite" onmousedown="formatStudioText('justifyRight',event)">☷</button>
+                  <button class="btn format-button" type="button" title="Justifier" aria-label="Justifier" onmousedown="formatStudioText('justifyFull',event)">▤</button>
                   <button class="btn format-button" type="button" title="Effacer la mise en forme" aria-label="Effacer la mise en forme" onmousedown="formatStudioText('removeFormat',event)">× Style</button>
+                  <button class="btn format-button studio-highlight-button" type="button" title="Surligner en jaune" aria-label="Surligner en jaune" onmousedown="formatStudioText('hiliteColor',event,'#fff176')">ab</button>
                   <span class="studio-color-palette" role="group" aria-label="Couleur du texte">
                     ${[["#24171a","Noir"],["#b21f3d","Rouge"],["#2457b2","Bleu"],["#187b51","Vert"],["#d06b16","Orange"]].map(([color,label])=>`<button class="studio-color-button" type="button" title="Texte ${label.toLowerCase()}" aria-label="Couleur ${label}" style="--text-color:${color}" onmousedown="formatStudioText('foreColor',event,'${color}')"></button>`).join("")}
                   </span>
@@ -2869,7 +2880,7 @@
       }
 
       function renderElementContent(element, editable) {
-        if (element.kind === "text") return `<div class="slide-text" contenteditable="${editable ? "true" : "false"}" ${editable ? 'data-placeholder="Écrivez ici…"' : ""} style="font-size:${Number(element.fontSize || 34)}px">${element.html ? sanitizeRichText(element.html) : escapeHtml(element.value || "")}</div>`;
+        if (element.kind === "text") return `<div class="slide-text" contenteditable="${editable ? "true" : "false"}" ${editable ? 'data-placeholder="Écrivez ici…"' : ""} style="font-size:${Number(element.fontSize || 34)}px;font-family:${escapeAttr(element.fontFamily || "Calibri, Arial, sans-serif")}">${element.html ? sanitizeRichText(element.html) : escapeHtml(element.value || "")}</div>`;
         if (element.kind === "tool") return renderSlideTool(element.value, editable, element.id);
         if (element.kind === "youtube" || youtubeId(element.value)) return youtubeCard(element.value);
         if (element.kind === "image") return `<img src="${escapeAttr(element.value)}" alt="" referrerpolicy="no-referrer" onerror="recoverSlideImage(this)">`;
@@ -2994,10 +3005,18 @@
       function sanitizeRichText(html) {
         const template = document.createElement("template");
         template.innerHTML = String(html || "");
-        const allowed = new Set(["B", "STRONG", "I", "EM", "U", "S", "STRIKE", "BR", "DIV", "P", "UL", "OL", "LI"]);
+        const allowed = new Set(["B", "STRONG", "I", "EM", "U", "S", "STRIKE", "SUB", "SUP", "SPAN", "BR", "DIV", "P", "UL", "OL", "LI"]);
         [...template.content.querySelectorAll("*")].forEach((node) => {
           if (!allowed.has(node.tagName)) node.replaceWith(...node.childNodes);
-          else [...node.attributes].forEach((attribute) => node.removeAttribute(attribute.name));
+          else {
+            const safeStyles = [];
+            if (node.style.color) safeStyles.push(`color:${node.style.color}`);
+            if (node.style.backgroundColor) safeStyles.push(`background-color:${node.style.backgroundColor}`);
+            if (node.style.fontFamily) safeStyles.push(`font-family:${node.style.fontFamily}`);
+            if (/^(left|right|center|justify)$/.test(node.style.textAlign)) safeStyles.push(`text-align:${node.style.textAlign}`);
+            [...node.attributes].forEach((attribute) => node.removeAttribute(attribute.name));
+            if (safeStyles.length) node.setAttribute("style", safeStyles.join(";"));
+          }
         });
         return template.innerHTML;
       }
@@ -3011,9 +3030,29 @@
           return;
         }
         text.focus({ preventScroll: true });
-        if (command === "foreColor") document.execCommand("styleWithCSS", false, true);
+        if (command === "foreColor" || command === "hiliteColor" || command.startsWith("justify")) document.execCommand("styleWithCSS", false, true);
         document.execCommand(command, false, value);
         fitStudioText(text.closest(".slide-el"));
+      }
+
+      function setStudioTextFont(fontFamily, event) {
+        event?.stopPropagation();
+        const node = document.querySelector(".studio .slide-el.selected[data-kind='text']");
+        const text = node?.querySelector(".slide-text");
+        if (!node || !text) return toast("Sélectionnez d'abord une zone de texte.");
+        text.style.fontFamily = String(fontFamily || "Calibri");
+        fitStudioText(node);
+      }
+
+      function setStudioTextSize(value, event) {
+        event?.stopPropagation();
+        const node = document.querySelector(".studio .slide-el.selected[data-kind='text']");
+        const text = node?.querySelector(".slide-text");
+        if (!node || !text) return toast("Sélectionnez d'abord une zone de texte.");
+        const size = Math.max(8, Math.min(96, Number(value) || 32));
+        node.dataset.maxFontSize = String(size);
+        text.style.fontSize = `${size}px`;
+        fitStudioText(node);
       }
 
       function resizeStudioText(delta, event) {
@@ -3604,6 +3643,7 @@
           value: kind === "text" ? textNode?.innerText || "" : node.dataset.value || "",
           html: kind === "text" ? sanitizeRichText(textNode?.innerHTML || "") : undefined,
           fontSize: kind === "text" ? parseFloat(textNode?.style.fontSize || "34") || 34 : undefined,
+          fontFamily: kind === "text" ? textNode?.style.fontFamily || "Calibri, Arial, sans-serif" : undefined,
           slideIndex
         };
       }
