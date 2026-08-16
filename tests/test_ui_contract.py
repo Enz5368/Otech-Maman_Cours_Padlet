@@ -494,7 +494,7 @@ def test_export_impression_et_documents_libreoffice() -> None:
     assert 'value="portrait">Portrait' in APP_JS
     assert 'value="landscape">Paysage' in APP_JS
     assert "une diapo par page" in APP_JS
-    assert "espace-prof-31" in INDEX
+    assert "espace-prof-32" in INDEX
 
 
 def test_serveur_accepte_les_formats_opendocument_du_selecteur() -> None:
@@ -507,7 +507,7 @@ def test_serveur_accepte_les_formats_opendocument_du_selecteur() -> None:
         assert f'"{extension}": "{mime_type}"' in storage
         assert f'"{mime_type}"' in storage
     assert "extension in OPENDOCUMENT_MIME_BY_EXTENSION" in storage
-    assert "espace-prof-63" in INDEX
+    assert "espace-prof-64" in INDEX
     assert "Précédent" in APP_JS
     assert "Suivant" in APP_JS
     assert "setTimeout(startFreeExampleTutorial, 250);" in APP_JS
@@ -608,8 +608,8 @@ def test_plan_de_classe_style_cinema_et_emploi_du_temps_lycee() -> None:
     assert '["lundi", "mardi", "mercredi", "jeudi", "vendredi"]' in APP_JS
     assert 'aria-label="Emploi du temps du lundi au vendredi"' in APP_JS
     assert ".timetable-course" in STYLES
-    assert "assets/styles.css?v=espace-prof-31" in INDEX
-    assert "assets/app.js?v=espace-prof-63" in INDEX
+    assert "assets/styles.css?v=espace-prof-32" in INDEX
+    assert "assets/app.js?v=espace-prof-64" in INDEX
     assert "assets/api-client.js?v=espace-prof-6" in INDEX
 
 
@@ -638,6 +638,10 @@ def test_tous_les_themes_du_zip_sont_disponibles_et_persistes() -> None:
     assert 'await saveData(`Thème ${siteThemes[themeId].label} enregistré.`' in APP_JS
     assert '--theme-primary' in STYLES
     assert '--theme-accent' in STYLES
+    assert '--paper: var(--theme-accent)' in STYLES
+    assert 'class="theme-select-row"' in APP_JS
+    assert 'onchange="changeSiteTheme(this.value,this)"' in APP_JS
+    assert 'class="theme-choice' not in APP_JS
 
 
 def test_les_videos_non_natives_sont_converties_pour_le_navigateur() -> None:

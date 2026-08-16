@@ -2558,8 +2558,9 @@
             <section class="card theme-settings-card" style="grid-column:1/-1">
               <h2>Thème de couleur</h2>
               <p class="small muted">Le thème Bordeaux reste utilisé par défaut. Les 14 autres palettes correspondent aux couleurs fournies dans votre ZIP. Votre choix est enregistré uniquement dans votre espace.</p>
-              <div class="theme-choice-grid" role="group" aria-label="Choisir le thème du site">
-                ${Object.entries(siteThemes).map(([id,theme])=>`<button type="button" class="theme-choice ${state.preferences?.theme===id?"active":""}" aria-pressed="${state.preferences?.theme===id}" onclick="changeSiteTheme('${id}',this)"><span class="theme-swatches">${theme.colors.map(color=>`<i style="background:${color}"></i>`).join("")}</span><strong>${escapeHtml(theme.label)}</strong>${id==="default"?"<small>Par défaut</small>":""}</button>`).join("")}
+              <div class="theme-select-row">
+                <span class="theme-swatches" aria-hidden="true">${siteThemes[state.preferences?.theme || "default"].colors.map(color=>`<i style="background:${color}"></i>`).join("")}</span>
+                <label class="theme-select-field"><span>Palette du site</span><select aria-label="Choisir le thème du site" onchange="changeSiteTheme(this.value,this)">${Object.entries(siteThemes).map(([id,theme])=>`<option value="${id}" ${state.preferences?.theme===id?"selected":""}>${escapeHtml(theme.label)}${id==="default"?" — Par défaut":""}</option>`).join("")}</select></label>
               </div>
             </section>
             <section class="card">
