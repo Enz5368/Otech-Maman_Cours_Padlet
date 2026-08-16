@@ -708,3 +708,8 @@ def test_export_zip_continue_si_un_media_retourne_404() -> None:
     assert "recordExportWarning" in APP_JS
     assert "return null;" in APP_JS
     assert "downloads.filter(Boolean)" in APP_JS
+
+
+def test_homepage_has_canonical_search_metadata() -> None:
+    assert '<link rel="canonical" href="https://monespaceprof.com/"' in INDEX
+    assert 'name="robots" content="index, follow, max-snippet:-1, max-image-preview:large"' in INDEX
