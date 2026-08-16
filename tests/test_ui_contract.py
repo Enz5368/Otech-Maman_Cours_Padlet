@@ -536,6 +536,9 @@ def test_les_videos_non_natives_sont_converties_pour_le_navigateur() -> None:
     assert 'mime_type = "video/mp4"' in storage
     assert "window.ServerAPI.convertVideo(fileId)" in APP_JS
     assert 'request(`/files/${encodeURIComponent(fileId)}/convert-video`' in (ROOT / "assets" / "api-client.js").read_text(encoding="utf-8")
+    store_stream_block = storage.split("def store_stream(", 1)[1].split("def store_upload(", 1)[0]
+    assert "_convert_video_for_browser(target)" not in store_stream_block
+    assert "Le lecteur déclenche déjà convert_stored_video" in store_stream_block
     assert "function startDeskMove(" in APP_JS
     assert "function deleteDesk(" in APP_JS
     assert "function addDesk(" in APP_JS

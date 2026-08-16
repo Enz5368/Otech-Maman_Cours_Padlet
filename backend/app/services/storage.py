@@ -281,29 +281,10 @@ def store_stream(
     except Exception:
         target.unlink(missing_ok=True)
         raise
-    if mime_type.startswith("video/") and not _video_is_browser_compatible(target):
-        converted = _convert_video_for_browser(target)
-        final_target = target.with_suffix(".mp4")
-        converted_size = converted.stat().st_size
-        try:
-            _check_quota(user, settings, converted_size, backup_bytes)
-            converted.replace(final_target)
-            if target != final_target:
-                target.unlink(missing_ok=True)
-        except Exception:
-            converted.unlink(missing_ok=True)
-            target.unlink(missing_ok=True)
-            raise
-        target = final_target
-        stored_name = final_target.name
-        relative = final_target.relative_to((settings.users_root / str(user.id)).resolve()).as_posix()
-        original_name = f"{Path(original_name).stem}.mp4"
-        mime_type = "video/mp4"
-        size = converted_size
-        digest = hashlib.sha256()
-        with target.open("rb") as converted_file:
-            while chunk := converted_file.read(1024 * 1024):
-                digest.update(chunk)
+    # L'ajout doit se terminer dès que le fichier original est stocké. Une
+    # conversion synchrone pouvait garder l'interface bloquée jusqu'à 15 min.
+    # Le lecteur déclenche déjà convert_stored_video uniquement si le navigateur
+    # ne sait pas lire le format d'origine.
     record = StoredFile(
         user_id=user.id,
         original_name=Path(original_name).name[:500],
