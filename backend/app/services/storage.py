@@ -29,6 +29,8 @@ ALLOWED_MIME_TYPES = {
     "application/vnd.openxmlformats-officedocument.presentationml.presentation",
     "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
     "application/vnd.oasis.opendocument.text",
+    "application/vnd.oasis.opendocument.spreadsheet",
+    "application/vnd.oasis.opendocument.presentation",
     "text/plain",
     "text/csv",
     "text/markdown",
@@ -62,6 +64,8 @@ ALLOWED_EXTENSIONS = {
     ".pptx",
     ".docx",
     ".odt",
+    ".ods",
+    ".odp",
     ".txt",
     ".csv",
     ".md",
@@ -70,6 +74,13 @@ MIME_EXTENSION_OVERRIDES = {
     "application/vnd.openxmlformats-officedocument.presentationml.presentation": ".pptx",
     "application/vnd.openxmlformats-officedocument.wordprocessingml.document": ".docx",
     "application/vnd.oasis.opendocument.text": ".odt",
+    "application/vnd.oasis.opendocument.spreadsheet": ".ods",
+    "application/vnd.oasis.opendocument.presentation": ".odp",
+}
+OPENDOCUMENT_MIME_BY_EXTENSION = {
+    ".odt": "application/vnd.oasis.opendocument.text",
+    ".ods": "application/vnd.oasis.opendocument.spreadsheet",
+    ".odp": "application/vnd.oasis.opendocument.presentation",
 }
 VIDEO_MIME_BY_EXTENSION = {
     ".avi": "video/x-msvideo", ".mkv": "video/x-matroska", ".wmv": "video/x-ms-wmv",
@@ -121,6 +132,8 @@ def validate_content_signature(data: bytes, mime_type: str) -> None:
         "application/vnd.openxmlformats-officedocument.presentationml.presentation",
         "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
         "application/vnd.oasis.opendocument.text",
+        "application/vnd.oasis.opendocument.spreadsheet",
+        "application/vnd.oasis.opendocument.presentation",
     }:
         valid = data.startswith(b"PK\x03\x04")
     elif mime_type in {"video/mp4", "video/quicktime"}:
@@ -306,6 +319,11 @@ def store_upload(db: Session, settings: Settings, user: User, upload: UploadFile
     original_name = upload.filename or "fichier.bin"
     mime_type = (upload.content_type or "application/octet-stream").lower()
     extension = Path(original_name).suffix.lower()
+    if extension in OPENDOCUMENT_MIME_BY_EXTENSION:
+        # Windows et certains navigateurs déclarent ces fichiers comme
+        # application/octet-stream ou application/x-vnd.oasis.*.
+        # L'extension est contrôlée puis la signature ZIP est vérifiée.
+        mime_type = OPENDOCUMENT_MIME_BY_EXTENSION[extension]
     if extension in VIDEO_MIME_BY_EXTENSION and not mime_type.startswith("video/"):
         mime_type = VIDEO_MIME_BY_EXTENSION[extension]
     if mime_type == "application/octet-stream":

@@ -465,6 +465,18 @@ def test_export_impression_et_documents_libreoffice() -> None:
     assert 'value="landscape">Paysage' in APP_JS
     assert "une diapo par page" in APP_JS
     assert "espace-prof-26" in INDEX
+
+
+def test_serveur_accepte_les_formats_opendocument_du_selecteur() -> None:
+    storage = (ROOT / "backend" / "app" / "services" / "storage.py").read_text(encoding="utf-8")
+    for extension, mime_type in (
+        (".odt", "application/vnd.oasis.opendocument.text"),
+        (".ods", "application/vnd.oasis.opendocument.spreadsheet"),
+        (".odp", "application/vnd.oasis.opendocument.presentation"),
+    ):
+        assert f'"{extension}": "{mime_type}"' in storage
+        assert f'"{mime_type}"' in storage
+    assert "extension in OPENDOCUMENT_MIME_BY_EXTENSION" in storage
     assert "espace-prof-48" in INDEX
     assert "Précédent" in APP_JS
     assert "Suivant" in APP_JS
