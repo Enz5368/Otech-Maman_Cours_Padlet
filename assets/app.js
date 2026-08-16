@@ -2778,7 +2778,8 @@
 
       function renderSlideThumbnail(slide, index) {
         const preview = (slide.elements || []).filter((element) => element.kind === "text").map((element) => element.value || "").join(" ").slice(0, 70);
-        return `<div class="slide-thumbnail ${index === currentStudioSlideIndex ? "current" : ""}" role="button" tabindex="0" draggable="true" data-index="${index}" onclick="if(!event.target.closest('input,button')){selectStudioSlide(${index});selectedSlide()?.scrollIntoView({behavior:'smooth',block:'center'})}" ondragstart="startStudioSlideReorder(${index},event)" ondragover="event.preventDefault();this.classList.add('drop-target')" ondragleave="this.classList.remove('drop-target')" ondragend="clearStudioSlideDropTargets()" ondrop="reorderStudioSlide(${index},event)"><button class="slide-thumbnail-delete" type="button" title="Supprimer cette diapo" aria-label="Supprimer la diapo ${index+1}" onclick="deleteStudioSlide('${studioHistoryActivityId}',${index},event)">×</button><span>${index + 1}</span><strong>Diapo (activité)</strong><small>${escapeHtml(preview || "Sans texte")}</small><label class="slide-duration">Temps prévu <input draggable="false" value="${escapeAttr(slide.duration || "5 min")}" aria-label="Temps prévu pour la diapo ${index+1}" onclick="event.stopPropagation()" onpointerdown="event.stopPropagation()" oninput="updateSlideDuration(${index},this.value)"></label></div>`;
+        const slideCount = findItem("activity", studioHistoryActivityId)?.slides?.length || 0;
+        return `<div class="slide-thumbnail ${index === currentStudioSlideIndex ? "current" : ""}" role="button" tabindex="0" draggable="true" data-index="${index}" onclick="if(!event.target.closest('input,button')){selectStudioSlide(${index});selectedSlide()?.scrollIntoView({behavior:'smooth',block:'center'})}" ondragstart="startStudioSlideReorder(${index},event)" ondragover="event.preventDefault();this.classList.add('drop-target')" ondragleave="this.classList.remove('drop-target')" ondragend="clearStudioSlideDropTargets()" ondrop="reorderStudioSlide(${index},event)"><div class="slide-thumbnail-actions"><button type="button" title="Remonter cette diapo" aria-label="Remonter la diapo ${index+1}" onclick="moveStudioSlideBy(${index},-1,event)" ${index === 0 ? "disabled" : ""}>↑</button><button type="button" title="Descendre cette diapo" aria-label="Descendre la diapo ${index+1}" onclick="moveStudioSlideBy(${index},1,event)" ${index >= slideCount - 1 ? "disabled" : ""}>↓</button><button class="slide-thumbnail-delete" type="button" title="Supprimer cette diapo" aria-label="Supprimer la diapo ${index+1}" onclick="deleteStudioSlide('${studioHistoryActivityId}',${index},event)">×</button></div><span>${index + 1}</span><strong>Diapo (activité)</strong><small>${escapeHtml(preview || "Sans texte")}</small><label class="slide-duration">Temps prévu <input draggable="false" value="${escapeAttr(slide.duration || "5 min")}" aria-label="Temps prévu pour la diapo ${index+1}" onclick="event.stopPropagation()" onpointerdown="event.stopPropagation()" oninput="updateSlideDuration(${index},this.value)"></label></div>`;
       }
 
       function updateSlideDuration(index,value){ const activity=findItem("activity",document.querySelector(".studio")?.dataset.activityId); if(activity?.slides[index]) activity.slides[index].duration=String(value||"").trim()||"5 min"; }
@@ -2793,6 +2794,24 @@
 
       function startStudioSlideReorder(index,event){ event.dataTransfer.effectAllowed="move"; event.dataTransfer.setData("application/x-studio-slide",String(index)); event.currentTarget.classList.add("dragging"); }
       function clearStudioSlideDropTargets(){ document.querySelectorAll(".slide-thumbnail").forEach(node=>node.classList.remove("dragging","drop-target")); }
+
+      async function moveStudioSlideBy(sourceIndex, offset, event) {
+        event?.stopPropagation();
+        const activity = findItem("activity", document.querySelector(".studio")?.dataset.activityId);
+        if (!activity) return;
+        const slides = captureStudioSlides(activity.id);
+        const targetIndex = sourceIndex + offset;
+        if (targetIndex < 0 || targetIndex >= slides.length) return;
+        recordStudioHistory(activity.id);
+        const [slide] = slides.splice(sourceIndex, 1);
+        slides.splice(targetIndex, 0, slide);
+        activity.slides = slides;
+        if (!await saveData("Ordre des diapos mis à jour.")) return;
+        openActivityStudio(activity.id);
+        currentStudioSlideIndex = targetIndex;
+        selectStudioSlide(targetIndex);
+        document.querySelector(`.slide-thumbnail[data-index="${targetIndex}"]`)?.scrollIntoView({block:"nearest"});
+      }
 
       async function reorderStudioSlide(targetIndex, event) {
         event.preventDefault();
