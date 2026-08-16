@@ -413,6 +413,7 @@
       function ensureActivitySlides(activity) {
         if (Array.isArray(activity.slides) && activity.slides.length) {
           activity.slides.forEach(slide=>{ if(!slide.duration) slide.duration=activity.estimatedDuration||"5 min"; });
+          deduplicateSlideElements(activity.slides);
           return activity;
         }
         activity.slides = [{
@@ -424,6 +425,23 @@
           ]
         }];
         return activity;
+      }
+
+      function deduplicateSlideElements(slides) {
+        const seen = new Set();
+        for (let slideIndex = (slides || []).length - 1; slideIndex >= 0; slideIndex -= 1) {
+          const elements = Array.isArray(slides[slideIndex].elements) ? slides[slideIndex].elements : [];
+          const unique = [];
+          for (let elementIndex = elements.length - 1; elementIndex >= 0; elementIndex -= 1) {
+            const element = elements[elementIndex];
+            const id = String(element?.id || "");
+            if (id && seen.has(id)) continue;
+            if (id) seen.add(id);
+            unique.unshift(element);
+          }
+          slides[slideIndex].elements = unique;
+        }
+        return slides;
       }
 
       function loadData() {
@@ -2785,7 +2803,7 @@
       function updateSlideDuration(index,value){ const activity=findItem("activity",document.querySelector(".studio")?.dataset.activityId); if(activity?.slides[index]) activity.slides[index].duration=String(value||"").trim()||"5 min"; }
 
       function cloneStudioSlides(slides){ return JSON.parse(JSON.stringify(slides||[])); }
-      function captureStudioSlides(activityId){ const activity=findItem("activity",activityId); const frames=[...document.querySelectorAll(`.studio[data-activity-id="${activityId}"] .slide-frame`)]; if(!frames.length)return cloneStudioSlides(activity?.slides); const previous=activity?.slides||[], slides=frames.map(frame=>({id:frame.dataset.slideId||uid("slide"),duration:previous.find(slide=>slide.id===frame.dataset.slideId)?.duration||"5 min",elements:[]})); [...document.querySelectorAll(`.studio[data-activity-id="${activityId}"] .slide-el`)].map(readSlideElement).forEach(element=>{const target=slides[element.slideIndex]||slides[0],clean={...element};delete clean.slideIndex;target.elements.push(clean);}); return slides; }
+      function captureStudioSlides(activityId){ const activity=findItem("activity",activityId); const frames=[...document.querySelectorAll(`.studio[data-activity-id="${activityId}"] .slide-frame`)]; if(!frames.length)return deduplicateSlideElements(cloneStudioSlides(activity?.slides)); const previous=activity?.slides||[], slides=frames.map(frame=>({id:frame.dataset.slideId||uid("slide"),duration:previous.find(slide=>slide.id===frame.dataset.slideId)?.duration||"5 min",elements:[]})); [...document.querySelectorAll(`.studio[data-activity-id="${activityId}"] .slide-el`)].map(readSlideElement).forEach(element=>{const target=slides[element.slideIndex]||slides[0],clean={...element};delete clean.slideIndex;target.elements.push(clean);}); return deduplicateSlideElements(slides); }
       function updateStudioHistoryButtons(){ const undo=document.querySelector("#studioUndoBtn"),redo=document.querySelector("#studioRedoBtn");if(undo)undo.disabled=!studioUndoStack.length;if(redo)redo.disabled=!studioRedoStack.length; }
       function recordStudioHistory(activityId){ const snapshot=captureStudioSlides(activityId); if(!snapshot?.length)return; studioUndoStack.push(snapshot); if(studioUndoStack.length>30)studioUndoStack.shift(); studioRedoStack=[]; updateStudioHistoryButtons(); }
       async function undoStudioChange(activityId){ if(!studioUndoStack.length)return; const activity=findItem("activity",activityId);studioRedoStack.push(captureStudioSlides(activityId));activity.slides=cloneStudioSlides(studioUndoStack.pop());const selected=Math.min(currentStudioSlideIndex,activity.slides.length-1);await saveData("Modification annulée.");openActivityStudio(activityId);currentStudioSlideIndex=selected;selectStudioSlide(selected);updateStudioHistoryButtons(); }
@@ -3500,6 +3518,7 @@
           slide.elements.push(element);
           delete element.slideIndex;
         });
+        deduplicateSlideElements(activity.slides);
         activity.updatedAt = new Date().toISOString();
         const saved = await saveData(successMessage, triggerButton);
         if (saved && close) {
