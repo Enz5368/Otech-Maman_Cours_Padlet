@@ -68,6 +68,24 @@ def test_image_with_unicode_filename_can_be_displayed(client: TestClient) -> Non
     assert "filename*=UTF-8''Capture%20d%E2%80%99%C3%A9cran%20%C3%A9t%C3%A9.png" in disposition
 
 
+def test_image_renamed_png_uses_its_real_format(client: TestClient) -> None:
+    register(client, f"renamed-image-{uuid.uuid4().hex[:8]}")
+    jpeg_bytes = b"\xff\xd8\xff" + b"contenu-jpeg-test"
+    uploaded = client.post(
+        "/api/v1/files",
+        files={"upload": ("photo.png", jpeg_bytes, "image/png")},
+        headers=csrf_headers(client),
+    )
+    assert uploaded.status_code == 201, uploaded.text
+    assert uploaded.json()["mime_type"] == "image/jpeg"
+    assert uploaded.json()["original_name"] == "photo.jpg"
+
+    response = client.get(uploaded.json()["content_url"])
+    assert response.status_code == 200
+    assert response.headers["content-type"].startswith("image/jpeg")
+    assert response.content == jpeg_bytes
+
+
 def test_parent_from_another_user_is_rejected(client: TestClient) -> None:
     register(client, f"parent-a-{uuid.uuid4().hex[:8]}")
     level = client.post(

@@ -88,6 +88,24 @@ VIDEO_MIME_BY_EXTENSION = {
     ".mpg": "video/mpeg", ".3gp": "video/3gpp", ".ts": "video/mp2t", ".m2ts": "video/mp2t",
 }
 DATA_URL_RE = re.compile(r"^data:([^;,]+)?(?:;[^,]*)?;base64,(.*)$", re.DOTALL)
+IMAGE_FORMATS = {
+    "image/png": ".png",
+    "image/jpeg": ".jpg",
+    "image/gif": ".gif",
+    "image/webp": ".webp",
+}
+
+
+def detect_image_mime(data: bytes) -> str | None:
+    if data.startswith(b"\x89PNG\r\n\x1a\n"):
+        return "image/png"
+    if data.startswith(b"\xff\xd8\xff"):
+        return "image/jpeg"
+    if data.startswith((b"GIF87a", b"GIF89a")):
+        return "image/gif"
+    if len(data) >= 12 and data.startswith(b"RIFF") and data[8:12] == b"WEBP":
+        return "image/webp"
+    return None
 
 
 def category_for_mime(mime_type: str) -> str:
@@ -319,6 +337,15 @@ def store_upload(db: Session, settings: Settings, user: User, upload: UploadFile
     original_name = upload.filename or "fichier.bin"
     mime_type = (upload.content_type or "application/octet-stream").lower()
     extension = Path(original_name).suffix.lower()
+    if mime_type.startswith("image/") or extension in IMAGE_FORMATS.values():
+        signature = upload.file.read(32)
+        upload.file.seek(0)
+        detected_mime = detect_image_mime(signature)
+        if detected_mime:
+            mime_type = detected_mime
+            detected_extension = IMAGE_FORMATS[detected_mime]
+            original_name = f"{Path(original_name).stem}{detected_extension}"
+            extension = detected_extension
     if extension in OPENDOCUMENT_MIME_BY_EXTENSION:
         # Windows et certains navigateurs déclarent ces fichiers comme
         # application/octet-stream ou application/x-vnd.oasis.*.
