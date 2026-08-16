@@ -3916,6 +3916,7 @@
                 ${slideElements.map(renderBoardSlideElement).join("")}
               </div>
             </section>
+            <div class="board-slide-instruction" role="heading" aria-level="1">${escapeHtml(slideInstruction(slides[index],index))}</div>
           </main>
           <div class="board-controls">
             <button class="btn" onclick="hideBoard()">Retour</button>

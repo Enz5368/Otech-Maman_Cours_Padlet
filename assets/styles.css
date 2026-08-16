@@ -1795,6 +1795,26 @@
         box-shadow: none;
         border-color: transparent;
       }
+      .board-slide-instruction {
+        position: fixed;
+        z-index: 4;
+        top: 14px;
+        left: 50%;
+        transform: translateX(-50%);
+        max-width: min(90vw, 1100px);
+        padding: 10px 20px;
+        border: 2px solid rgba(116,24,42,.3);
+        border-radius: 14px;
+        background: rgba(255,253,249,.94);
+        color: var(--wine-900);
+        box-shadow: 0 8px 28px rgba(35,8,15,.16);
+        font-size: clamp(20px, 2.4vw, 38px);
+        font-weight: 850;
+        line-height: 1.2;
+        text-align: center;
+        white-space: pre-wrap;
+        pointer-events: none;
+      }
       .board-controls {
         position: fixed;
         left: 50%;
