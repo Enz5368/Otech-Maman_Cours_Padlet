@@ -1176,14 +1176,30 @@
 
       function sequenceHookDocumentControl(sequence) {
         const document = sequence?.hookDocument;
+        const addVideoButton = canEdit() ? `<button type="button" class="btn sequence-hook-video" onclick="setSequenceHookVideoLink('${escapeAttr(sequence.id)}')">${document?.kind === "video-link" ? "Modifier la vidéo" : "+ Lien vidéo"}</button>` : "";
         if (document?.url) {
           return `<span class="sequence-hook-control">
-            <a class="btn sequence-hook-document" href="${escapeAttr(document.url)}" target="_blank" rel="noopener noreferrer" onclick="return openManagedLink(this.href,event)" title="Ouvrir ${escapeAttr(document.name || "le document d’accroche")}">📎 Document d’accroche</a>
+            <a class="btn sequence-hook-document" href="${escapeAttr(document.url)}" target="_blank" rel="noopener noreferrer" onclick="return openManagedLink(this.href,event)" title="Ouvrir ${escapeAttr(document.name || "le document d’accroche")}">${document.kind === "video-link" ? "▶ Vidéo d’accroche" : "📎 Document d’accroche"}</a>
             ${canEdit() ? `<label class="sequence-hook-replace" title="Remplacer le document d’accroche" aria-label="Remplacer le document d’accroche">↻<input type="file" hidden onchange="setSequenceHookDocument('${escapeAttr(sequence.id)}',this.files[0],this);this.value=''" /></label>` : ""}
+            ${addVideoButton}
           </span>`;
         }
         if (!canEdit()) return `<span class="btn sequence-hook-document empty" aria-disabled="true">📎 Document d’accroche</span>`;
-        return `<label class="btn sequence-hook-document empty">＋ Document d’accroche<input type="file" hidden onchange="setSequenceHookDocument('${escapeAttr(sequence.id)}',this.files[0],this);this.value=''" /></label>`;
+        return `<span class="sequence-hook-control"><label class="btn sequence-hook-document empty">＋ Document d’accroche<input type="file" hidden onchange="setSequenceHookDocument('${escapeAttr(sequence.id)}',this.files[0],this);this.value=''" /></label>${addVideoButton}</span>`;
+      }
+
+      async function setSequenceHookVideoLink(sequenceId) {
+        if (!requireLogin()) return;
+        const sequence = findItem("sequence", sequenceId);
+        if (!sequence) return;
+        const value = prompt("Lien de la vidéo d’accroche (YouTube, Vimeo ou autre URL)", sequence.hookDocument?.kind === "video-link" ? sequence.hookDocument.url : "");
+        if (value === null) return;
+        let url;
+        try { url = new URL(value.trim()); } catch (_) { return toast("Le lien vidéo n’est pas une URL valide."); }
+        if (!/^https?:$/.test(url.protocol)) return toast("Le lien vidéo doit commencer par http:// ou https://.");
+        sequence.hookDocument = { name: "Vidéo d’accroche", url: url.href, mimeType: "text/uri-list", kind: "video-link" };
+        sequence.updatedAt = new Date().toISOString();
+        if (await saveData("Lien vidéo d’accroche enregistré.")) render();
       }
 
       async function setSequenceHookDocument(sequenceId, file, control) {
@@ -1232,6 +1248,7 @@
             <p class="small" style="font-weight:850;color:var(--wine-700)">Séance</p>
             <h3>${escapeHtml(lesson.title)}</h3>
             <p class="muted small">${lesson.activities.length} activité(s)</p>
+            ${lessonSuitcase(lesson)}
           </div>
           <div class="row wrap">
             <button class="btn" onclick="openTableauSubtree('lesson','${classe.id}','${sequence.id}','${lesson.id}')">Arbre</button>
@@ -1281,7 +1298,7 @@
 
       function projectTreeSequenceNode(classe, sequence) {
         return `<li>
-          <button class="tree-node tree-sequence" onclick="closeEditor();openTableauSequence('${classe.id}','${sequence.id}')"><span>Séquence n° ${sequenceNumber(classe, sequence)}</span><strong>${escapeHtml(sequence.title)}</strong></button>
+          <div class="tree-node-stack"><button class="tree-node tree-sequence" onclick="closeEditor();openTableauSequence('${classe.id}','${sequence.id}')"><span>Séquence n° ${sequenceNumber(classe, sequence)}</span><strong>${escapeHtml(sequence.title)}</strong></button><button class="tree-node-action" onclick="exportSequenceWord('${sequence.id}')">Exporter la séquence en Word</button></div>
           ${treeChildren((sequence.lessons || []).filter((lesson) => lesson.isVisible !== false).map((lesson) => projectTreeLessonNode(classe, sequence, lesson)))}
         </li>`;
       }
@@ -1290,8 +1307,9 @@
         return `<li>
           <div class="tree-node-stack">
             <button class="tree-node tree-lesson" onclick="closeEditor();openTableauLesson('${classe.id}','${sequence.id}','${lesson.id}')"><span>Séance</span><strong>${escapeHtml(lesson.title)}</strong></button>
-            <button class="tree-node-action" onclick="openLessonPrintPreview('${lesson.id}')">Imprimer la séance</button>
+            <button class="tree-node-action" onclick="exportLessonWord('${lesson.id}')">Exporter la séance en Word</button>
           </div>
+          ${lessonSuitcase(lesson)}
           ${treeChildren((lesson.activities || []).filter((activity) => activity.isVisible !== false).map(projectTreeActivityNode))}
         </li>`;
       }
@@ -1408,9 +1426,9 @@
 
       function treeSequenceNode(classe, sequence) {
         return `<li>
-          <button class="tree-node tree-sequence" onclick="closeEditor();openSequencePage('${classe.id}','${sequence.id}')">
+          <div class="tree-node-stack"><button class="tree-node tree-sequence" onclick="closeEditor();openSequencePage('${classe.id}','${sequence.id}')">
             <span>Séquence n° ${sequenceNumber(classe, sequence)}</span><strong>${escapeHtml(sequence.title)}</strong>${sequence.isVisible === false ? "<em>Masquée</em>" : ""}
-          </button>
+          </button><button class="tree-node-action" onclick="exportSequenceWord('${sequence.id}')">Exporter la séquence en Word</button></div>
           ${treeChildren((sequence.lessons || []).map((lesson) => treeLessonNode(classe, sequence, lesson)))}
         </li>`;
       }
@@ -1421,8 +1439,9 @@
             <button class="tree-node tree-lesson" onclick="closeEditor();openLessonPage('${classe.id}','${sequence.id}','${lesson.id}')">
               <span>Séance</span><strong>${escapeHtml(lesson.title)}</strong>${lesson.isVisible === false ? "<em>Masquée</em>" : ""}
             </button>
-            <button class="tree-node-action" onclick="openLessonPrintPreview('${lesson.id}')">Imprimer la séance</button>
+            <button class="tree-node-action" onclick="exportLessonWord('${lesson.id}')">Exporter la séance en Word</button>
           </div>
+          ${lessonSuitcase(lesson)}
           ${treeChildren((lesson.activities || []).map(treeActivityNode))}
         </li>`;
       }
@@ -1442,6 +1461,11 @@
 
       function treeChildren(children) {
         return children.length ? `<ul class="tree-level">${children.join("")}</ul>` : "";
+      }
+
+      function lessonSuitcase(lesson) {
+        const entries = [["Culture",lesson.cultural],["Lexique",lesson.lexicon],["Conjugaison",lesson.conjugation],["Grammaire",lesson.grammar],["Je sais…",lesson.lifeSkills]].filter(([,value]) => String(value || "").trim());
+        return `<aside class="lesson-suitcase" aria-label="Valise pédagogique de ${escapeAttr(lesson.title || "la séance")}"><strong>🧳 Ma valise</strong><div>${entries.map(([label,value]) => `<span><b>${label}</b>${escapeHtml(value)}</span>`).join("") || "<em>À compléter dans la modification de la séance.</em>"}</div></aside>`;
       }
 
       function openEditableSubtree(classId, sequenceId = "") {
@@ -2200,6 +2224,7 @@
             <p class="small" style="font-weight:850;color:var(--wine-700)">Séance</p>
             <h3>${escapeHtml(lesson.title)} ${lesson.isVisible ? "" : "<span class='pill'>Masque</span>"}</h3>
             <p class="muted small">${escapeHtml(lesson.description)}</p>
+            ${lessonSuitcase(lesson)}
           </div>
           <div class="row wrap">
             <span class="pill">${lesson.activities.length} activité(s)</span>
@@ -2225,6 +2250,7 @@
               <div>
                 <h2 style="margin:0;color:var(--wine-900);font-size:34px">${escapeHtml(lesson.title)}</h2>
                 <p class="muted">${escapeHtml(lesson.description)}</p>
+                ${lessonSuitcase(lesson)}
               </div>
               ${editOnly(`<div class="row wrap">
 
@@ -2610,7 +2636,7 @@
           </div>`;
         if (type === "class") return base + `<label class="label">Catégorie <select name="category">${state.categories.map((category) => `<option ${((item.category || "Collège") === category) ? "selected" : ""}>${escapeHtml(category)}</option>`).join("")}</select></label>`;
         if (type === "sequence") return base + textarea("finalTask", "Tâche finale", item.finalTask || "", "wide") + selectField("classId", "Classe", item.classId || "", flat.classes);
-        if (type === "lesson") return base + selectField("sequenceId", "Séquence", item.sequenceId || "", flat.sequences);
+        if (type === "lesson") return base + selectField("sequenceId", "Séquence", item.sequenceId || "", flat.sequences) + `<fieldset class="lesson-suitcase-fields"><legend>🧳 Ma valise pédagogique</legend><p class="small muted wide">Indiquez ce qui est travaillé pendant cette séance.</p><div class="form-grid">${textarea("cultural", "Culture", item.cultural || "", "wide")}${textarea("lexicon", "Lexique", item.lexicon || "")}${textarea("conjugation", "Conjugaison", item.conjugation || "")}${textarea("grammar", "Grammaire", item.grammar || "")}${textarea("lifeSkills", "Je sais… (vie quotidienne)", item.lifeSkills || "", "wide")}</div></fieldset>`;
         if (type === "studentClass") return base + textarea("students", "Élèves (un nom par ligne)", Array.isArray(item.students) ? item.students.join("\n") : "", "wide");
         if (type === "activity") return base + `
           ${selectField("lessonId", "Séance", item.lessonId || "", flat.lessons)}
@@ -3642,6 +3668,9 @@
 
       async function saveStudio(activityId, close = false, triggerButton = null, refreshStudio = true, successMessage = "Activité enregistrée sur le serveur.") {
         const selectedIndex = currentStudioSlideIndex;
+        const pageScroll = { x: window.scrollX, y: window.scrollY };
+        const studioScroll = document.querySelector(".studio")?.scrollTop || 0;
+        const stripScroll = document.querySelector(".slide-thumbnails")?.scrollTop || 0;
         const activity = findItem("activity", activityId);
         const previousSlides = activity.slides || [];
         activity.slides = Array.from(document.querySelectorAll(".slide-frame")).map((slide) => ({
@@ -3667,6 +3696,14 @@
           const refreshedActivity = findItem("activity", activityId);
           currentStudioSlideIndex = Math.min(selectedIndex, Math.max(0, (refreshedActivity?.slides?.length || 1) - 1));
           selectStudioSlide(currentStudioSlideIndex);
+          requestAnimationFrame(() => {
+            window.scrollTo(pageScroll.x, pageScroll.y);
+            const studio = document.querySelector(".studio");
+            const thumbnails = document.querySelector(".slide-thumbnails");
+            if (studio) studio.scrollTop = studioScroll;
+            if (thumbnails) thumbnails.scrollTop = stripScroll;
+            document.querySelector(`.slide-frame[data-slide-index="${currentStudioSlideIndex}"]`)?.scrollIntoView({ block: "nearest" });
+          });
           const status = document.querySelector("#studioSaveStatus");
           if (status) {
             status.textContent = "Activité enregistrée sur le serveur.";
@@ -4406,6 +4443,65 @@
         link.click();
         setTimeout(() => URL.revokeObjectURL(link.href), 0);
         toast("Document Word exporté.");
+      }
+
+      function exportLessonWord(lessonId) {
+        const result = findLessonContext(lessonId);
+        if (result) downloadCourseWord(makeLessonDocx(result), result.lesson.title);
+      }
+
+      function exportSequenceWord(sequenceId) {
+        const result = findSequenceContext(sequenceId);
+        if (result) downloadCourseWord(makeSequenceDocx(result), result.sequence.title);
+      }
+
+      function findSequenceContext(sequenceId) {
+        for (const classe of state.classes) {
+          const sequence = (classe.sequences || []).find((item) => item.id === sequenceId);
+          if (sequence) return { sequence, classe };
+        }
+        return null;
+      }
+
+      function downloadCourseWord(content, title) {
+        const blob = new Blob([content], { type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document" });
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(blob);
+        link.download = `${slugify(title || "cours")}.docx`;
+        link.click();
+        setTimeout(() => URL.revokeObjectURL(link.href), 0);
+        toast("Document Word paysage exporté.");
+      }
+
+      function lessonDocxParagraphs({ lesson, sequence, classe }, lessonIndex = 0) {
+        const paragraphs = [docxParagraph(lesson.title || `Séance ${lessonIndex + 1}`, true, 34, lessonIndex > 0), docxParagraph(`${classe.title} · ${sequence.title}`, false, 20), docxParagraph(lesson.description ? `Objectif : ${lesson.description}` : "", false, 22), docxParagraph("Ma valise pédagogique", true, 26), ...[["Culture",lesson.cultural],["Lexique",lesson.lexicon],["Conjugaison",lesson.conjugation],["Grammaire",lesson.grammar],["Je sais…",lesson.lifeSkills]].map(([label,value]) => docxParagraph(value ? `${label} : ${value}` : "", false, 20))];
+        (lesson.activities || []).forEach((activity,index) => paragraphs.push(...activityDocxParagraphs(activity,index)));
+        return paragraphs;
+      }
+
+      function activityDocxParagraphs(activity, activityIndex = 0) {
+        const paragraphs = [docxParagraph(`Activité ${activityIndex + 1} — ${activity.title || "Sans titre"}`, true, 28), docxParagraph(activity.description || "", false, 20), docxParagraph(activity.objective ? `Objectif : ${activity.objective}` : "", true, 20), docxParagraph(activity.instruction ? `Consigne : ${activity.instruction}` : "", false, 20)];
+        (activity.slides || []).forEach((slide,index) => {
+          paragraphs.push(docxParagraph(slideInstruction(slide,index), true, 24));
+          elementsForBoardSlide(activity,index).sort((a,b) => Number(a.y||0)-Number(b.y||0)).forEach((element) => paragraphs.push(docxParagraph(element.kind === "text" ? element.value || "" : `${labelTypeForPptx(element.kind)} : ${element.value || ""}`, false, 18)));
+        });
+        if ((activity.resources || []).length) {
+          paragraphs.push(docxParagraph("Ressources", true, 22));
+          activity.resources.forEach((resource) => paragraphs.push(docxParagraph(`• ${resource.title || "Ressource"}${resource.url ? ` — ${resource.url}` : ""}`, false, 18)));
+        }
+        return paragraphs;
+      }
+
+      function makeLessonDocx(result) { return makeLandscapeDocx(lessonDocxParagraphs(result)); }
+      function makeSequenceDocx({ sequence, classe }) {
+        const paragraphs = [docxParagraph(sequence.title || "Séquence", true, 38), docxParagraph(classe.title, false, 22), docxParagraph(sequence.description || "", false, 22), docxParagraph(sequence.finalTask ? `Tâche finale : ${sequence.finalTask}` : "", true, 22)];
+        (sequence.lessons || []).forEach((lesson,index) => paragraphs.push(...lessonDocxParagraphs({ lesson, sequence, classe }, index)));
+        return makeLandscapeDocx(paragraphs);
+      }
+
+      function makeLandscapeDocx(paragraphs) {
+        const documentXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body>${paragraphs.join("")}<w:sectPr><w:pgSz w:w="16838" w:h="11906" w:orient="landscape"/><w:pgMar w:top="850" w:right="850" w:bottom="850" w:left="850"/></w:sectPr></w:body></w:document>`;
+        return makeZip([{ path:"[Content_Types].xml", content:`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/></Types>` }, { path:"_rels/.rels", content:`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>` }, { path:"word/document.xml", content:documentXml }]);
       }
 
       function makeActivityDocx({ activity, lesson, sequence, classe }) {

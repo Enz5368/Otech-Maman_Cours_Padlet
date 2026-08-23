@@ -457,11 +457,26 @@ def test_ordre_dans_les_categories_est_persiste() -> None:
     assert source.index("classe.order = index + 1;") < source.index("await saveData")
 
 
-def test_arbre_permet_d_imprimer_une_seance_complete() -> None:
-    assert "function openLessonPrintPreview(lessonId)" in APP_JS
-    assert "Imprimer la séance" in APP_JS
-    assert "Imprimer toute la séance" in APP_JS
-    assert "Toutes les activités et leurs diapositives" in APP_JS
+def test_arbre_exporte_sequences_et_seances_en_word_paysage() -> None:
+    assert "function exportLessonWord(lessonId)" in APP_JS
+    assert "function exportSequenceWord(sequenceId)" in APP_JS
+    assert "Exporter la séance en Word" in APP_JS
+    assert "Exporter la séquence en Word" in APP_JS
+    assert 'w:orient="landscape"' in APP_JS
+
+
+def test_accroche_accepte_un_lien_video_et_seances_ont_une_valise() -> None:
+    assert "function setSequenceHookVideoLink(sequenceId)" in APP_JS
+    assert "Vidéo d’accroche" in APP_JS
+    assert "function lessonSuitcase(lesson)" in APP_JS
+    for field in ("cultural", "lexicon", "conjugation", "grammar", "lifeSkills"):
+        assert field in APP_JS
+
+
+def test_enregistrement_du_studio_conserve_la_position() -> None:
+    assert "const pageScroll = { x: window.scrollX, y: window.scrollY };" in APP_JS
+    assert "window.scrollTo(pageScroll.x, pageScroll.y);" in APP_JS
+    assert "thumbnails.scrollTop = stripScroll;" in APP_JS
 def test_import_pptx_devient_des_diapos_natives_du_site() -> None:
     assert "importPptxAsSiteSlides(file)" in APP_JS
     assert "pptxShapeBounds" in APP_JS
