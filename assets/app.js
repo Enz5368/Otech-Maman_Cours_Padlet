@@ -1248,7 +1248,6 @@
             <p class="small" style="font-weight:850;color:var(--wine-700)">Séance</p>
             <h3>${escapeHtml(lesson.title)}</h3>
             <p class="muted small">${lesson.activities.length} activité(s)</p>
-            ${lessonSuitcase(lesson)}
           </div>
           <div class="row wrap">
             <button class="btn" onclick="openTableauSubtree('lesson','${classe.id}','${sequence.id}','${lesson.id}')">Arbre</button>
@@ -1298,7 +1297,7 @@
 
       function projectTreeSequenceNode(classe, sequence) {
         return `<li>
-          <div class="tree-node-stack"><button class="tree-node tree-sequence" onclick="closeEditor();openTableauSequence('${classe.id}','${sequence.id}')"><span>Séquence n° ${sequenceNumber(classe, sequence)}</span><strong>${escapeHtml(sequence.title)}</strong></button><button class="tree-node-action" onclick="exportSequenceWord('${sequence.id}')">Exporter la séquence en Word</button></div>
+          <div class="tree-node-stack"><button class="tree-node tree-sequence" onclick="closeEditor();openTableauSequence('${classe.id}','${sequence.id}')"><span>Séquence n° ${sequenceNumber(classe, sequence)}</span><strong>${escapeHtml(sequence.title)}</strong></button><button class="tree-node-action" onclick="openSequenceWordPreview('${sequence.id}')">Aperçu / exporter Word</button></div>
           ${treeChildren((sequence.lessons || []).filter((lesson) => lesson.isVisible !== false).map((lesson) => projectTreeLessonNode(classe, sequence, lesson)))}
         </li>`;
       }
@@ -1307,9 +1306,8 @@
         return `<li>
           <div class="tree-node-stack">
             <button class="tree-node tree-lesson" onclick="closeEditor();openTableauLesson('${classe.id}','${sequence.id}','${lesson.id}')"><span>Séance</span><strong>${escapeHtml(lesson.title)}</strong></button>
-            <button class="tree-node-action" onclick="exportLessonWord('${lesson.id}')">Exporter la séance en Word</button>
+            <button class="tree-node-action" onclick="openLessonPrintPreview('${lesson.id}')">Aperçu / exporter Word</button>
           </div>
-          ${lessonSuitcase(lesson)}
           ${treeChildren((lesson.activities || []).filter((activity) => activity.isVisible !== false).map(projectTreeActivityNode))}
         </li>`;
       }
@@ -1338,6 +1336,7 @@
             <div class="breadcrumb"><button onclick="currentTableauPage={type:'classes'};render()">Cours par niveau à projeter</button> / <button onclick="openTableauClass('${classe.id}')">${escapeHtml(classe.title)}</button> / <button onclick="openTableauSequence('${classe.id}','${sequence.id}')">${escapeHtml(sequence.title)}</button> / ${escapeHtml(lesson.title)}</div>
             <h2 style="margin:0;color:var(--wine-900);font-size:34px">${escapeHtml(lesson.title)}</h2>
             <p class="muted">Choisir l’activité à afficher.</p>
+            ${lessonSuitcase(lesson)}
           </section>
           <section class="numbered-list">${lesson.activities.filter((activity) => activity.isVisible !== false).map(tableauActivityCard).join("") || empty("Aucune activité visible.")}</section>
         `;
@@ -1428,7 +1427,7 @@
         return `<li>
           <div class="tree-node-stack"><button class="tree-node tree-sequence" onclick="closeEditor();openSequencePage('${classe.id}','${sequence.id}')">
             <span>Séquence n° ${sequenceNumber(classe, sequence)}</span><strong>${escapeHtml(sequence.title)}</strong>${sequence.isVisible === false ? "<em>Masquée</em>" : ""}
-          </button><button class="tree-node-action" onclick="exportSequenceWord('${sequence.id}')">Exporter la séquence en Word</button></div>
+          </button><button class="tree-node-action" onclick="openSequenceWordPreview('${sequence.id}')">Aperçu / exporter Word</button></div>
           ${treeChildren((sequence.lessons || []).map((lesson) => treeLessonNode(classe, sequence, lesson)))}
         </li>`;
       }
@@ -1439,9 +1438,8 @@
             <button class="tree-node tree-lesson" onclick="closeEditor();openLessonPage('${classe.id}','${sequence.id}','${lesson.id}')">
               <span>Séance</span><strong>${escapeHtml(lesson.title)}</strong>${lesson.isVisible === false ? "<em>Masquée</em>" : ""}
             </button>
-            <button class="tree-node-action" onclick="exportLessonWord('${lesson.id}')">Exporter la séance en Word</button>
+            <button class="tree-node-action" onclick="openLessonPrintPreview('${lesson.id}')">Aperçu / exporter Word</button>
           </div>
-          ${lessonSuitcase(lesson)}
           ${treeChildren((lesson.activities || []).map(treeActivityNode))}
         </li>`;
       }
@@ -2224,7 +2222,6 @@
             <p class="small" style="font-weight:850;color:var(--wine-700)">Séance</p>
             <h3>${escapeHtml(lesson.title)} ${lesson.isVisible ? "" : "<span class='pill'>Masque</span>"}</h3>
             <p class="muted small">${escapeHtml(lesson.description)}</p>
-            ${lessonSuitcase(lesson)}
           </div>
           <div class="row wrap">
             <span class="pill">${lesson.activities.length} activité(s)</span>
@@ -4315,8 +4312,8 @@
         modal.hidden = false;
         modal.innerHTML = `<section class="print-preview-shell">
           <header class="print-preview-toolbar">
-            <div><strong>Aperçu de la séance complète</strong><p class="small muted">Toutes les activités et leurs diapositives sont imprimées dans l’ordre, avec une diapo par page.</p></div>
-            <div class="row wrap">${printOrientationControl()}<button class="btn primary" onclick="printActivity()">Imprimer toute la séance</button><button class="btn" onclick="closeEditor()">Fermer</button></div>
+            <div><strong>Aperçu avant export Word</strong><p class="small muted">Toutes les activités, images et premières images des vidéos seront intégrées au document paysage.</p></div>
+            <div class="row wrap"><button class="btn primary" onclick="exportLessonWord('${lesson.id}',this)">Exporter Word (.docx)</button><button class="btn" onclick="closeEditor()">Fermer</button></div>
           </header>
           <div class="print-preview-scroll">
             <article class="printable-lesson" id="lessonPrintPreview">
@@ -4341,6 +4338,17 @@
             </article>
           </div>
         </section>`;
+      }
+
+      function openSequenceWordPreview(sequenceId) {
+        const result = findSequenceContext(sequenceId);
+        if (!result) return;
+        const { sequence, classe } = result;
+        const lessons = sequence.lessons || [];
+        lessons.forEach((lesson) => (lesson.activities || []).forEach(ensureActivitySlides));
+        const modal = document.querySelector("#editorModal");
+        modal.hidden = false;
+        modal.innerHTML = `<section class="print-preview-shell"><header class="print-preview-toolbar"><div><strong>Aperçu de la séquence complète</strong><p class="small muted">Le Word paysage intégrera les séances, les valises, les images et la première image des vidéos.</p></div><div class="row wrap"><button class="btn primary" onclick="exportSequenceWord('${sequence.id}',this)">Exporter Word (.docx)</button><button class="btn" onclick="closeEditor()">Fermer</button></div></header><div class="print-preview-scroll"><article class="printable-lesson"><header class="print-lesson-head"><p class="print-breadcrumb">${escapeHtml(classe.title)} · Séquence n° ${sequenceNumber(classe,sequence)}</p><h1>${escapeHtml(sequence.title)}</h1>${sequence.description ? `<p>${escapeHtml(sequence.description)}</p>` : ""}${sequence.finalTask ? `<p><strong>Tâche finale :</strong> ${escapeHtml(sequence.finalTask)}</p>` : ""}</header>${lessons.map((lesson,index) => `<section class="print-lesson-activity"><header class="print-activity-head"><p class="print-breadcrumb">Séance ${index+1} sur ${lessons.length}</p><h1>${escapeHtml(lesson.title)}</h1>${lesson.description ? `<p>${escapeHtml(lesson.description)}</p>` : ""}${lessonSuitcase(lesson)}</header>${(lesson.activities || []).map((activity) => `<section class="print-lesson-activity"><h2>${escapeHtml(activity.title)}</h2>${(activity.slides || []).map((slide,slideIndex) => renderPrintableSlide(activity,slide,slideIndex)).join("")}</section>`).join("")}</section>`).join("")}</article></div></section>`;
       }
 
       function openActivityPrintPreview(activityId) {
@@ -4400,6 +4408,7 @@
         const style = `left:${Number(element.x || 0) / slideSize.width * 100}%;top:${Number(element.y || 0) / slideSize.height * 100}%;width:${Number(element.w || 320) / slideSize.width * 100}%;height:${Number(element.h || 160) / slideSize.height * 100}%`;
         if (element.kind === "text") return `<div class="print-slide-element print-slide-text" style="${style};font-size:${Math.max(10, Number(element.fontSize || 34) * 0.75)}px">${element.html ? sanitizeRichText(element.html) : escapeHtml(element.value || "")}</div>`;
         if (element.kind === "image") return `<div class="print-slide-element" style="${style}"><img src="${escapeAttr(element.value)}" alt=""></div>`;
+        if (element.kind === "video") return `<div class="print-slide-element" style="${style}"><video class="print-video-frame" src="${escapeAttr(element.value)}" muted preload="auto" onloadeddata="this.currentTime=.01"></video></div>`;
         if (element.kind === "tool") {
           const toolId = String(element.value || "timer").split("|")[0];
           return `<div class="print-slide-element print-slide-placeholder" style="${style}"><strong>Outil : ${escapeHtml(slideTools[toolId]?.title || "Outil")}</strong><span>À utiliser dans la présentation interactive.</span></div>`;
@@ -4445,14 +4454,22 @@
         toast("Document Word exporté.");
       }
 
-      function exportLessonWord(lessonId) {
+      async function exportLessonWord(lessonId, button = null) {
         const result = findLessonContext(lessonId);
-        if (result) downloadCourseWord(makeLessonDocx(result), result.lesson.title);
+        if (!result) return;
+        const unlock = beginSaveLock(button);
+        try { downloadCourseWord(await makeLessonDocx(result), result.lesson.title); }
+        catch (error) { toast(`Export Word impossible : ${error.message || "média inaccessible"}.`); }
+        finally { unlock(); }
       }
 
-      function exportSequenceWord(sequenceId) {
+      async function exportSequenceWord(sequenceId, button = null) {
         const result = findSequenceContext(sequenceId);
-        if (result) downloadCourseWord(makeSequenceDocx(result), result.sequence.title);
+        if (!result) return;
+        const unlock = beginSaveLock(button);
+        try { downloadCourseWord(await makeSequenceDocx(result), result.sequence.title); }
+        catch (error) { toast(`Export Word impossible : ${error.message || "média inaccessible"}.`); }
+        finally { unlock(); }
       }
 
       function findSequenceContext(sequenceId) {
@@ -4473,18 +4490,29 @@
         toast("Document Word paysage exporté.");
       }
 
-      function lessonDocxParagraphs({ lesson, sequence, classe }, lessonIndex = 0) {
+      async function lessonDocxParagraphs({ lesson, sequence, classe }, lessonIndex = 0, media = []) {
         const paragraphs = [docxParagraph(lesson.title || `Séance ${lessonIndex + 1}`, true, 34, lessonIndex > 0), docxParagraph(`${classe.title} · ${sequence.title}`, false, 20), docxParagraph(lesson.description ? `Objectif : ${lesson.description}` : "", false, 22), docxParagraph("Ma valise pédagogique", true, 26), ...[["Culture",lesson.cultural],["Lexique",lesson.lexicon],["Conjugaison",lesson.conjugation],["Grammaire",lesson.grammar],["Je sais…",lesson.lifeSkills]].map(([label,value]) => docxParagraph(value ? `${label} : ${value}` : "", false, 20))];
-        (lesson.activities || []).forEach((activity,index) => paragraphs.push(...activityDocxParagraphs(activity,index)));
+        for (const [index, activity] of (lesson.activities || []).entries()) paragraphs.push(...await activityDocxParagraphs(activity,index,media));
         return paragraphs;
       }
 
-      function activityDocxParagraphs(activity, activityIndex = 0) {
+      async function activityDocxParagraphs(activity, activityIndex = 0, media = []) {
         const paragraphs = [docxParagraph(`Activité ${activityIndex + 1} — ${activity.title || "Sans titre"}`, true, 28), docxParagraph(activity.description || "", false, 20), docxParagraph(activity.objective ? `Objectif : ${activity.objective}` : "", true, 20), docxParagraph(activity.instruction ? `Consigne : ${activity.instruction}` : "", false, 20)];
-        (activity.slides || []).forEach((slide,index) => {
+        for (const [index, slide] of (activity.slides || []).entries()) {
           paragraphs.push(docxParagraph(slideInstruction(slide,index), true, 24));
-          elementsForBoardSlide(activity,index).sort((a,b) => Number(a.y||0)-Number(b.y||0)).forEach((element) => paragraphs.push(docxParagraph(element.kind === "text" ? element.value || "" : `${labelTypeForPptx(element.kind)} : ${element.value || ""}`, false, 18)));
-        });
+          for (const element of elementsForBoardSlide(activity,index).sort((a,b) => Number(a.y||0)-Number(b.y||0))) {
+            if (element.kind === "text") paragraphs.push(docxParagraph(element.value || "", false, 18));
+            else if (element.kind === "image" || element.kind === "video") {
+              try {
+                const asset = await docxRasterMedia(element);
+                asset.relId = `rId${media.length + 1}`;
+                asset.fileName = `media-${media.length + 1}.png`;
+                media.push(asset);
+                paragraphs.push(docxImageParagraph(asset.relId, element.w, element.h, element.kind === "video" ? "Première image de la vidéo" : "Image"));
+              } catch (error) { paragraphs.push(docxParagraph(`${labelTypeForPptx(element.kind)} inaccessible`, false, 18)); }
+            } else paragraphs.push(docxParagraph(`${labelTypeForPptx(element.kind)} : ${element.kind === "tool" ? String(element.value || "").split("|")[0] : element.value || ""}`, false, 18));
+          }
+        }
         if ((activity.resources || []).length) {
           paragraphs.push(docxParagraph("Ressources", true, 22));
           activity.resources.forEach((resource) => paragraphs.push(docxParagraph(`• ${resource.title || "Ressource"}${resource.url ? ` — ${resource.url}` : ""}`, false, 18)));
@@ -4492,16 +4520,42 @@
         return paragraphs;
       }
 
-      function makeLessonDocx(result) { return makeLandscapeDocx(lessonDocxParagraphs(result)); }
-      function makeSequenceDocx({ sequence, classe }) {
+      async function makeLessonDocx(result) { const media=[]; return makeLandscapeDocx(await lessonDocxParagraphs(result,0,media),media); }
+      async function makeSequenceDocx({ sequence, classe }) {
+        const media = [];
         const paragraphs = [docxParagraph(sequence.title || "Séquence", true, 38), docxParagraph(classe.title, false, 22), docxParagraph(sequence.description || "", false, 22), docxParagraph(sequence.finalTask ? `Tâche finale : ${sequence.finalTask}` : "", true, 22)];
-        (sequence.lessons || []).forEach((lesson,index) => paragraphs.push(...lessonDocxParagraphs({ lesson, sequence, classe }, index)));
-        return makeLandscapeDocx(paragraphs);
+        for (const [index, lesson] of (sequence.lessons || []).entries()) paragraphs.push(...await lessonDocxParagraphs({ lesson, sequence, classe },index,media));
+        return makeLandscapeDocx(paragraphs,media);
       }
 
-      function makeLandscapeDocx(paragraphs) {
-        const documentXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body>${paragraphs.join("")}<w:sectPr><w:pgSz w:w="16838" w:h="11906" w:orient="landscape"/><w:pgMar w:top="850" w:right="850" w:bottom="850" w:left="850"/></w:sectPr></w:body></w:document>`;
-        return makeZip([{ path:"[Content_Types].xml", content:`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/></Types>` }, { path:"_rels/.rels", content:`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>` }, { path:"word/document.xml", content:documentXml }]);
+      function makeLandscapeDocx(paragraphs, media = []) {
+        const documentXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"><w:body>${paragraphs.join("")}<w:sectPr><w:pgSz w:w="16838" w:h="11906" w:orient="landscape"/><w:pgMar w:top="850" w:right="850" w:bottom="850" w:left="850"/></w:sectPr></w:body></w:document>`;
+        const rels = media.map((item) => `<Relationship Id="${item.relId}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/${item.fileName}"/>`).join("");
+        return makeZip([{ path:"[Content_Types].xml", content:`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Default Extension="png" ContentType="image/png"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/></Types>` }, { path:"_rels/.rels", content:`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>` }, { path:"word/_rels/document.xml.rels", content:`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">${rels}</Relationships>` }, { path:"word/document.xml", content:documentXml }, ...media.map((item) => ({ path:`word/media/${item.fileName}`, content:item.bytes, binary:true }))]);
+      }
+
+      function docxImageParagraph(relId, width, height, description) {
+        const ratio = Math.max(.25, Math.min(4, Number(width || 16) / Math.max(1,Number(height || 9))));
+        const cx = Math.round(Math.min(9, 5.2 * ratio) * 914400), cy = Math.round(cx / ratio), id = Number(String(relId).replace(/\D/g,"")) || 1;
+        return `<w:p><w:pPr><w:jc w:val="center"/><w:spacing w:after="180"/></w:pPr><w:r><w:drawing><wp:inline distT="0" distB="0" distL="0" distR="0"><wp:extent cx="${cx}" cy="${cy}"/><wp:docPr id="${id}" name="${xmlEscape(description)}"/><a:graphic><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:pic><pic:nvPicPr><pic:cNvPr id="${id}" name="${xmlEscape(description)}"/><pic:cNvPicPr/></pic:nvPicPr><pic:blipFill><a:blip r:embed="${relId}"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill><pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="${cx}" cy="${cy}"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr></pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing></w:r></w:p>`;
+      }
+
+      async function docxRasterMedia(element) {
+        const downloaded = await fetchExportMedia(element.value);
+        const blob = new Blob([downloaded.bytes], { type: downloaded.mimeType || defaultMediaMime(element.kind) });
+        const url = URL.createObjectURL(blob);
+        try {
+          const source = element.kind === "video" ? document.createElement("video") : new Image();
+          source.muted = true; source.preload = "auto";
+          await new Promise((resolve,reject) => { source.onload = resolve; source.onloadeddata = resolve; source.onerror = () => reject(new Error("aperçu du média impossible")); source.src = url; });
+          if (element.kind === "video") { try { source.currentTime = Math.min(.1, Math.max(0, source.duration || .1)); await new Promise((resolve) => { source.onseeked=resolve; setTimeout(resolve,800); }); } catch (_) {} }
+          const naturalWidth = source.videoWidth || source.naturalWidth || Number(element.w) || 960, naturalHeight = source.videoHeight || source.naturalHeight || Number(element.h) || 540;
+          const scale = Math.min(1, 1400 / naturalWidth, 900 / naturalHeight), canvas = document.createElement("canvas");
+          canvas.width = Math.max(1,Math.round(naturalWidth*scale)); canvas.height = Math.max(1,Math.round(naturalHeight*scale));
+          canvas.getContext("2d").drawImage(source,0,0,canvas.width,canvas.height);
+          const png = await new Promise((resolve,reject) => canvas.toBlob((value) => value ? resolve(value) : reject(new Error("conversion de l’image impossible")),"image/png"));
+          return { bytes:new Uint8Array(await png.arrayBuffer()) };
+        } finally { URL.revokeObjectURL(url); }
       }
 
       function makeActivityDocx({ activity, lesson, sequence, classe }) {
