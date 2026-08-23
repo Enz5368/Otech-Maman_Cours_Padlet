@@ -776,9 +776,8 @@
       function youtubeCard(url) {
         const id = youtubeId(url);
         if (!id) return "";
-        const watchUrl = `https://www.youtube.com/watch?v=${id}`;
-        const thumb = `https://img.youtube.com/vi/${id}/hqdefault.jpg`;
-        return `<div class="youtube-card"><img src="${thumb}" alt=""><div><a href="${watchUrl}" target="_blank" rel="noreferrer">Lire la video sur YouTube</a><span>YouTube bloque parfois la lecture integree depuis un fichier HTML local.</span></div></div>`;
+        const embedUrl = `https://www.youtube-nocookie.com/embed/${id}?rel=0&playsinline=1`;
+        return `<div class="youtube-card youtube-player"><iframe src="${escapeAttr(embedUrl)}" title="Lecteur vidéo YouTube" loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe></div>`;
       }
 
       function toEmbedUrl(url) {

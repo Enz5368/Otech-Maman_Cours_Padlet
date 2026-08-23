@@ -485,6 +485,13 @@ def test_apercu_word_separe_visuellement_les_pages_a4_paysage() -> None:
     assert "Chaque feuille A4 paysage est séparée visuellement" in APP_JS
     assert "aspect-ratio:297 / 210" in STYLES
     assert ".printable-lesson .print-slide-page" in STYLES
+
+
+def test_url_youtube_se_lit_directement_dans_la_diapositive() -> None:
+    assert "https://www.youtube-nocookie.com/embed/" in APP_JS
+    assert 'title="Lecteur vidéo YouTube"' in APP_JS
+    assert "allowfullscreen" in APP_JS
+    assert ".youtube-card.youtube-player iframe" in STYLES
 def test_import_pptx_devient_des_diapos_natives_du_site() -> None:
     assert "importPptxAsSiteSlides(file)" in APP_JS
     assert "pptxShapeBounds" in APP_JS
@@ -517,7 +524,7 @@ def test_export_impression_et_documents_libreoffice() -> None:
     assert 'value="portrait">Portrait' in APP_JS
     assert 'value="landscape">Paysage' in APP_JS
     assert "premières images des vidéos" in APP_JS
-    assert "espace-prof-36" in INDEX
+    assert "espace-prof-37" in INDEX
 
 
 def test_serveur_accepte_les_formats_opendocument_du_selecteur() -> None:
@@ -530,7 +537,7 @@ def test_serveur_accepte_les_formats_opendocument_du_selecteur() -> None:
         assert f'"{extension}": "{mime_type}"' in storage
         assert f'"{mime_type}"' in storage
     assert "extension in OPENDOCUMENT_MIME_BY_EXTENSION" in storage
-    assert "espace-prof-67" in INDEX
+    assert "espace-prof-68" in INDEX
     assert "Précédent" in APP_JS
     assert "Suivant" in APP_JS
     assert "setTimeout(startFreeExampleTutorial, 250);" in APP_JS
@@ -631,8 +638,8 @@ def test_plan_de_classe_style_cinema_et_emploi_du_temps_lycee() -> None:
     assert '["lundi", "mardi", "mercredi", "jeudi", "vendredi"]' in APP_JS
     assert 'aria-label="Emploi du temps du lundi au vendredi"' in APP_JS
     assert ".timetable-course" in STYLES
-    assert "assets/styles.css?v=espace-prof-36" in INDEX
-    assert "assets/app.js?v=espace-prof-67" in INDEX
+    assert "assets/styles.css?v=espace-prof-37" in INDEX
+    assert "assets/app.js?v=espace-prof-68" in INDEX
     assert "assets/api-client.js?v=espace-prof-6" in INDEX
 
 
