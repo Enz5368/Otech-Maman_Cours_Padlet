@@ -548,7 +548,7 @@ def test_serveur_accepte_les_formats_opendocument_du_selecteur() -> None:
         assert f'"{extension}": "{mime_type}"' in storage
         assert f'"{mime_type}"' in storage
     assert "extension in OPENDOCUMENT_MIME_BY_EXTENSION" in storage
-    assert "espace-prof-69" in INDEX
+    assert "espace-prof-70" in INDEX
     assert "Précédent" in APP_JS
     assert "Suivant" in APP_JS
     assert "setTimeout(startFreeExampleTutorial, 250);" in APP_JS
@@ -638,7 +638,8 @@ def test_plan_de_classe_et_emploi_du_temps_sont_disponibles() -> None:
     assert "Maximum 40" in APP_JS
     assert 'data-view="schedule"' in INDEX
     assert "function renderSchedule()" in APP_JS
-    assert 'id="currentCourseShortcut"' in INDEX
+    assert 'id="currentCourseShortcut"' not in INDEX
+    assert "function updateCurrentCourseShortcut()" not in APP_JS
 
 
 def test_plan_de_classe_style_cinema_et_emploi_du_temps_lycee() -> None:
@@ -650,7 +651,7 @@ def test_plan_de_classe_style_cinema_et_emploi_du_temps_lycee() -> None:
     assert 'aria-label="Emploi du temps du lundi au vendredi"' in APP_JS
     assert ".timetable-course" in STYLES
     assert "assets/styles.css?v=espace-prof-38" in INDEX
-    assert "assets/app.js?v=espace-prof-69" in INDEX
+    assert "assets/app.js?v=espace-prof-70" in INDEX
     assert "assets/api-client.js?v=espace-prof-6" in INDEX
 
 
