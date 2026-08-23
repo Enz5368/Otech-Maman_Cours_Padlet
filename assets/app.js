@@ -2361,26 +2361,70 @@
         return "";
       }
 
+      let currentGlobalSearchEntries = [];
+
       function renderSearch() {
         document.querySelector("#content").innerHTML = `
-          <section class="card">
-            <h2>Recherche ressource ou activité</h2>
-            <input id="globalSearch" style="margin-top:12px" placeholder="Rechercher une activité, une consigne, une ressource..." oninput="renderSearchResults(this.value)" />
+          <section class="card search-hero">
+            <h2>Recherche globale</h2>
+            <p class="muted">Retrouvez un cours, une séance, une activité, une consigne, le texte d’une diapositive ou une ressource avec un mot ou quelques lettres.</p>
+            <input id="globalSearch" type="search" autocomplete="off" autofocus placeholder="Ex. vacan, Italie, conjugaison, vidéo…" oninput="renderSearchResults(this.value)" />
           </section>
-          <section id="searchResults" class="grid two" style="margin-top:16px"></section>
+          <section id="searchResults" class="search-results"></section>
         `;
+        currentGlobalSearchEntries = globalSearchEntries();
         renderSearchResults("");
       }
 
+      function normalizeSearchText(value) {
+        return String(value ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/œ/g, "oe").replace(/æ/g, "ae").toLowerCase().replace(/\s+/g, " ").trim();
+      }
+
+      function searchTextFrom(value) {
+        if (Array.isArray(value)) return value.map(searchTextFrom).join(" ");
+        if (value && typeof value === "object") return Object.entries(value).filter(([key]) => !["id","updatedAt","order"].includes(key)).map(([,item]) => searchTextFrom(item)).join(" ");
+        if (typeof value === "string" && /^(?:data:|blob:)/i.test(value)) return "";
+        return typeof value === "string" || typeof value === "number" ? String(value) : "";
+      }
+
+      function globalSearchEntries() {
+        const entries = [];
+        const add = (type,title,path,data,action,subtitle="") => entries.push({ type,title,path,subtitle,action,searchable:normalizeSearchText([title,path,subtitle,searchTextFrom(data)].join(" ")) });
+        (state.classes || []).forEach((classe) => {
+          add("Classe",classe.title,classe.title,classe,`openTableauClass('${classe.id}')`,classe.description);
+          (classe.sequences || []).forEach((sequence) => {
+            const sequencePath = `${classe.title} › ${sequence.title}`;
+            add("Séquence",sequence.title,sequencePath,sequence,`openTableauSequence('${classe.id}','${sequence.id}')`,sequence.description || sequence.finalTask);
+            (sequence.lessons || []).forEach((lesson) => {
+              const lessonPath = `${sequencePath} › ${lesson.title}`;
+              add("Séance",lesson.title,lessonPath,lesson,`openTableauLesson('${classe.id}','${sequence.id}','${lesson.id}')`,lesson.description);
+              (lesson.activities || []).forEach((activity) => {
+                const activityPath = `${lessonPath} › ${activity.title}`;
+                add("Activité",activity.title,activityPath,activity,`openBoardInNewTab('${activity.id}',0)`,activity.objective || activity.instruction || activity.description);
+                (activity.resources || []).forEach((resource) => add("Ressource",resource.title,`${activityPath} › ${resource.title}`,resource,`openSearchResource('${resource.id}','${activity.id}',event)`,resource.description || resource.category || resource.type));
+              });
+            });
+          });
+        });
+        (state.resources || []).forEach((resource) => add("Ressource",resource.title,`Ressources générales › ${resource.title}`,resource,`openSearchResource('${resource.id}','',event)`,resource.description || resource.category || resource.type));
+        return entries;
+      }
+
+      function openSearchResource(resourceId, activityId, event) {
+        const resource = findItem("resource",resourceId) || (state.resources || []).find((item) => item.id === resourceId);
+        if (resource?.url) return openManagedLink(resource.url,event);
+        if (activityId) return openActivityStudio(activityId);
+        setView("classes");
+      }
+
       function renderSearchResults(query) {
-        const flat = flatten();
-        const q = String(query || "").toLowerCase();
-        const activities = flat.activities.filter((a) => !q || `${a.title} ${a.objective} ${a.instruction} ${a.level}`.toLowerCase().includes(q));
-        const resources = flat.resources.filter((r) => !q || `${r.title} ${r.description} ${r.type} ${r.category}`.toLowerCase().includes(q));
-        document.querySelector("#searchResults").innerHTML = `
-          <div class="card"><h2>Activités</h2><div class="grid" style="margin-top:12px">${activities.slice(0, 20).map(activityCard).join("") || empty("Aucune activité.")}</div></div>
-          <div class="card"><h2>Ressources</h2><div class="grid" style="margin-top:12px">${resources.slice(0, 20).map(resourceRow).join("") || empty("Aucune ressource.")}</div></div>
-        `;
+        const target=document.querySelector("#searchResults");
+        if(!target)return;
+        const q=normalizeSearchText(query);
+        if(!q){target.innerHTML=`<div class="search-empty"><strong>Tapez un mot ou quelques lettres</strong><span>La recherche parcourt tout le contenu de votre espace.</span></div>`;return;}
+        const terms=q.split(" ").filter(Boolean);
+        const results=currentGlobalSearchEntries.filter(entry=>entry.searchable.includes(q)||terms.every(term=>entry.searchable.includes(term))).map(entry=>({...entry,score:normalizeSearchText(entry.title).includes(q)?3:normalizeSearchText(entry.path).includes(q)?2:1})).sort((a,b)=>b.score-a.score||a.path.localeCompare(b.path,"fr"));
+        target.innerHTML=`<div class="search-summary"><strong>${results.length} résultat${results.length>1?"s":""}</strong><span>pour « ${escapeHtml(String(query).trim())} »</span></div>${results.length?`<div class="search-result-list">${results.slice(0,200).map(entry=>`<article class="search-result-card"><button type="button" onclick="${entry.action}"><span class="search-result-type">${escapeHtml(entry.type)}</span><strong>${escapeHtml(entry.title)}</strong><small>${escapeHtml(entry.path)}</small>${entry.subtitle?`<p>${escapeHtml(entry.subtitle)}</p>`:""}</button></article>`).join("")}</div>`:`<div class="search-empty"><strong>Aucun résultat</strong><span>Essayez une suite de lettres plus courte.</span></div>`}`;
       }
 
       const tutorialSteps = [
@@ -5252,7 +5296,7 @@
 
       function scheduleButtonHelp(button) {
         hideButtonHelp();
-        if (!button || button.disabled) return;
+        if (!button || button.disabled || button.closest(".sidebar") || button.classList.contains("nav-button")) return;
         buttonHelpTarget = button;
         buttonHelpTimer = setTimeout(() => {
           if (buttonHelpTarget !== button || !button.isConnected) return;
