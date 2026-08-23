@@ -1670,17 +1670,21 @@
         padding: 42px;
         box-shadow: 0 16px 45px rgba(43, 32, 32, .14);
       }
-      .printable-lesson { width: min(100%, 1040px); margin: 0 auto; background: white; padding: 42px; box-shadow: 0 16px 45px rgba(43,32,32,.14); }
-      .print-lesson-head { min-height: 420px; display: grid; align-content: center; border-bottom: 5px solid var(--wine-700); }
+      .printable-lesson { width:100%; margin:0 auto; background:transparent; padding:0; box-shadow:none; }
+      .printable-lesson > .print-lesson-head,
+      .printable-lesson .print-activity-head,
+      .printable-lesson .print-slide-page { box-sizing:border-box; width:min(100%,1120px); min-height:auto; aspect-ratio:297 / 210; margin:0 auto 32px; padding:46px; overflow:hidden; background:white; box-shadow:0 16px 45px rgba(43,32,32,.2); }
+      .print-lesson-head { display:grid; align-content:center; border-bottom:5px solid var(--wine-700); }
       .print-lesson-head h1 { margin: 5px 0 12px; color: var(--wine-900); font-size: 46px; }
-      .print-lesson-activity { margin-top: 34px; }
+      .print-lesson-activity { margin:0; }
+      .print-activity-head { display:grid; align-content:center; }
       .print-activity-head h1 { margin: 4px 0 12px; color: var(--wine-900); font-size: 36px; }
       .print-breadcrumb { margin: 0; color: var(--wine-700); font-size: 13px; font-weight: 850; }
       .print-activity-meta { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin: 22px 0 0; }
       .print-activity-meta div { border: 1px solid var(--line); border-radius: var(--radius); padding: 10px 12px; }
       .print-activity-meta dt { color: var(--wine-700); font-size: 12px; font-weight: 900; text-transform: uppercase; }
       .print-activity-meta dd { margin: 4px 0 0; white-space: pre-line; }
-      .print-slide-page { margin-top: 32px; break-inside: avoid; }
+      .print-slide-page { break-inside:avoid; }
       .print-slide-page h2, .print-resources h2 { color: var(--wine-900); }
       .print-slide-canvas { position: relative; width: 100%; aspect-ratio: 16 / 9; overflow: hidden; border: 1px solid var(--line); background: #fffdf9; }
       .print-slide-element { position: absolute; overflow: hidden; }
@@ -2234,6 +2238,7 @@
         .print-preview-scroll { overflow: visible; padding: 0; }
         .printable-activity { width: 100%; padding: 0; box-shadow: none; }
         .printable-lesson { width: 100%; padding: 0; box-shadow: none; }
+        .printable-lesson > .print-lesson-head, .printable-lesson .print-activity-head, .printable-lesson .print-slide-page { width:100%; min-height:0; aspect-ratio:auto; margin:0; padding:0; overflow:visible; box-shadow:none; }
         .print-lesson-head { min-height: 0; break-after: page; }
         .print-lesson-activity { margin: 0; }
         .print-activity-head { break-after: page; }
