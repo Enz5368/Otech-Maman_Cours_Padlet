@@ -624,7 +624,7 @@ def test_plan_de_classe_style_cinema_et_emploi_du_temps_lycee() -> None:
     assert 'aria-label="Emploi du temps du lundi au vendredi"' in APP_JS
     assert ".timetable-course" in STYLES
     assert "assets/styles.css?v=espace-prof-34" in INDEX
-    assert "assets/app.js?v=espace-prof-65" in INDEX
+    assert "assets/app.js?v=espace-prof-66" in INDEX
     assert "assets/api-client.js?v=espace-prof-6" in INDEX
 
 
