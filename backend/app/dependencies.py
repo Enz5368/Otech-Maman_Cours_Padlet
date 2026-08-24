@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import secrets
 from datetime import UTC, datetime
 from typing import Annotated
 
@@ -61,9 +62,9 @@ def require_csrf(
     if request.method in {"GET", "HEAD", "OPTIONS"}:
         return
     cookie_token = request.cookies.get(settings.csrf_cookie_name)
-    if not csrf_header or not cookie_token or csrf_header != cookie_token:
+    if not csrf_header or not cookie_token or not secrets.compare_digest(csrf_header, cookie_token):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Jeton CSRF manquant")
-    if digest_token(csrf_header) != current_session.csrf_hash:
+    if not secrets.compare_digest(digest_token(csrf_header), current_session.csrf_hash):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Jeton CSRF invalide")
 
 

@@ -35,6 +35,7 @@ jobs:
         run: |
           ruff check backend/app backend/tests tests scripts
           pytest backend/tests tests
+          python scripts/security_check.py
 
       - name: Valider la syntaxe YAML et Compose
         run: |

@@ -35,7 +35,7 @@ def test_session_cookie_is_http_only_and_logout_revokes_it(client: TestClient) -
         },
     ).headers.get_list("set-cookie")
     assert any(
-        "mep_session=" in cookie and "HttpOnly" in cookie and "SameSite=lax" in cookie
+        "mep_session=" in cookie and "HttpOnly" in cookie and "SameSite=strict" in cookie
         for cookie in cookie_header
     )
     response = client.post("/api/v1/auth/logout", headers=csrf_headers(client))

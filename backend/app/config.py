@@ -3,7 +3,7 @@ from __future__ import annotations
 from functools import lru_cache
 from pathlib import Path
 
-from pydantic import Field, field_validator
+from pydantic import Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -45,6 +45,22 @@ class Settings(BaseSettings):
     @property
     def is_production(self) -> bool:
         return self.environment.lower() == "production"
+
+    @model_validator(mode="after")
+    def validate_production_security(self) -> Settings:
+        if not self.is_production:
+            return self
+        if not self.cookie_secure:
+            raise ValueError("MEP_COOKIE_SECURE doit être activé en production")
+        if self.database_url.startswith("sqlite"):
+            raise ValueError("SQLite ne doit pas être utilisé en production")
+        if not self.allowed_origins or "*" in self.allowed_origins:
+            raise ValueError("MEP_ALLOWED_ORIGINS doit contenir une liste explicite en production")
+        if any(not origin.startswith("https://") for origin in self.allowed_origins):
+            raise ValueError("Toutes les origines de production doivent utiliser HTTPS")
+        if not self.public_base_url.startswith("https://"):
+            raise ValueError("MEP_PUBLIC_BASE_URL doit utiliser HTTPS en production")
+        return self
 
 
 @lru_cache

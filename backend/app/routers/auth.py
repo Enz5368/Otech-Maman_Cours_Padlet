@@ -61,7 +61,7 @@ def _set_session_cookies(response: Response, raw_token: str, csrf_token: str) ->
         max_age=settings.session_ttl_seconds,
         httponly=True,
         secure=settings.cookie_secure or settings.is_production,
-        samesite="lax",
+        samesite="strict",
         path="/",
     )
     response.set_cookie(
@@ -70,7 +70,7 @@ def _set_session_cookies(response: Response, raw_token: str, csrf_token: str) ->
         max_age=settings.session_ttl_seconds,
         httponly=False,
         secure=settings.cookie_secure or settings.is_production,
-        samesite="lax",
+        samesite="strict",
         path="/",
     )
 
@@ -230,6 +230,7 @@ def change_password(
 
 @router.post("/forgot-password", status_code=status.HTTP_202_ACCEPTED)
 def forgot_password(payload: ForgotPasswordRequest, request: Request, db: DbDep) -> dict[str, str]:
+    _check_rate_limit(f"forgot-password:{request.client.host if request.client else 'unknown'}")
     user = db.scalar(select(User).where(User.username_normalized == normalize_username(payload.username)))
     if user and user.email:
         settings = get_settings()
@@ -254,7 +255,8 @@ def forgot_password(payload: ForgotPasswordRequest, request: Request, db: DbDep)
 
 
 @router.post("/reset-password", status_code=status.HTTP_204_NO_CONTENT)
-def reset_password(payload: ResetPasswordRequest, db: DbDep) -> None:
+def reset_password(payload: ResetPasswordRequest, request: Request, db: DbDep) -> None:
+    _check_rate_limit(f"reset-password:{request.client.host if request.client else 'unknown'}")
     token = db.scalar(
         select(PasswordResetToken).where(
             PasswordResetToken.token_hash == digest_token(payload.token),

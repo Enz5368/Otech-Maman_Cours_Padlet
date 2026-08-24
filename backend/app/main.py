@@ -76,6 +76,12 @@ async def request_context(request: Request, call_next):
     response.headers["X-Frame-Options"] = "SAMEORIGIN"
     response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
     response.headers["Permissions-Policy"] = "camera=(), microphone=(self), geolocation=()"
+    response.headers["Cross-Origin-Opener-Policy"] = "same-origin"
+    response.headers["Cross-Origin-Resource-Policy"] = "same-origin"
+    if get_settings().is_production:
+        response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+    if request.url.path.startswith("/api/v1/"):
+        response.headers.setdefault("Cache-Control", "no-store")
     response.headers["Content-Security-Policy"] = (
         "default-src 'self'; img-src 'self' data: blob: https:; media-src 'self' data: blob: https:; "
         "style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; "
@@ -107,7 +113,7 @@ async def unexpected_error(request: Request, exc: Exception):
 
 @app.get("/health", include_in_schema=False)
 def health() -> dict[str, str]:
-    return {"status": "ok", "version": get_settings().app_version}
+    return {"status": "ok"}
 
 
 @app.get("/ready", include_in_schema=False)

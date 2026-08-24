@@ -59,6 +59,14 @@ def test_le_proxy_autorise_les_medias_locaux_et_serveur() -> None:
     assert "media-src 'self' data: blob: https:" in nginx
 
 
+def test_edge_proxy_has_security_headers_and_limits_password_reset() -> None:
+    nginx = (ROOT / "nginx" / "nginx.conf").read_text(encoding="utf-8")
+    assert "Strict-Transport-Security" in nginx
+    assert "Cross-Origin-Opener-Policy" in nginx
+    assert "Cross-Origin-Resource-Policy" in nginx
+    assert "forgot-password|reset-password" in nginx
+
+
 def test_workspace_json_is_the_only_critical_save_path() -> None:
     service = (ROOT / "backend" / "app" / "services" / "workspace.py").read_text(encoding="utf-8")
     save_function = service.split("def save_workspace(", 1)[1]

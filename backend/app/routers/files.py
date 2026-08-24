@@ -112,11 +112,17 @@ def file_content(
     record = owned_file(db, user.id, file_id)
     path = resolve_user_file(get_settings(), user.id, record.relative_path)
     size = path.stat().st_size
+    potentially_active = record.mime_type == "image/svg+xml"
     headers = {
         "Accept-Ranges": "bytes",
-        "Content-Disposition": inline_content_disposition(record.original_name),
+        "Content-Disposition": (
+            f"attachment; filename*=UTF-8''{quote(Path(record.original_name).name, safe='')}"
+            if potentially_active
+            else inline_content_disposition(record.original_name)
+        ),
         "Cache-Control": "private, max-age=300",
     }
+    response_mime = "application/octet-stream" if potentially_active else record.mime_type
     if range_header:
         match = RANGE_RE.fullmatch(range_header.strip())
         if not match:
@@ -133,10 +139,10 @@ def file_content(
         headers["Content-Range"] = f"bytes {start}-{end}/{size}"
         headers["Content-Length"] = str(end - start + 1)
         return StreamingResponse(
-            iter_file_range(path, start, end), status_code=206, media_type=record.mime_type, headers=headers
+            iter_file_range(path, start, end), status_code=206, media_type=response_mime, headers=headers
         )
     headers["Content-Length"] = str(size)
-    return StreamingResponse(iter_file_range(path, 0, size - 1), media_type=record.mime_type, headers=headers)
+    return StreamingResponse(iter_file_range(path, 0, size - 1), media_type=response_mime, headers=headers)
 
 
 @router.post("/{file_id}/convert-video")

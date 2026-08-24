@@ -84,6 +84,9 @@ services:
       MEP_USERS_ROOT: /data/users
       MEP_BACKUPS_ROOT: /data/backups
       MEP_LOGS_ROOT: /data/logs
+      MEP_COOKIE_SECURE: "true"
+      MEP_ALLOWED_ORIGINS: '["https://monespaceprof.com"]'
+      MEP_PUBLIC_BASE_URL: https://monespaceprof.com
     volumes:
       - ${USERS_DATA_PATH:-/mnt/DriveMaison/Users}:/data/users
       - ${BACKUPS_DATA_PATH:-/mnt/DriveMaison/Backups}:/data/backups
