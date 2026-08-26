@@ -1922,9 +1922,10 @@
         background: rgba(255,255,255,.52);
       }
 
-      /* Tous les arbres avancent horizontalement de gauche à droite. */
+      /* Tous les arbres avancent verticalement du haut vers le bas. */
       .course-tree-scroll {
-        overflow: auto;
+        overflow-y: auto;
+        overflow-x: hidden;
         max-height: min(70vh, 860px);
         border: 1px solid var(--line);
         border-radius: 14px;
@@ -1933,50 +1934,42 @@
         box-shadow: var(--shadow);
       }
 
-      .course-tree { width: max-content; min-width: 100%; }
-      .course-tree:has(> .tree-heading) { display:grid; grid-template-columns:220px auto; align-items:start; gap:38px; }
+      .course-tree { width: 100%; }
 
       .course-tree ul {
         position: relative;
         list-style: none;
         display: flex;
         flex-direction: column;
-        gap: 14px;
+        gap: 8px;
         margin: 0;
         padding: 0;
       }
 
-      .course-tree > ul { margin: 0; }
+      .course-tree > ul { margin-top: 12px; }
 
       .course-tree ul ul {
-        margin: 0;
-        padding-left: 38px;
+        margin: 8px 0 2px 21px;
+        padding-left: 21px;
         border-left: 2px dashed rgba(116, 24, 42, 0.24);
       }
 
       .course-tree li {
         position: relative;
         list-style: none;
-        display: grid;
-        grid-template-columns: 330px auto;
-        align-items: start;
-        gap: 0;
       }
 
       .course-tree li::before {
         content: "";
         position: absolute;
         top: 50%;
-        left: -38px;
-        width: 36px;
+        left: -21px;
+        width: 17px;
         height: 2px;
         background: rgba(116, 24, 42, 0.24);
         transform: translateY(-50%);
       }
       .course-tree > ul > li::before { display: none; }
-      .course-tree li > .tree-node,
-      .course-tree li > .tree-node-stack { grid-column:1; }
-      .course-tree li > ul { grid-column:2; grid-row:1; }
 
       .tree-node {
         position: relative;
@@ -2036,15 +2029,14 @@
       .tree-node-stack {
         position: relative;
         z-index: 1;
-        display: grid;
-        grid-template-columns: 1fr;
-        align-items: stretch;
+        display: flex;
+        align-items: center;
         gap: 8px;
         width: 100%;
       }
-      .tree-node-stack .tree-node { width: 100%; }
+      .tree-node-stack .tree-node { flex: 1 1 auto; width: auto; }
       .tree-node-action {
-        width: 100%;
+        flex: 0 0 auto;
         border: 1px solid var(--line-soft);
         border-radius: 999px;
         background: transparent;
@@ -2056,7 +2048,6 @@
         transition: border-color 0.18s ease, background 0.18s ease;
       }
       .tree-node-action:hover { border-color: var(--sea); background: #eef7f7; }
-      .course-tree .tree-node strong { min-width:0; overflow-wrap:normal; word-break:normal; }
 
       .copy-course-dialog { width:min(620px,calc(100vw - 32px)); margin:8vh auto 0; overflow:hidden; }
       .copy-course-form { display:grid; gap:16px; padding:22px; }

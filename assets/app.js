@@ -4678,65 +4678,97 @@
       async function rasterizePreviewPage(page) {
         const width = 1120;
         const height = Math.round(width * 210 / 297);
-        const clone = page.cloneNode(true);
-        const originals = [page, ...page.querySelectorAll("*")];
-        const copies = [clone, ...clone.querySelectorAll("*")];
-        originals.forEach((node, index) => {
-          const computed = getComputedStyle(node);
-          for (const property of computed) copies[index].style.setProperty(property, computed.getPropertyValue(property), computed.getPropertyPriority(property));
-        });
-        clone.style.width = `${width}px`;
-        clone.style.height = `${height}px`;
-        clone.style.minHeight = `${height}px`;
-        clone.style.aspectRatio = "auto";
-        clone.style.margin = "0";
-        clone.style.boxShadow = "none";
-        await inlinePreviewMedia(page, clone);
-        const markup = new XMLSerializer().serializeToString(clone);
-        const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}"><foreignObject width="100%" height="100%"><div xmlns="http://www.w3.org/1999/xhtml" style="width:${width}px;height:${height}px;background:white">${markup}</div></foreignObject></svg>`;
-        const url = URL.createObjectURL(new Blob([svg], { type: "image/svg+xml;charset=utf-8" }));
+        const canvas = document.createElement("canvas");
+        canvas.width = width * 2;
+        canvas.height = height * 2;
+        const context = canvas.getContext("2d");
+        context.scale(2, 2);
+        context.fillStyle = "#ffffff";
+        context.fillRect(0, 0, width, height);
+        const pageRect = page.getBoundingClientRect();
+        const scaleX = width / Math.max(1, pageRect.width);
+        const scaleY = height / Math.max(1, pageRect.height);
+        context.save();
+        context.scale(scaleX, scaleY);
+        for (const element of [page, ...page.querySelectorAll("*")]) await paintPreviewElement(context, element, pageRect);
+        context.restore();
+        const png = await new Promise((resolve, reject) => canvas.toBlob((blob) => blob ? resolve(blob) : reject(new Error("création de l’image impossible")), "image/png"));
+        return new Uint8Array(await png.arrayBuffer());
+      }
+
+      async function paintPreviewElement(context, element, pageRect) {
+        const style = getComputedStyle(element);
+        if (style.display === "none" || style.visibility === "hidden" || Number(style.opacity) === 0) return;
+        const rect = element.getBoundingClientRect();
+        const x = rect.left - pageRect.left, y = rect.top - pageRect.top;
+        if (rect.width <= 0 || rect.height <= 0 || x >= pageRect.width || y >= pageRect.height || x + rect.width <= 0 || y + rect.height <= 0) return;
+        if (style.backgroundColor && style.backgroundColor !== "rgba(0, 0, 0, 0)" && style.backgroundColor !== "transparent") {
+          context.fillStyle = style.backgroundColor;
+          context.fillRect(x, y, rect.width, rect.height);
+        }
+        const borderWidth = parseFloat(style.borderTopWidth) || 0;
+        if (borderWidth && style.borderTopStyle !== "none") {
+          context.strokeStyle = style.borderTopColor;
+          context.lineWidth = borderWidth;
+          context.strokeRect(x + borderWidth / 2, y + borderWidth / 2, Math.max(0, rect.width - borderWidth), Math.max(0, rect.height - borderWidth));
+        }
+        if (element instanceof HTMLImageElement && (element.currentSrc || element.src)) {
+          await paintPreviewMedia(context, element.currentSrc || element.src, x, y, rect.width, rect.height, style.objectFit);
+          return;
+        }
+        if (element instanceof HTMLVideoElement && element.currentSrc) {
+          try {
+            const raster = await docxRasterMedia({ kind: "video", value: element.currentSrc, w: rect.width, h: rect.height });
+            await paintPreviewBytes(context, raster.bytes, x, y, rect.width, rect.height, "contain");
+          } catch (_) {}
+          return;
+        }
+        for (const node of element.childNodes) if (node.nodeType === Node.TEXT_NODE && node.textContent?.trim()) paintPreviewTextNode(context, node, pageRect, style);
+      }
+
+      async function paintPreviewMedia(context, url, x, y, width, height, objectFit) {
         try {
-          const image = new Image();
-          await new Promise((resolve, reject) => { image.onload = resolve; image.onerror = () => reject(new Error("rendu de la page impossible")); image.src = url; });
-          const canvas = document.createElement("canvas");
-          canvas.width = width * 2;
-          canvas.height = height * 2;
-          const context = canvas.getContext("2d");
-          context.fillStyle = "#ffffff";
-          context.fillRect(0, 0, canvas.width, canvas.height);
-          context.drawImage(image, 0, 0, canvas.width, canvas.height);
-          const png = await new Promise((resolve, reject) => canvas.toBlob((blob) => blob ? resolve(blob) : reject(new Error("création de l’image impossible")), "image/png"));
-          return new Uint8Array(await png.arrayBuffer());
-        } finally { URL.revokeObjectURL(url); }
+          const media = await fetchExportMedia(url);
+          await paintPreviewBytes(context, media.bytes, x, y, width, height, objectFit);
+        } catch (_) {}
       }
 
-      async function inlinePreviewMedia(source, clone) {
-        const sources = [...source.querySelectorAll("img")];
-        const copies = [...clone.querySelectorAll("img")];
-        await Promise.all(sources.map(async (image, index) => {
-          try {
-            const media = await fetchExportMedia(image.currentSrc || image.src);
-            copies[index].src = await blobToDataUrl(new Blob([media.bytes], { type: media.mimeType || "image/png" }));
-          } catch (_) { copies[index].remove(); }
-        }));
-        const sourceVideos = [...source.querySelectorAll("video")];
-        const copyVideos = [...clone.querySelectorAll("video")];
-        sourceVideos.forEach((video, index) => {
-          const canvas = document.createElement("canvas");
-          canvas.width = video.videoWidth || 960;
-          canvas.height = video.videoHeight || 540;
-          try {
-            canvas.getContext("2d").drawImage(video, 0, 0, canvas.width, canvas.height);
-            const image = document.createElement("img");
-            image.src = canvas.toDataURL("image/png");
-            image.style.cssText = copyVideos[index].style.cssText;
-            copyVideos[index].replaceWith(image);
-          } catch (_) { copyVideos[index].remove(); }
-        });
+      async function paintPreviewBytes(context, bytes, x, y, width, height, objectFit = "contain") {
+        const bitmap = await createImageBitmap(new Blob([bytes]));
+        try {
+          const contain = objectFit !== "cover";
+          const ratio = contain ? Math.min(width / bitmap.width, height / bitmap.height) : Math.max(width / bitmap.width, height / bitmap.height);
+          const drawWidth = bitmap.width * ratio, drawHeight = bitmap.height * ratio;
+          context.save();
+          context.beginPath();
+          context.rect(x, y, width, height);
+          context.clip();
+          context.drawImage(bitmap, x + (width - drawWidth) / 2, y + (height - drawHeight) / 2, drawWidth, drawHeight);
+          context.restore();
+        } finally { bitmap.close(); }
       }
 
-      function blobToDataUrl(blob) {
-        return new Promise((resolve, reject) => { const reader = new FileReader(); reader.onload = () => resolve(String(reader.result)); reader.onerror = reject; reader.readAsDataURL(blob); });
+      function paintPreviewTextNode(context, node, pageRect, style) {
+        const text = node.textContent || "";
+        const lines = [];
+        for (let index = 0; index < text.length; index += 1) {
+          const range = document.createRange();
+          range.setStart(node, index);
+          range.setEnd(node, index + 1);
+          const rect = range.getBoundingClientRect();
+          if (!rect.width && !rect.height) continue;
+          let line = lines.at(-1);
+          if (!line || Math.abs(line.top - rect.top) > 1) {
+            line = { text: "", left: rect.left - pageRect.left, top: rect.top - pageRect.top, bottom: rect.bottom - pageRect.top };
+            lines.push(line);
+          }
+          line.text += text[index];
+          line.bottom = Math.max(line.bottom, rect.bottom - pageRect.top);
+        }
+        context.fillStyle = style.color || "#000";
+        context.font = `${style.fontStyle} ${style.fontWeight} ${style.fontSize} ${style.fontFamily}`;
+        context.textBaseline = "alphabetic";
+        lines.forEach((line) => context.fillText(line.text, line.left, line.bottom - Math.max(0, parseFloat(style.fontSize) * .12)));
       }
 
       function docxPreviewPageParagraph(relId, pageBreakBefore, pageNumber) {
