@@ -4922,13 +4922,18 @@
           content: JSON.stringify(state, null, 2)
         }, {
           path: "README.txt",
-          content: "Export local In viaggio per l'Italia\n\nLe fichier donnees-completes.json contient toute la sauvegarde importable.\nLes dossiers classes/ contiennent une copie lisible classe par classe.\n"
+          content: "Export local In viaggio per l'Italia\n\nLe fichier donnees-completes.json contient toute la sauvegarde importable.\nDans le dossier classes, chaque classe possède son propre dossier avec un document Word par séquence.\nLes sous-dossiers conservent aussi le détail des séances, présentations et médias.\n"
         }];
 
         state.classes.forEach((classe, classIndex) => {
           const classFolder = `classes/${String(classIndex + 1).padStart(2, "0")}-${exportSlug(classe.title, 14)}`;
           files.push({ path: `${classFolder}/classe.json`, content: JSON.stringify(classe, null, 2) });
           (classe.sequences || []).forEach((sequence, sequenceIndex) => {
+            files.push({
+              path: `${classFolder}/${String(sequenceIndex + 1).padStart(2, "0")}-${exportSlug(sequence.title, 40)}.docx`,
+              content: makeSequenceDocx({ sequence, classe }),
+              binary: true
+            });
             const sequenceFolder = `${classFolder}/sequences/${String(sequenceIndex + 1).padStart(2, "0")}-${exportSlug(sequence.title, 14)}`;
             files.push({ path: `${sequenceFolder}/sequence.json`, content: JSON.stringify(sequence, null, 2) });
             (sequence.lessons || []).forEach((lesson, lessonIndex) => {

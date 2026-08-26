@@ -297,10 +297,11 @@ def test_vue_arbre_affiche_toute_la_hierarchie_des_cours() -> None:
     assert "treeActivityNode" in APP_JS
     assert "treeResourceNode" in APP_JS
     assert ".course-tree li::before" in styles
-    assert "overflow-y: auto" in styles
-    assert "overflow-x: hidden" in styles
-    assert "margin: 8px 0 2px 21px" in styles
-    assert ".tree-node-stack .tree-node { flex: 1 1 auto; width: auto; }" in styles
+    assert "overflow: auto" in styles
+    assert "justify-content: center" in styles
+    assert ".course-tree li::after" in styles
+    assert ".course-tree ul ul::before" in styles
+    assert ".tree-node-stack .tree-node { width: 100%; }" in styles
     assert "grid-template-columns: 330px auto" not in styles
     assert ".course-tree-scroll" in styles
 
@@ -353,6 +354,8 @@ def test_export_pptx_embarque_les_medias_et_produit_un_zip_windows_valide() -> N
     assert 'path: `medias/${String(index + 1).padStart(3, "0")}-${baseName}${extension}`' in APP_JS
     assert "exportSlug(classe.title, 14)" in APP_JS
     assert "exportSlug(sequence.title, 14)" in APP_JS
+    assert "makeSequenceDocx({ sequence, classe })" in APP_JS
+    assert 'exportSlug(sequence.title, 40)}.docx`' in APP_JS
     assert "exportSlug(lesson.title, 14)" in APP_JS
     assert "exportSlug(activity.title, 14)" in APP_JS
     assert ".slice(-maxLength)" in APP_JS
@@ -570,7 +573,7 @@ def test_export_impression_et_documents_libreoffice() -> None:
     assert 'value="portrait">Portrait' in APP_JS
     assert 'value="landscape">Paysage' in APP_JS
     assert "premières images des vidéos" in APP_JS
-    assert "espace-prof-42" in INDEX
+    assert "espace-prof-43" in INDEX
 
 
 def test_diapos_affichent_classe_sequence_et_seance() -> None:
@@ -593,7 +596,7 @@ def test_serveur_accepte_les_formats_opendocument_du_selecteur() -> None:
         assert f'"{extension}": "{mime_type}"' in storage
         assert f'"{mime_type}"' in storage
     assert "extension in OPENDOCUMENT_MIME_BY_EXTENSION" in storage
-    assert "espace-prof-75" in INDEX
+    assert "espace-prof-76" in INDEX
     assert "Précédent" in APP_JS
     assert "Suivant" in APP_JS
     assert "setTimeout(startFreeExampleTutorial, 250);" in APP_JS
@@ -702,8 +705,8 @@ def test_plan_de_classe_style_cinema_et_emploi_du_temps_lycee() -> None:
     assert '["lundi", "mardi", "mercredi", "jeudi", "vendredi"]' in APP_JS
     assert 'aria-label="Emploi du temps du lundi au vendredi"' in APP_JS
     assert ".timetable-course" in STYLES
-    assert "assets/styles.css?v=espace-prof-42" in INDEX
-    assert "assets/app.js?v=espace-prof-75" in INDEX
+    assert "assets/styles.css?v=espace-prof-43" in INDEX
+    assert "assets/app.js?v=espace-prof-76" in INDEX
     assert "assets/api-client.js?v=espace-prof-6" in INDEX
 
 

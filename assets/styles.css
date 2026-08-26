@@ -1922,10 +1922,9 @@
         background: rgba(255,255,255,.52);
       }
 
-      /* Tous les arbres avancent verticalement du haut vers le bas. */
+      /* Arbre généalogique : le parent est centré au-dessus de ses branches. */
       .course-tree-scroll {
-        overflow-y: auto;
-        overflow-x: hidden;
+        overflow: auto;
         max-height: min(70vh, 860px);
         border: 1px solid var(--line);
         border-radius: 14px;
@@ -1934,42 +1933,74 @@
         box-shadow: var(--shadow);
       }
 
-      .course-tree { width: 100%; }
+      .course-tree {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        width: max-content;
+        min-width: 100%;
+      }
 
       .course-tree ul {
         position: relative;
         list-style: none;
         display: flex;
-        flex-direction: column;
-        gap: 8px;
+        justify-content: center;
+        align-items: flex-start;
         margin: 0;
-        padding: 0;
+        padding: 24px 0 0;
       }
 
-      .course-tree > ul { margin-top: 12px; }
+      .course-tree > ul { margin-top: 0; }
 
       .course-tree ul ul {
-        margin: 8px 0 2px 21px;
-        padding-left: 21px;
-        border-left: 2px dashed rgba(116, 24, 42, 0.24);
+        margin: 0;
       }
 
       .course-tree li {
         position: relative;
         list-style: none;
+        padding: 24px 10px 0;
+        text-align: center;
       }
 
-      .course-tree li::before {
+      .course-tree li::before,
+      .course-tree li::after {
         content: "";
         position: absolute;
-        top: 50%;
-        left: -21px;
-        width: 17px;
-        height: 2px;
-        background: rgba(116, 24, 42, 0.24);
-        transform: translateY(-50%);
+        top: 0;
+        right: 50%;
+        width: 50%;
+        height: 24px;
+        border-top: 2px solid rgba(116, 24, 42, 0.28);
       }
-      .course-tree > ul > li::before { display: none; }
+      .course-tree li::after {
+        right: auto;
+        left: 50%;
+        border-left: 2px solid rgba(116, 24, 42, 0.28);
+      }
+      .course-tree li:only-child::before,
+      .course-tree li:only-child::after { display: none; }
+      .course-tree li:only-child { padding-top: 0; }
+      .course-tree li:first-child::before,
+      .course-tree li:last-child::after { border: 0; }
+      .course-tree li:last-child::before {
+        border-right: 2px solid rgba(116, 24, 42, 0.28);
+        border-radius: 0 8px 0 0;
+      }
+      .course-tree li:first-child::after { border-radius: 8px 0 0 0; }
+      .course-tree ul ul::before,
+      .course-tree > ul::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 50%;
+        width: 0;
+        height: 24px;
+        border-left: 2px solid rgba(116, 24, 42, 0.28);
+      }
+      .course-tree > ul > li,
+      .course-tree > ul > li:only-child { padding-top: 24px; }
 
       .tree-node {
         position: relative;
@@ -1977,7 +2008,7 @@
         display: flex;
         align-items: center;
         gap: 10px;
-        width: 100%;
+        width: 260px;
         min-height: 42px;
         border: 1px solid var(--line-soft);
         border-left: 4px solid var(--line);
@@ -1985,14 +2016,14 @@
         background: white;
         color: var(--wine-900);
         padding: 9px 14px;
-        text-align: left;
+        text-align: center;
         white-space: normal;
         box-shadow: 0 1px 2px rgba(59, 13, 22, 0.05);
         transition: transform 0.18s var(--ease-premium), border-color 0.18s ease, box-shadow 0.2s var(--ease-premium);
       }
 
       .tree-node:hover {
-        transform: translateX(3px);
+        transform: translateY(-2px);
         border-left-color: var(--wine-700);
         box-shadow: var(--shadow-soft);
       }
@@ -2030,13 +2061,14 @@
         position: relative;
         z-index: 1;
         display: flex;
+        flex-direction: column;
         align-items: center;
         gap: 8px;
-        width: 100%;
+        width: 260px;
       }
-      .tree-node-stack .tree-node { flex: 1 1 auto; width: auto; }
+      .tree-node-stack .tree-node { width: 100%; }
       .tree-node-action {
-        flex: 0 0 auto;
+        width: 100%;
         border: 1px solid var(--line-soft);
         border-radius: 999px;
         background: transparent;
