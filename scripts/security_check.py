@@ -13,7 +13,7 @@ SECRET_PATTERNS = {
     "private key": re.compile(rb"-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----"),
     "GitHub token": re.compile(rb"gh[opsu]_[A-Za-z0-9]{30,}"),
     "generic API token": re.compile(
-        rb"(?:api[_-]?key|secret|token)\s*[:=]\s*['\"][A-Za-z0-9_./+\-=]{20,}['\"]", re.I
+        rb"(?:api[_-]?key|secret|token)\s*[:=]\s*['\"][A-Za-z0-9_./+\-=]{20,}['\"]", re.IGNORECASE
     ),
 }
 
