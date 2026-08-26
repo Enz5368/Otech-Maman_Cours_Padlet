@@ -589,6 +589,13 @@ def test_barre_texte_propose_taille_et_couleurs() -> None:
     assert 'aria-label="Taille des lettres"' in APP_JS
     assert "function setStudioTextFont(" in APP_JS
     assert "function setStudioTextSize(" in APP_JS
+    assert "function applyStudioTextSelectionSize(" in APP_JS
+    assert "span.style.fontSize = `${requestedSize}px`" in APP_JS
+    assert "function studioTextOverflows(" in APP_JS
+    assert "trop grande pour cette zone de texte" in APP_JS
+    assert "appliquée à la place" in APP_JS
+    assert 'toast("Sélectionnez le texte dont vous voulez changer la taille.")' in APP_JS
+    assert "font-size:${node.style.fontSize}" in APP_JS
     assert "'subscript'" in APP_JS and "'superscript'" in APP_JS
     assert "'justifyLeft'" in APP_JS and "'justifyFull'" in APP_JS
     assert "'hiliteColor'" in APP_JS

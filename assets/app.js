@@ -3080,6 +3080,7 @@
             if (node.style.color) safeStyles.push(`color:${node.style.color}`);
             if (node.style.backgroundColor) safeStyles.push(`background-color:${node.style.backgroundColor}`);
             if (node.style.fontFamily) safeStyles.push(`font-family:${node.style.fontFamily}`);
+            if (/^\d+(?:\.\d+)?px$/.test(node.style.fontSize)) safeStyles.push(`font-size:${node.style.fontSize}`);
             if (/^(left|right|center|justify)$/.test(node.style.textAlign)) safeStyles.push(`text-align:${node.style.textAlign}`);
             [...node.attributes].forEach((attribute) => node.removeAttribute(attribute.name));
             if (safeStyles.length) node.setAttribute("style", safeStyles.join(";"));
@@ -3171,9 +3172,8 @@
         const text = node?.querySelector(".slide-text");
         if (!node || !text) return toast("Sélectionnez d'abord une zone de texte.");
         const size = Math.max(8, Math.min(96, Number(value) || 32));
-        node.dataset.maxFontSize = String(size);
-        text.style.fontSize = `${size}px`;
-        fitStudioText(node);
+        if (applyStudioTextSelectionSize(text, size)) return;
+        toast("Sélectionnez le texte dont vous voulez changer la taille.");
       }
 
       function resizeStudioText(delta, event) {
@@ -3182,11 +3182,47 @@
         const node = document.querySelector(".studio .slide-el.selected[data-kind='text']");
         const text = node?.querySelector(".slide-text");
         if (!node || !text) return toast("Sélectionnez d'abord une zone de texte.");
-        const current = Number(node.dataset.maxFontSize || parseFloat(text.style.fontSize) || 34);
+        restoreStudioTextSelection();
+        const selection = window.getSelection();
+        const selectedNode = selection?.rangeCount ? selection.getRangeAt(0).startContainer : null;
+        const selectedElement = selectedNode?.nodeType === Node.ELEMENT_NODE ? selectedNode : selectedNode?.parentElement;
+        const current = studioTextSelectionRange && !studioTextSelectionRange.collapsed
+          ? parseFloat(getComputedStyle(selectedElement || text).fontSize) || 34
+          : Number(node.dataset.maxFontSize || parseFloat(text.style.fontSize) || 34);
         const size = Math.max(8, Math.min(96, current + Number(delta || 0)));
-        node.dataset.maxFontSize = String(size);
-        text.style.fontSize = `${size}px`;
-        fitStudioText(node);
+        if (applyStudioTextSelectionSize(text, size)) return;
+        toast("Sélectionnez le texte dont vous voulez changer la taille.");
+      }
+
+      function applyStudioTextSelectionSize(text, size) {
+        if (!studioTextSelectionRange || studioTextSelectionRange.collapsed || !restoreStudioTextSelection()) return false;
+        const range = window.getSelection().getRangeAt(0);
+        if (!text.contains(range.commonAncestorContainer)) return false;
+        const requestedSize = Math.max(8, Math.min(96, Number(size) || 32));
+        const span = document.createElement("span");
+        span.style.fontSize = `${requestedSize}px`;
+        span.append(range.extractContents());
+        range.insertNode(span);
+        range.selectNodeContents(span);
+        const selection = window.getSelection();
+        selection.removeAllRanges();
+        selection.addRange(range);
+        studioTextSelectionRange = range.cloneRange();
+        text.normalize();
+        let appliedSize = requestedSize;
+        while (appliedSize > 8 && studioTextOverflows(text)) {
+          appliedSize -= 1;
+          span.style.fontSize = `${appliedSize}px`;
+        }
+        text.style.overflow = studioTextOverflows(text) ? "auto" : "hidden";
+        if (appliedSize < requestedSize) {
+          toast(`La taille ${requestedSize} px est trop grande pour cette zone de texte. Taille ${appliedSize} px appliquée à la place.`);
+        }
+        return true;
+      }
+
+      function studioTextOverflows(text) {
+        return text.scrollHeight > text.clientHeight + 1 || text.scrollWidth > text.clientWidth + 1;
       }
 
       function fitStudioText(node) {
