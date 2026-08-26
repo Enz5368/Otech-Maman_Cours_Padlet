@@ -749,6 +749,89 @@
         return null;
       }
 
+      function cloneActivityForLesson(source, lessonId) {
+        const activity = structuredClone(source);
+        activity.id = uid("act");
+        activity.lessonId = lessonId;
+        activity.updatedAt = new Date().toISOString();
+        activity.resources = (activity.resources || []).map((resource) => ({ ...resource, id: uid("res"), activityId: activity.id, updatedAt: activity.updatedAt }));
+        activity.slides = (activity.slides || []).map((slide) => ({
+          ...slide,
+          id: uid("slide"),
+          elements: (slide.elements || []).map((element) => ({ ...element, id: uid("el") }))
+        }));
+        return activity;
+      }
+
+      function cloneLessonForSequence(source, sequenceId) {
+        const lesson = structuredClone(source);
+        lesson.id = uid("lesson");
+        lesson.sequenceId = sequenceId;
+        lesson.updatedAt = new Date().toISOString();
+        lesson.activities = (source.activities || []).map((activity) => cloneActivityForLesson(activity, lesson.id));
+        return lesson;
+      }
+
+      function cloneSequenceForClass(source, classId) {
+        const sequence = structuredClone(source);
+        sequence.id = uid("seq");
+        sequence.classId = classId;
+        sequence.updatedAt = new Date().toISOString();
+        sequence.lessons = (source.lessons || []).map((lesson) => cloneLessonForSequence(lesson, sequence.id));
+        return sequence;
+      }
+
+      function openCopySequence(sequenceId) {
+        if (!requireLogin()) return;
+        const source = findItem("sequence", sequenceId);
+        const sourceContext = state.classes.find((classe) => (classe.sequences || []).some((sequence) => sequence.id === sequenceId));
+        const destinations = state.classes.filter((classe) => classe.id !== sourceContext?.id);
+        if (!source || !destinations.length) return toast("Ajoutez une autre classe avant de copier cette séquence.");
+        openCopyCourseDialog("sequence", source, destinations.map((classe) => ({ id: classe.id, label: classe.title })));
+      }
+
+      function openCopyLesson(lessonId) {
+        if (!requireLogin()) return;
+        const source = findItem("lesson", lessonId);
+        const sourceClass = state.classes.find((classe) => (classe.sequences || []).some((sequence) => (sequence.lessons || []).some((lesson) => lesson.id === lessonId)));
+        const destinations = state.classes.filter((classe) => classe.id !== sourceClass?.id).flatMap((classe) => (classe.sequences || []).map((sequence) => ({ id: sequence.id, label: `${classe.title} — ${sequence.title}` })));
+        if (!source || !destinations.length) return toast("Ajoutez une séquence dans une autre classe avant de copier cette séance.");
+        openCopyCourseDialog("lesson", source, destinations);
+      }
+
+      function openCopyCourseDialog(type, source, destinations) {
+        const modal = document.querySelector("#editorModal");
+        const label = type === "sequence" ? "séquence" : "séance";
+        modal.hidden = false;
+        modal.innerHTML = `<section class="editor-card copy-course-dialog">
+          <header class="subtree-head"><div><p>Copier une ${label}</p><h2>${escapeHtml(source.title)}</h2></div><button class="btn icon" type="button" onclick="closeEditor()">X</button></header>
+          <form class="copy-course-form" onsubmit="copyCourseItem(event,'${type}','${source.id}')">
+            <label class="label">Destination<select name="destinationId" required>${destinations.map((destination) => `<option value="${escapeAttr(destination.id)}">${escapeHtml(destination.label)}</option>`).join("")}</select></label>
+            <p class="muted small">La copie sera indépendante : ses activités, diapositives et ressources pourront être modifiées sans changer l’original.</p>
+            <div class="row"><button class="btn primary" type="submit">Copier dans cette classe</button><button class="btn" type="button" onclick="closeEditor()">Annuler</button></div>
+          </form>
+        </section>`;
+      }
+
+      async function copyCourseItem(event, type, sourceId) {
+        event.preventDefault();
+        const destinationId = new FormData(event.currentTarget).get("destinationId");
+        const source = findItem(type, sourceId);
+        const destination = findItem(type === "sequence" ? "class" : "sequence", destinationId);
+        if (!source || !destination) return toast("La destination n’existe plus.");
+        if (type === "sequence") {
+          const copy = cloneSequenceForClass(source, destination.id);
+          copy.order = (destination.sequences || []).length + 1;
+          destination.sequences.push(copy);
+        } else {
+          const copy = cloneLessonForSequence(source, destination.id);
+          copy.order = (destination.lessons || []).length + 1;
+          destination.lessons.push(copy);
+        }
+        const saved = await saveData(`${type === "sequence" ? "Séquence" : "Séance"} copiée dans la classe choisie.`, event.submitter);
+        if (saved) { closeEditor(); render(); }
+      }
+
       function activityLocationBreadcrumb({ classe, sequence, lesson }, variant = "") {
         if (!classe || !sequence || !lesson) return "";
         return `<nav class="activity-location ${escapeAttr(variant)}" aria-label="Emplacement de la présentation">
@@ -2189,6 +2272,7 @@
             <span class="pill">Tâche finale${sequence.finalTask ? ` : ${escapeHtml(sequence.finalTask)}` : ""}</span>
             <span class="pill">${activityCount} activité(s)</span>
             ${editOnly(moveButtons("sequence", sequence.id))}
+            ${editOnly(`<button class="btn" onclick="openCopySequence('${sequence.id}')">Copier vers une classe</button>`)}
             <button class="btn primary" onclick="openSequencePage('${classe.id}','${sequence.id}')">${canEdit() ? "Modifier" : "Voir"}</button>
             ${editOnly(`<button class="btn danger" onclick="removeItem('sequence','${sequence.id}')">Supprimer</button>`)}
           </div>
@@ -2233,6 +2317,7 @@
           <div class="row wrap">
             <span class="pill">${lesson.activities.length} activité(s)</span>
             ${editOnly(moveButtons("lesson", lesson.id))}
+            ${editOnly(`<button class="btn" onclick="openCopyLesson('${lesson.id}')">Copier vers une classe</button>`)}
             <button class="btn primary" onclick="openLessonPage('${classe.id}','${sequence.id}','${lesson.id}')">${canEdit() ? "Modifier" : "Voir"}</button>
             ${editOnly(`<button class="btn danger" onclick="removeItem('lesson','${lesson.id}')">Supprimer</button>`)}
           </div>

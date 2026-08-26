@@ -1922,11 +1922,9 @@
         background: rgba(255,255,255,.52);
       }
 
-      /* Arbre vertical indenté (façon explorateur de fichiers) : la largeur ne dépend plus
-         du nombre de feuilles, donc pas de défilement latéral même avec beaucoup d'activités. */
+      /* Tous les arbres avancent horizontalement de gauche à droite. */
       .course-tree-scroll {
-        overflow-y: auto;
-        overflow-x: hidden;
+        overflow: auto;
         max-height: min(70vh, 860px);
         border: 1px solid var(--line);
         border-radius: 14px;
@@ -1935,42 +1933,50 @@
         box-shadow: var(--shadow);
       }
 
-      .course-tree { width: 100%; }
+      .course-tree { width: max-content; min-width: 100%; }
+      .course-tree:has(> .tree-heading) { display:grid; grid-template-columns:220px auto; align-items:start; gap:38px; }
 
       .course-tree ul {
         position: relative;
         list-style: none;
         display: flex;
         flex-direction: column;
-        gap: 8px;
+        gap: 14px;
         margin: 0;
         padding: 0;
       }
 
-      .course-tree > ul { margin-top: 12px; }
+      .course-tree > ul { margin: 0; }
 
       .course-tree ul ul {
-        margin: 8px 0 2px 21px;
-        padding-left: 21px;
+        margin: 0;
+        padding-left: 38px;
         border-left: 2px dashed rgba(116, 24, 42, 0.24);
       }
 
       .course-tree li {
         position: relative;
         list-style: none;
+        display: grid;
+        grid-template-columns: 260px auto;
+        align-items: center;
+        gap: 0;
       }
 
       .course-tree li::before {
         content: "";
         position: absolute;
         top: 50%;
-        left: -21px;
-        width: 17px;
+        left: -38px;
+        width: 36px;
         height: 2px;
         background: rgba(116, 24, 42, 0.24);
         transform: translateY(-50%);
       }
       .course-tree > ul > li::before { display: none; }
+      .course-tree li > .tree-node,
+      .course-tree li > .tree-node-stack { grid-column:1; }
+      .course-tree li > ul { grid-column:2; grid-row:1; }
 
       .tree-node {
         position: relative;
@@ -2049,6 +2055,9 @@
         transition: border-color 0.18s ease, background 0.18s ease;
       }
       .tree-node-action:hover { border-color: var(--sea); background: #eef7f7; }
+
+      .copy-course-dialog { width:min(620px,calc(100vw - 32px)); margin:8vh auto 0; overflow:hidden; }
+      .copy-course-form { display:grid; gap:16px; padding:22px; }
 
       .tree-heading {
         border-left-color: var(--gold);

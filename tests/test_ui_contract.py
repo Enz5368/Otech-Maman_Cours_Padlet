@@ -297,6 +297,22 @@ def test_vue_arbre_affiche_toute_la_hierarchie_des_cours() -> None:
     assert "treeActivityNode" in APP_JS
     assert "treeResourceNode" in APP_JS
     assert ".course-tree li::before" in styles
+    assert ".course-tree li > ul { grid-column:2; grid-row:1; }" in styles
+    assert "grid-template-columns: 260px auto" in styles
+    assert ".course-tree-scroll" in styles and "overflow: auto" in styles
+
+
+def test_sequences_et_seances_peuvent_etre_copiees_dans_une_autre_classe() -> None:
+    assert "function openCopySequence(" in APP_JS
+    assert "function openCopyLesson(" in APP_JS
+    assert "function copyCourseItem(" in APP_JS
+    assert "function cloneSequenceForClass(" in APP_JS
+    assert "function cloneLessonForSequence(" in APP_JS
+    assert "function cloneActivityForLesson(" in APP_JS
+    assert 'element, id: uid("el")' in APP_JS
+    assert 'resource, id: uid("res")' in APP_JS
+    assert "Copier vers une classe" in APP_JS
+    assert "La copie sera indépendante" in APP_JS
 
 
 def test_import_accepte_les_exports_zip_et_attend_le_serveur() -> None:
@@ -535,7 +551,7 @@ def test_export_impression_et_documents_libreoffice() -> None:
     assert 'value="portrait">Portrait' in APP_JS
     assert 'value="landscape">Paysage' in APP_JS
     assert "premières images des vidéos" in APP_JS
-    assert "espace-prof-39" in INDEX
+    assert "espace-prof-40" in INDEX
 
 
 def test_diapos_affichent_classe_sequence_et_seance() -> None:
@@ -558,7 +574,7 @@ def test_serveur_accepte_les_formats_opendocument_du_selecteur() -> None:
         assert f'"{extension}": "{mime_type}"' in storage
         assert f'"{mime_type}"' in storage
     assert "extension in OPENDOCUMENT_MIME_BY_EXTENSION" in storage
-    assert "espace-prof-72" in INDEX
+    assert "espace-prof-73" in INDEX
     assert "Précédent" in APP_JS
     assert "Suivant" in APP_JS
     assert "setTimeout(startFreeExampleTutorial, 250);" in APP_JS
@@ -667,8 +683,8 @@ def test_plan_de_classe_style_cinema_et_emploi_du_temps_lycee() -> None:
     assert '["lundi", "mardi", "mercredi", "jeudi", "vendredi"]' in APP_JS
     assert 'aria-label="Emploi du temps du lundi au vendredi"' in APP_JS
     assert ".timetable-course" in STYLES
-    assert "assets/styles.css?v=espace-prof-39" in INDEX
-    assert "assets/app.js?v=espace-prof-72" in INDEX
+    assert "assets/styles.css?v=espace-prof-40" in INDEX
+    assert "assets/app.js?v=espace-prof-73" in INDEX
     assert "assets/api-client.js?v=espace-prof-6" in INDEX
 
 
