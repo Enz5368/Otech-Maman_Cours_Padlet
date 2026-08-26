@@ -4776,19 +4776,19 @@
         return `<w:p><w:pPr>${pageBreakBefore ? '<w:pageBreakBefore/>' : ''}<w:jc w:val="center"/><w:spacing w:before="0" w:after="0"/></w:pPr><w:r><w:drawing><wp:inline distT="0" distB="0" distL="0" distR="0"><wp:extent cx="${cx}" cy="${cy}"/><wp:docPr id="${pageNumber}" name="Page ${pageNumber}"/><a:graphic><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:pic><pic:nvPicPr><pic:cNvPr id="${pageNumber}" name="Page ${pageNumber}"/><pic:cNvPicPr/></pic:nvPicPr><pic:blipFill><a:blip r:embed="${relId}"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill><pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="${cx}" cy="${cy}"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr></pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing></w:r></w:p>`;
       }
 
-      async function lessonDocxParagraphs({ lesson, sequence, classe }, lessonIndex = 0, media = []) {
+      async function lessonDocxParagraphs({ lesson, sequence, classe }, lessonIndex = 0, media = [], embedMedia = true) {
         const paragraphs = [docxParagraph(lesson.title || `Séance ${lessonIndex + 1}`, true, 34, lessonIndex > 0), docxParagraph(`${classe.title} · ${sequence.title}`, false, 20), docxParagraph(lesson.description ? `Objectif : ${lesson.description}` : "", false, 22), docxParagraph("Ma valise pédagogique", true, 26), ...[["Culture",lesson.cultural],["Lexique",lesson.lexicon],["Conjugaison",lesson.conjugation],["Grammaire",lesson.grammar],["Je sais…",lesson.lifeSkills]].map(([label,value]) => docxParagraph(value ? `${label} : ${value}` : "", false, 20))];
-        for (const [index, activity] of (lesson.activities || []).entries()) paragraphs.push(...await activityDocxParagraphs(activity,index,media));
+        for (const [index, activity] of (lesson.activities || []).entries()) paragraphs.push(...await activityDocxParagraphs(activity,index,media,embedMedia));
         return paragraphs;
       }
 
-      async function activityDocxParagraphs(activity, activityIndex = 0, media = []) {
+      async function activityDocxParagraphs(activity, activityIndex = 0, media = [], embedMedia = true) {
         const paragraphs = [docxParagraph(`Activité ${activityIndex + 1} — ${activity.title || "Sans titre"}`, true, 28), docxParagraph(activity.description || "", false, 20), docxParagraph(activity.objective ? `Objectif : ${activity.objective}` : "", true, 20), docxParagraph(activity.instruction ? `Consigne : ${activity.instruction}` : "", false, 20)];
         for (const [index, slide] of (activity.slides || []).entries()) {
           paragraphs.push(docxParagraph(slideInstruction(slide,index), true, 24));
           for (const element of elementsForBoardSlide(activity,index).sort((a,b) => Number(a.y||0)-Number(b.y||0))) {
             if (element.kind === "text") paragraphs.push(docxParagraph(element.value || "", false, 18));
-            else if (element.kind === "image" || element.kind === "video") {
+            else if (embedMedia && (element.kind === "image" || element.kind === "video")) {
               try {
                 const asset = await docxRasterMedia(element);
                 asset.relId = `rId${media.length + 1}`;
@@ -4796,7 +4796,7 @@
                 media.push(asset);
                 paragraphs.push(docxImageParagraph(asset.relId, element.w, element.h, element.kind === "video" ? "Première image de la vidéo" : "Image"));
               } catch (error) { paragraphs.push(docxParagraph(`${labelTypeForPptx(element.kind)} inaccessible`, false, 18)); }
-            } else paragraphs.push(docxParagraph(`${labelTypeForPptx(element.kind)} : ${element.kind === "tool" ? String(element.value || "").split("|")[0] : element.value || ""}`, false, 18));
+            } else if (element.kind !== "tool") paragraphs.push(docxParagraph(`${labelTypeForPptx(element.kind)} : ${element.value || ""}`, false, 18));
           }
         }
         if ((activity.resources || []).length) {
@@ -4807,10 +4807,10 @@
       }
 
       async function makeLessonDocx(result) { const media=[]; return makeLandscapeDocx(await lessonDocxParagraphs(result,0,media),media); }
-      async function makeSequenceDocx({ sequence, classe }) {
+      async function makeSequenceDocx({ sequence, classe }, embedMedia = true) {
         const media = [];
         const paragraphs = [docxParagraph(sequence.title || "Séquence", true, 38), docxParagraph(classe.title, false, 22), docxParagraph(sequence.description || "", false, 22), docxParagraph(sequence.finalTask ? `Tâche finale : ${sequence.finalTask}` : "", true, 22)];
-        for (const [index, lesson] of (sequence.lessons || []).entries()) paragraphs.push(...await lessonDocxParagraphs({ lesson, sequence, classe },index,media));
+        for (const [index, lesson] of (sequence.lessons || []).entries()) paragraphs.push(...await lessonDocxParagraphs({ lesson, sequence, classe },index,media,embedMedia));
         return makeLandscapeDocx(paragraphs,media);
       }
 
@@ -4931,7 +4931,7 @@
           (classe.sequences || []).forEach((sequence, sequenceIndex) => {
             files.push({
               path: `${classFolder}/${String(sequenceIndex + 1).padStart(2, "0")}-${exportSlug(sequence.title, 40)}.docx`,
-              content: makeSequenceDocx({ sequence, classe }),
+              content: makeSequenceDocx({ sequence, classe }, false),
               binary: true
             });
             const sequenceFolder = `${classFolder}/sequences/${String(sequenceIndex + 1).padStart(2, "0")}-${exportSlug(sequence.title, 14)}`;
