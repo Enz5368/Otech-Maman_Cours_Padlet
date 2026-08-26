@@ -4523,7 +4523,7 @@
         lessons.forEach((lesson) => (lesson.activities || []).forEach(ensureActivitySlides));
         const modal = document.querySelector("#editorModal");
         modal.hidden = false;
-        modal.innerHTML = `<section class="print-preview-shell"><header class="print-preview-toolbar"><div><strong>Aperçu de la séquence complète</strong><p class="small muted">Chaque feuille A4 paysage est séparée visuellement ci-dessous.</p></div><div class="row wrap"><button class="btn primary" onclick="exportSequenceWord('${sequence.id}',this)">Exporter Word (.docx)</button><button class="btn" onclick="closeEditor()">Fermer</button></div></header><div class="print-preview-scroll"><article class="printable-lesson"><header class="print-lesson-head"><p class="print-breadcrumb">${escapeHtml(classe.title)} · Séquence n° ${sequenceNumber(classe,sequence)}</p><h1>${escapeHtml(sequence.title)}</h1>${sequence.description ? `<p>${escapeHtml(sequence.description)}</p>` : ""}${sequence.finalTask ? `<p><strong>Tâche finale :</strong> ${escapeHtml(sequence.finalTask)}</p>` : ""}</header>${lessons.map((lesson,index) => `<section class="print-lesson-activity"><header class="print-activity-head"><p class="print-breadcrumb">Séance ${index+1} sur ${lessons.length}</p><h1>${escapeHtml(lesson.title)}</h1>${lesson.description ? `<p>${escapeHtml(lesson.description)}</p>` : ""}${lessonSuitcase(lesson)}</header>${(lesson.activities || []).map((activity,activityIndex) => `<section class="print-lesson-activity"><header class="print-activity-head"><p class="print-breadcrumb">Activité ${activityIndex+1}</p><h1>${escapeHtml(activity.title)}</h1>${activity.description ? `<p>${escapeHtml(activity.description)}</p>` : ""}</header>${(activity.slides || []).map((slide,slideIndex) => renderPrintableSlide(activity,slide,slideIndex)).join("")}</section>`).join("")}</section>`).join("")}</article></div></section>`;
+        modal.innerHTML = `<section class="print-preview-shell"><header class="print-preview-toolbar"><div><strong>Aperçu de la séquence complète</strong><p class="small muted">Chaque feuille A4 paysage est séparée visuellement ci-dessous. Le document Word reproduira exactement ces pages, sans les outils interactifs.</p></div><div class="row wrap"><button class="btn primary" onclick="exportSequenceWord('${sequence.id}',this)">Exporter Word (.docx)</button><button class="btn" onclick="closeEditor()">Fermer</button></div></header><div class="print-preview-scroll"><article class="printable-lesson" id="sequencePrintPreview"><header class="print-lesson-head"><p class="print-breadcrumb">${escapeHtml(classe.title)} · Séquence n° ${sequenceNumber(classe,sequence)}</p><h1>${escapeHtml(sequence.title)}</h1>${sequence.description ? `<p>${escapeHtml(sequence.description)}</p>` : ""}${sequence.finalTask ? `<p><strong>Tâche finale :</strong> ${escapeHtml(sequence.finalTask)}</p>` : ""}</header>${lessons.map((lesson,index) => `<section class="print-lesson-activity"><header class="print-activity-head"><p class="print-breadcrumb">Séance ${index+1} sur ${lessons.length}</p><h1>${escapeHtml(lesson.title)}</h1>${lesson.description ? `<p>${escapeHtml(lesson.description)}</p>` : ""}${lessonSuitcase(lesson)}</header>${(lesson.activities || []).map((activity,activityIndex) => `<section class="print-lesson-activity"><header class="print-activity-head"><p class="print-breadcrumb">Activité ${activityIndex+1}</p><h1>${escapeHtml(activity.title)}</h1>${activity.description ? `<p>${escapeHtml(activity.description)}</p>` : ""}</header>${(activity.slides || []).map((slide,slideIndex) => renderPrintableSlide(activity,slide,slideIndex)).join("")}</section>`).join("")}</section>`).join("")}</article></div></section>`;
       }
 
       function openActivityPrintPreview(activityId) {
@@ -4574,7 +4574,7 @@
         return `<section class="print-slide-page">
           <h2>${escapeHtml(slideInstruction(slide,index))}</h2>
           <div class="print-slide-canvas">
-            ${elementsForBoardSlide(activity, index).map(renderPrintableElement).join("")}
+            ${elementsForBoardSlide(activity, index).filter((element) => element.kind !== "tool").map(renderPrintableElement).join("")}
           </div>
         </section>`;
       }
@@ -4584,10 +4584,6 @@
         if (element.kind === "text") return `<div class="print-slide-element print-slide-text" style="${style};font-size:${Math.max(10, Number(element.fontSize || 34) * 0.75)}px">${element.html ? sanitizeRichText(element.html) : escapeHtml(element.value || "")}</div>`;
         if (element.kind === "image") return `<div class="print-slide-element" style="${style}"><img src="${escapeAttr(element.value)}" alt=""></div>`;
         if (element.kind === "video") return `<div class="print-slide-element" style="${style}"><video class="print-video-frame" src="${escapeAttr(element.value)}" muted preload="auto" onloadeddata="this.currentTime=.01"></video></div>`;
-        if (element.kind === "tool") {
-          const toolId = String(element.value || "timer").split("|")[0];
-          return `<div class="print-slide-element print-slide-placeholder" style="${style}"><strong>Outil : ${escapeHtml(slideTools[toolId]?.title || "Outil")}</strong><span>À utiliser dans la présentation interactive.</span></div>`;
-        }
         return `<div class="print-slide-element print-slide-placeholder" style="${style}"><strong>${escapeHtml(labelTypeForPptx(element.kind))}</strong><span>${escapeHtml(element.value || "")}</span></div>`;
       }
 
@@ -4617,23 +4613,20 @@
         window.print();
       }
 
-      function exportActivityWord(activityId) {
+      async function exportActivityWord(activityId, button = null) {
         const result = findActivity(activityId);
         if (!result) return;
-        const blob = new Blob([makeActivityDocx(result)], { type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document" });
-        const link = document.createElement("a");
-        link.href = URL.createObjectURL(blob);
-        link.download = `${slugify(result.activity.title)}.docx`;
-        link.click();
-        setTimeout(() => URL.revokeObjectURL(link.href), 0);
-        toast("Document Word exporté.");
+        const unlock = beginSaveLock(button);
+        try { downloadCourseWord(await makePreviewPagesDocx("activityPrintPreview"), result.activity.title); }
+        catch (error) { toast(`Export Word impossible : ${error.message || "capture de l’aperçu impossible"}.`); }
+        finally { unlock(); }
       }
 
       async function exportLessonWord(lessonId, button = null) {
         const result = findLessonContext(lessonId);
         if (!result) return;
         const unlock = beginSaveLock(button);
-        try { downloadCourseWord(await makeLessonDocx(result), result.lesson.title); }
+        try { downloadCourseWord(await makePreviewPagesDocx("lessonPrintPreview"), result.lesson.title); }
         catch (error) { toast(`Export Word impossible : ${error.message || "média inaccessible"}.`); }
         finally { unlock(); }
       }
@@ -4642,7 +4635,7 @@
         const result = findSequenceContext(sequenceId);
         if (!result) return;
         const unlock = beginSaveLock(button);
-        try { downloadCourseWord(await makeSequenceDocx(result), result.sequence.title); }
+        try { downloadCourseWord(await makePreviewPagesDocx("sequencePrintPreview"), result.sequence.title); }
         catch (error) { toast(`Export Word impossible : ${error.message || "média inaccessible"}.`); }
         finally { unlock(); }
       }
@@ -4663,6 +4656,92 @@
         link.click();
         setTimeout(() => URL.revokeObjectURL(link.href), 0);
         toast("Document Word paysage exporté.");
+      }
+
+      async function makePreviewPagesDocx(previewId) {
+        const preview = document.getElementById(previewId);
+        if (!preview) throw new Error("ouvrez d’abord l’aperçu");
+        await document.fonts?.ready;
+        const pages = [...preview.querySelectorAll(":scope > .print-lesson-head, :scope > .print-activity-head, .print-lesson-activity > .print-activity-head, .print-slide-page, .print-resources")];
+        if (!pages.length) throw new Error("aucune page à exporter");
+        const media = [];
+        const paragraphs = [];
+        for (const [index, page] of pages.entries()) {
+          const bytes = await rasterizePreviewPage(page);
+          const asset = { bytes, relId: `rId${index + 1}`, fileName: `page-${index + 1}.png` };
+          media.push(asset);
+          paragraphs.push(docxPreviewPageParagraph(asset.relId, index > 0, index + 1));
+        }
+        return makeLandscapeDocx(paragraphs, media);
+      }
+
+      async function rasterizePreviewPage(page) {
+        const width = 1120;
+        const height = Math.round(width * 210 / 297);
+        const clone = page.cloneNode(true);
+        const originals = [page, ...page.querySelectorAll("*")];
+        const copies = [clone, ...clone.querySelectorAll("*")];
+        originals.forEach((node, index) => {
+          const computed = getComputedStyle(node);
+          for (const property of computed) copies[index].style.setProperty(property, computed.getPropertyValue(property), computed.getPropertyPriority(property));
+        });
+        clone.style.width = `${width}px`;
+        clone.style.height = `${height}px`;
+        clone.style.minHeight = `${height}px`;
+        clone.style.aspectRatio = "auto";
+        clone.style.margin = "0";
+        clone.style.boxShadow = "none";
+        await inlinePreviewMedia(page, clone);
+        const markup = new XMLSerializer().serializeToString(clone);
+        const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}"><foreignObject width="100%" height="100%"><div xmlns="http://www.w3.org/1999/xhtml" style="width:${width}px;height:${height}px;background:white">${markup}</div></foreignObject></svg>`;
+        const url = URL.createObjectURL(new Blob([svg], { type: "image/svg+xml;charset=utf-8" }));
+        try {
+          const image = new Image();
+          await new Promise((resolve, reject) => { image.onload = resolve; image.onerror = () => reject(new Error("rendu de la page impossible")); image.src = url; });
+          const canvas = document.createElement("canvas");
+          canvas.width = width * 2;
+          canvas.height = height * 2;
+          const context = canvas.getContext("2d");
+          context.fillStyle = "#ffffff";
+          context.fillRect(0, 0, canvas.width, canvas.height);
+          context.drawImage(image, 0, 0, canvas.width, canvas.height);
+          const png = await new Promise((resolve, reject) => canvas.toBlob((blob) => blob ? resolve(blob) : reject(new Error("création de l’image impossible")), "image/png"));
+          return new Uint8Array(await png.arrayBuffer());
+        } finally { URL.revokeObjectURL(url); }
+      }
+
+      async function inlinePreviewMedia(source, clone) {
+        const sources = [...source.querySelectorAll("img")];
+        const copies = [...clone.querySelectorAll("img")];
+        await Promise.all(sources.map(async (image, index) => {
+          try {
+            const media = await fetchExportMedia(image.currentSrc || image.src);
+            copies[index].src = await blobToDataUrl(new Blob([media.bytes], { type: media.mimeType || "image/png" }));
+          } catch (_) { copies[index].remove(); }
+        }));
+        const sourceVideos = [...source.querySelectorAll("video")];
+        const copyVideos = [...clone.querySelectorAll("video")];
+        sourceVideos.forEach((video, index) => {
+          const canvas = document.createElement("canvas");
+          canvas.width = video.videoWidth || 960;
+          canvas.height = video.videoHeight || 540;
+          try {
+            canvas.getContext("2d").drawImage(video, 0, 0, canvas.width, canvas.height);
+            const image = document.createElement("img");
+            image.src = canvas.toDataURL("image/png");
+            image.style.cssText = copyVideos[index].style.cssText;
+            copyVideos[index].replaceWith(image);
+          } catch (_) { copyVideos[index].remove(); }
+        });
+      }
+
+      function blobToDataUrl(blob) {
+        return new Promise((resolve, reject) => { const reader = new FileReader(); reader.onload = () => resolve(String(reader.result)); reader.onerror = reject; reader.readAsDataURL(blob); });
+      }
+
+      function docxPreviewPageParagraph(relId, pageBreakBefore, pageNumber) {
+        const cx = Math.round(9.95 * 914400), cy = Math.round(cx * 210 / 297);
+        return `<w:p><w:pPr>${pageBreakBefore ? '<w:pageBreakBefore/>' : ''}<w:jc w:val="center"/><w:spacing w:before="0" w:after="0"/></w:pPr><w:r><w:drawing><wp:inline distT="0" distB="0" distL="0" distR="0"><wp:extent cx="${cx}" cy="${cy}"/><wp:docPr id="${pageNumber}" name="Page ${pageNumber}"/><a:graphic><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:pic><pic:nvPicPr><pic:cNvPr id="${pageNumber}" name="Page ${pageNumber}"/><pic:cNvPicPr/></pic:nvPicPr><pic:blipFill><a:blip r:embed="${relId}"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill><pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="${cx}" cy="${cy}"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr></pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing></w:r></w:p>`;
       }
 
       async function lessonDocxParagraphs({ lesson, sequence, classe }, lessonIndex = 0, media = []) {

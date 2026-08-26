@@ -1958,8 +1958,8 @@
         position: relative;
         list-style: none;
         display: grid;
-        grid-template-columns: 260px auto;
-        align-items: center;
+        grid-template-columns: 330px auto;
+        align-items: start;
         gap: 0;
       }
 
@@ -2036,14 +2036,15 @@
       .tree-node-stack {
         position: relative;
         z-index: 1;
-        display: flex;
-        align-items: center;
+        display: grid;
+        grid-template-columns: 1fr;
+        align-items: stretch;
         gap: 8px;
         width: 100%;
       }
-      .tree-node-stack .tree-node { flex: 1 1 auto; width: auto; }
+      .tree-node-stack .tree-node { width: 100%; }
       .tree-node-action {
-        flex: 0 0 auto;
+        width: 100%;
         border: 1px solid var(--line-soft);
         border-radius: 999px;
         background: transparent;
@@ -2055,6 +2056,7 @@
         transition: border-color 0.18s ease, background 0.18s ease;
       }
       .tree-node-action:hover { border-color: var(--sea); background: #eef7f7; }
+      .course-tree .tree-node strong { min-width:0; overflow-wrap:normal; word-break:normal; }
 
       .copy-course-dialog { width:min(620px,calc(100vw - 32px)); margin:8vh auto 0; overflow:hidden; }
       .copy-course-form { display:grid; gap:16px; padding:22px; }
