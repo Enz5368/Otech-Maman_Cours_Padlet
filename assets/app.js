@@ -749,6 +749,17 @@
         return null;
       }
 
+      function activityLocationBreadcrumb({ classe, sequence, lesson }, variant = "") {
+        if (!classe || !sequence || !lesson) return "";
+        return `<nav class="activity-location ${escapeAttr(variant)}" aria-label="Emplacement de la présentation">
+          <span><small>Classe</small><strong>${escapeHtml(classe.title)}</strong></span>
+          <b aria-hidden="true">›</b>
+          <span><small>Séquence ${sequenceNumber(classe, sequence)}</small><strong>${escapeHtml(sequence.title)}</strong></span>
+          <b aria-hidden="true">›</b>
+          <span><small>Séance</small><strong>${escapeHtml(lesson.title)}</strong></span>
+        </nav>`;
+      }
+
       function escapeHtml(value) {
         return String(value || "").replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;" }[char]));
       }
@@ -2761,8 +2772,9 @@
 
       function openActivityStudio(id) {
         if (!requireLogin()) return;
-        const activity = ensureActivitySlides(findItem("activity", id));
-        if (!activity) return;
+        const result = findActivity(id);
+        if (!result) return;
+        const activity = ensureActivitySlides(result.activity);
         if(studioHistoryActivityId!==id){studioHistoryActivityId=id;studioUndoStack=[];studioRedoStack=[];}
         currentStudioSlideIndex = 0;
         const stripHeight = activity.slides.length * slideSize.height + Math.max(0, activity.slides.length - 1) * slideSize.gap;
@@ -2772,6 +2784,7 @@
           <section class="studio" data-activity-id="${activity.id}">
             <header class="studio-toolbar">
               <div>
+                ${activityLocationBreadcrumb(result, "studio-location")}
                 <strong>${escapeHtml(activity.title)}</strong>
                 <div class="studio-note">Diapos (activités) horizontales. Les cadres pointillés indiquent ce qui sera visible au tableau.</div>
                 <div class="studio-save-status" id="studioSaveStatus" role="status" hidden></div>
@@ -4134,6 +4147,7 @@
         document.querySelector("#boardPage").dataset.slideIndex = String(index);
         document.querySelector("#boardPage").innerHTML = `
           <main class="board-wrap">
+            ${activityLocationBreadcrumb(result, "board-location")}
             <section class="board-slide-stage">
               <div class="board-slide-inner" style="transform:scale(var(--board-scale,1))">
                 <div class="board-slide-instruction" role="heading" aria-level="1">${escapeHtml(slideInstruction(slides[index],index))}</div>
