@@ -1296,6 +1296,7 @@
         font-weight: 850;
         pointer-events: none;
       }
+      .slide-frame.instruction-hidden::before { display: none; }
       .slide-el {
         position: absolute;
         z-index: 5;

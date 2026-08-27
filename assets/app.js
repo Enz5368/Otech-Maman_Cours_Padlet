@@ -2967,6 +2967,7 @@
                 <div id="studioGeneralActions" class="studio-general-actions">
                 <button class="btn" onclick="renameActivity('${activity.id}')">Titre</button>
                 <button class="btn" onclick="renameStudioSlideInstruction('${activity.id}')">Consigne diapo</button>
+                <button class="btn" id="studioInstructionToggleBtn" onclick="toggleStudioSlideInstruction('${activity.id}')">${activity.slides[currentStudioSlideIndex]?.showInstruction === false ? "Afficher consigne" : "Masquer consigne"}</button>
                 <button class="btn primary" onclick="addSlide('${activity.id}')">+ Diapo (contenu)</button>
                 <button class="btn" id="studioUndoBtn" onclick="undoStudioChange('${activity.id}')" ${studioUndoStack.length?"":"disabled"}>↶ Annuler</button>
                 <button class="btn" id="studioRedoBtn" onclick="redoStudioChange('${activity.id}')" ${studioRedoStack.length?"":"disabled"}>↷ Rétablir</button>
@@ -3008,7 +3009,7 @@
 
       function renderStudioSlide(slide, index) {
         const top = index * (slideSize.height + slideSize.gap);
-        return `<article class="slide-frame ${index === currentStudioSlideIndex ? "current" : ""}" data-slide-id="${slide.id}" data-slide-index="${index}" data-label="${escapeAttr(slideInstruction(slide,index))}" tabindex="0" onclick="selectStudioSlide(${index})" style="position:absolute;left:0;top:${top}px"></article>`;
+        return `<article class="slide-frame ${index === currentStudioSlideIndex ? "current" : ""} ${slide.showInstruction === false ? "instruction-hidden" : ""}" data-slide-id="${slide.id}" data-slide-index="${index}" data-label="${escapeAttr(slideInstruction(slide,index))}" tabindex="0" onclick="selectStudioSlide(${index})" style="position:absolute;left:0;top:${top}px"></article>`;
       }
 
       function slideInstruction(slide, index) {
@@ -3054,7 +3055,7 @@
       function updateSlideDuration(index,value){ const activity=findItem("activity",document.querySelector(".studio")?.dataset.activityId); if(activity?.slides[index]) activity.slides[index].duration=String(value||"").trim()||"5 min"; }
 
       function cloneStudioSlides(slides){ return JSON.parse(JSON.stringify(slides||[])); }
-      function captureStudioSlides(activityId){ const activity=findItem("activity",activityId); const frames=[...document.querySelectorAll(`.studio[data-activity-id="${activityId}"] .slide-frame`)]; if(!frames.length)return deduplicateSlideElements(cloneStudioSlides(activity?.slides)); const previous=activity?.slides||[], slides=frames.map(frame=>{const saved=previous.find(slide=>slide.id===frame.dataset.slideId);return {id:frame.dataset.slideId||uid("slide"),duration:saved?.duration||"5 min",instruction:saved?.instruction||"",elements:[]};}); [...document.querySelectorAll(`.studio[data-activity-id="${activityId}"] .slide-el`)].map(readSlideElement).forEach(element=>{const target=slides[element.slideIndex]||slides[0],clean={...element};delete clean.slideIndex;target.elements.push(clean);}); return deduplicateSlideElements(slides); }
+      function captureStudioSlides(activityId){ const activity=findItem("activity",activityId); const frames=[...document.querySelectorAll(`.studio[data-activity-id="${activityId}"] .slide-frame`)]; if(!frames.length)return deduplicateSlideElements(cloneStudioSlides(activity?.slides)); const previous=activity?.slides||[], slides=frames.map(frame=>{const saved=previous.find(slide=>slide.id===frame.dataset.slideId);return {id:frame.dataset.slideId||uid("slide"),duration:saved?.duration||"5 min",instruction:saved?.instruction||"",showInstruction:saved?.showInstruction!==false,elements:[]};}); [...document.querySelectorAll(`.studio[data-activity-id="${activityId}"] .slide-el`)].map(readSlideElement).forEach(element=>{const target=slides[element.slideIndex]||slides[0],clean={...element};delete clean.slideIndex;target.elements.push(clean);}); return deduplicateSlideElements(slides); }
       function updateStudioHistoryButtons(){ const undo=document.querySelector("#studioUndoBtn"),redo=document.querySelector("#studioRedoBtn");if(undo)undo.disabled=!studioUndoStack.length;if(redo)redo.disabled=!studioRedoStack.length; }
       function recordStudioHistory(activityId){ const snapshot=captureStudioSlides(activityId); if(!snapshot?.length)return; studioUndoStack.push(snapshot); if(studioUndoStack.length>30)studioUndoStack.shift(); studioRedoStack=[]; updateStudioHistoryButtons(); }
       async function undoStudioChange(activityId){ if(!studioUndoStack.length)return; const activity=findItem("activity",activityId);studioRedoStack.push(captureStudioSlides(activityId));activity.slides=cloneStudioSlides(studioUndoStack.pop());const selected=Math.min(currentStudioSlideIndex,activity.slides.length-1);await saveData("Modification annulée.");openActivityStudio(activityId);currentStudioSlideIndex=selected;selectStudioSlide(selected);updateStudioHistoryButtons(); }
@@ -3601,6 +3602,24 @@
         currentStudioSlideIndex = Number(index || 0);
         document.querySelectorAll(".slide-frame").forEach((frame) => frame.classList.toggle("current", Number(frame.dataset.slideIndex) === currentStudioSlideIndex));
         document.querySelectorAll(".slide-thumbnail").forEach((node) => node.classList.toggle("current", Number(node.dataset.index) === currentStudioSlideIndex));
+        const toggle = document.querySelector("#studioInstructionToggleBtn");
+        const activityId = document.querySelector(".studio")?.dataset.activityId;
+        const slide = findItem("activity", activityId)?.slides?.[currentStudioSlideIndex];
+        if (toggle && slide) toggle.textContent = slide.showInstruction === false ? "Afficher consigne" : "Masquer consigne";
+      }
+
+      async function toggleStudioSlideInstruction(activityId) {
+        const activity = findItem("activity", activityId);
+        if (!activity) return;
+        recordStudioHistory(activityId);
+        activity.slides = captureStudioSlides(activityId);
+        const index = Math.max(0, Math.min(currentStudioSlideIndex, activity.slides.length - 1));
+        const slide = activity.slides[index];
+        slide.showInstruction = slide.showInstruction === false;
+        if (!await saveData(slide.showInstruction ? "Consigne de la diapo affichée." : "Consigne de la diapo masquée.")) return;
+        openActivityStudio(activityId);
+        currentStudioSlideIndex = index;
+        selectStudioSlide(index);
       }
 
       async function renameStudioSlideInstruction(activityId) {
@@ -3936,6 +3955,7 @@
           id: slide.dataset.slideId || uid("slide"),
           duration: previousSlides.find(item=>item.id===slide.dataset.slideId)?.duration || "5 min",
           instruction: previousSlides.find(item=>item.id===slide.dataset.slideId)?.instruction || "",
+          showInstruction: previousSlides.find(item=>item.id===slide.dataset.slideId)?.showInstruction !== false,
           elements: []
         }));
         Array.from(document.querySelectorAll(".slide-el")).map(readSlideElement).forEach((element) => {
@@ -4323,7 +4343,7 @@
             ${activityLocationBreadcrumb(result, "board-location")}
             <section class="board-slide-stage">
               <div class="board-slide-inner" style="transform:scale(var(--board-scale,1))">
-                <div class="board-slide-instruction" role="heading" aria-level="1">${escapeHtml(slideInstruction(slides[index],index))}</div>
+                ${slides[index].showInstruction === false ? "" : `<div class="board-slide-instruction" role="heading" aria-level="1">${escapeHtml(slideInstruction(slides[index],index))}</div>`}
                 ${slideElements.map(renderBoardSlideElement).join("")}
               </div>
             </section>
@@ -4656,7 +4676,7 @@
             <button type="button" class="word-slide-export-toggle" onclick="toggleWordSlideIncluded(this)">Retirer de l'export</button>
           </label>` : ""}
           <p class="print-slide-path">${escapeHtml(breadcrumb)}</p>
-          <h2>${escapeHtml(slideInstruction(slide,index))}</h2>
+          ${slide.showInstruction === false ? "" : `<h2>${escapeHtml(slideInstruction(slide,index))}</h2>`}
           <div class="print-slide-canvas">
             ${elementsForBoardSlide(activity, index).filter((element) => element.kind !== "tool").map(renderPrintableElement).join("")}
           </div>
@@ -4967,7 +4987,7 @@
       async function activityDocxParagraphs(activity, activityIndex = 0, media = [], embedMedia = true) {
         const paragraphs = [docxParagraph(`Contenu ${activityIndex + 1} — ${activity.title || "Sans titre"}`, true, 28), docxParagraph(activity.description || "", false, 20), docxParagraph(activity.objective ? `Objectif : ${activity.objective}` : "", true, 20), docxParagraph(activity.instruction ? `Consigne : ${activity.instruction}` : "", false, 20)];
         for (const [index, slide] of (activity.slides || []).entries()) {
-          paragraphs.push(docxParagraph(slideInstruction(slide,index), true, 24));
+          if (slide.showInstruction !== false) paragraphs.push(docxParagraph(slideInstruction(slide,index), true, 24));
           for (const element of elementsForBoardSlide(activity,index).sort((a,b) => Number(a.y||0)-Number(b.y||0))) {
             if (element.kind === "text") paragraphs.push(docxParagraph(element.value || "", false, 18));
             else if (embedMedia && (element.kind === "image" || element.kind === "video")) {
@@ -5036,7 +5056,7 @@
           docxParagraph([activity.estimatedDuration && `Durée : ${activity.estimatedDuration}`, activity.modality && `Modalité : ${activity.modality}`, activity.level && `Niveau : ${activity.level}`].filter(Boolean).join(" · "), false, 20)
         ];
         (activity.slides || []).forEach((slide, index) => {
-          paragraphs.push(docxParagraph(slideInstruction(slide,index), true, 28, index > 0));
+          if (slide.showInstruction !== false) paragraphs.push(docxParagraph(slideInstruction(slide,index), true, 28, index > 0));
           elementsForBoardSlide(activity, index)
             .sort((a, b) => Number(a.y || 0) - Number(b.y || 0) || Number(a.x || 0) - Number(b.x || 0))
             .forEach((element) => {
