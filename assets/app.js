@@ -2627,6 +2627,7 @@
                 <li>Dans l’éditeur, ajoutez vos textes, fichiers, images ou liens, puis créez d’autres diapos avec <b>+ Diapo (contenu)</b>.</li>
                 <li>Terminez avec <b>Enregistrer</b>. Le cours est ensuite disponible dans <b>Cours par niveau à projeter</b>.</li>
               </ol>
+              <button class="btn primary tutorial-launch" onclick="startPracticalTutorial('course')">Lancer ce tutoriel</button>
             </details>
             <details class="tutorial-guide-card">
               <summary><span class="tutorial-guide-icon">2</span><span><strong>Changer son emploi du temps</strong><small>Ajouter, déplacer ou modifier un cours</small></span></summary>
@@ -2637,6 +2638,7 @@
                 <li>Pour déplacer un cours, faites-le glisser vers une autre case.</li>
                 <li>Pour changer ses informations, double-cliquez sur le cours, modifiez les champs puis cliquez sur <b>Enregistrer</b>.</li>
               </ol>
+              <button class="btn primary tutorial-launch" onclick="startPracticalTutorial('schedule')">Lancer ce tutoriel</button>
             </details>
             <details class="tutorial-guide-card">
               <summary><span class="tutorial-guide-icon">3</span><span><strong>Exporter en Word pour imprimer</strong><small>Préparer les diapos avant l’impression</small></span></summary>
@@ -2648,6 +2650,7 @@
                 <li>Cliquez sur <b>Exporter Word (.docx)</b>, ouvrez le fichier téléchargé dans Word, puis utilisez la commande <b>Imprimer</b> de Word.</li>
               </ol>
               <p class="tutorial-guide-note"><b>À retenir :</b> l’export Word sert à obtenir un document prêt à être imprimé derrière.</p>
+              <button class="btn primary tutorial-launch" onclick="startPracticalTutorial('word')">Lancer ce tutoriel</button>
             </details>
             <details class="tutorial-guide-card">
               <summary><span class="tutorial-guide-icon">4</span><span><strong>Exporter le ZIP</strong><small>Créer une sauvegarde complète</small></span></summary>
@@ -2658,6 +2661,12 @@
                 <li>Le ZIP range les cours par dossiers de classes et contient les exports Word des séquences ainsi que les données nécessaires à une restauration.</li>
                 <li>Pour récupérer cette sauvegarde plus tard, revenez dans <b>Réglages</b> et utilisez <b>Importer ZIP ou JSON</b>.</li>
               </ol>
+              <button class="btn primary tutorial-launch" onclick="startPracticalTutorial('zip')">Lancer ce tutoriel</button>
+            </details>
+            <details class="tutorial-guide-card tutorial-editor-guide">
+              <summary><span class="tutorial-guide-icon">5</span><span><strong>Comprendre tous les boutons de l’éditeur</strong><small>Diapos, objets, texte, outils et enregistrement</small></span></summary>
+              <p class="tutorial-guide-description">Cette visite ouvre votre premier contenu sans le modifier et explique toutes les commandes de l’éditeur, y compris la mise en forme du texte.</p>
+              <button class="btn primary tutorial-launch" onclick="startPracticalTutorial('editor')">Lancer le tutoriel de l’éditeur</button>
             </details>
           </section>
           <section class="card">
@@ -2669,6 +2678,78 @@
             </div>
           </section>
         `;
+      }
+
+      function firstTutorialCourseItems() {
+        const classe = state.classes?.[0], sequence = classe?.sequences?.[0], lesson = sequence?.lessons?.[0], activity = lesson?.activities?.[0];
+        return { classe, sequence, lesson, activity };
+      }
+
+      function startPracticalTutorial(kind) {
+        const items = firstTutorialCourseItems();
+        const definitions = {
+          course: [
+            { view:"classes", selector:"[data-view='classes']", title:"Cours modifiables", text:"Commencez toujours ici pour créer ou modifier la structure d’un cours." },
+            { view:"classes", selector:"button[onclick=\"openEditor('class')\"]", title:"Ajouter une classe", text:"Créez d’abord la classe ou le niveau qui contiendra vos séquences." },
+            { view:"classes", selector:`button[onclick*="openEditor('sequence'"]`, title:"Ajouter une séquence", text:"Dans une classe, ce bouton crée une nouvelle séquence.", enter:()=>items.classe&&openClassPage(items.classe.id) },
+            { view:"classes", selector:`button[onclick*="openEditor('lesson'"]`, title:"Ajouter une séance", text:"Dans la séquence choisie, ajoutez ensuite une ou plusieurs séances.", enter:()=>items.classe&&items.sequence&&openSequencePage(items.classe.id,items.sequence.id) },
+            { view:"classes", selector:"button[onclick*='createActivityInLesson']", title:"Ajouter un contenu", text:"Dans une séance, créez le contenu qui recevra vos diapos.", enter:()=>items.classe&&items.sequence&&items.lesson&&openLessonPage(items.classe.id,items.sequence.id,items.lesson.id) },
+            { view:"classes", selector:"button[onclick*='openActivityStudio']", title:"Modifier le contenu", text:"Ouvrez enfin l’éditeur pour préparer les diapos, textes et documents du cours." }
+          ],
+          schedule: [
+            { view:"schedule", selector:"[data-view='schedule']", title:"Emploi du temps", text:"Ouvrez l’emploi du temps depuis le menu de gauche." },
+            { view:"schedule", selector:".timetable-cell", title:"Ajouter un cours", text:"Cliquez sur une case vide pour créer un cours au jour et à l’heure choisis." },
+            { view:"schedule", selector:".timetable", title:"Déplacer ou modifier", text:"Faites glisser un cours pour le déplacer. Double-cliquez dessus pour modifier ses horaires, sa classe, son groupe ou sa description." }
+          ],
+          word: [
+            { view:"classes", selector:"button[onclick*='openEditableSubtree']", title:"Arbre / Export Word", text:"Depuis une classe ou une séquence, ouvrez l’aperçu avec ce bouton.", enter:()=>items.classe&&openClassPage(items.classe.id) },
+            { view:"classes", selector:".print-preview-shell", title:"Préparer les pages à imprimer", text:"Dans l’aperçu, choisissez la mise en page de chaque diapo et retirez celles que vous ne voulez pas imprimer.", enter:()=>items.sequence&&openSequenceWordPreview(items.sequence.id) },
+            { view:"classes", selector:"button[onclick*='exportSequenceWord']", title:"Exporter Word", text:"Téléchargez le document Word, ouvrez-le puis utilisez la commande Imprimer de Word." }
+          ],
+          zip: [
+            { view:"settings", selector:"[data-view='settings']", title:"Réglages", text:"La sauvegarde complète se trouve dans les Réglages." },
+            { view:"settings", selector:"button[onclick='exportZip(this)']", title:"Exporter ZIP", text:"Ce bouton télécharge une sauvegarde complète, classée par dossiers de classes." },
+            { view:"settings", selector:"#importDataBtn", title:"Importer ZIP ou JSON", text:"Utilisez ce bouton pour restaurer ultérieurement une sauvegarde exportée." }
+          ],
+          editor: editorTutorialSteps(items.activity)
+        };
+        const steps = definitions[kind] || [];
+        if (!steps.length || (kind === "editor" && !items.activity)) { toast("Créez d’abord au moins un contenu pour lancer ce tutoriel."); return; }
+        currentView = steps[0].view;
+        if (currentView === "classes") currentPage = { type:"classes" };
+        document.querySelectorAll(".nav-button[data-view]").forEach(button=>button.classList.toggle("active",button.dataset.view===currentView));
+        render();
+        if (kind === "editor") openActivityStudio(items.activity.id);
+        activeTutorialSteps = steps;
+        tourIndex = 0;
+        tourRunning = true;
+        setTimeout(showTutorialStep, 100);
+      }
+
+      function editorTutorialSteps(activity) {
+        if (!activity) return [];
+        const step = (selector,title,text,enter) => ({ view:"classes", selector, title, text, enter });
+        return [
+          step(".studio-location","Où suis-je ?","Ce chemin rappelle la classe, la séquence et la séance du contenu ouvert."),
+          step(".slide-thumbnails","Miniatures des diapos","Sélectionnez, réordonnez, remontez, descendez ou supprimez les diapos depuis cette colonne."),
+          step(".slide-world","Zone de création","Placez ici les textes, images, documents, vidéos et outils. Le cadre pointillé correspond à la zone projetée."),
+          step("[data-tour='studio-title']","Titre","Renomme le contenu complet."),
+          step("[data-tour='studio-instruction']","Consigne diapo","Modifie le texte de consigne de la diapo sélectionnée."),
+          step("[data-tour='studio-instruction-toggle']","Afficher ou masquer la consigne","Retire ou remet la consigne uniquement sur cette diapo."),
+          step("[data-tour='studio-add-slide']","Ajouter une diapo","Crée une nouvelle diapo de contenu."),
+          step("[data-tour='studio-history']","Annuler et rétablir","Annuler revient sur la dernière modification ; Rétablir remet ce qui vient d’être annulé."),
+          step("[data-tour='studio-delete-slide']","Supprimer la diapo","Supprime la diapo sélectionnée. Un contenu conserve toujours au moins une diapo."),
+          step("[data-tour='studio-add-text']","Ajouter du texte","Ajoute une grande zone de texte. Un collage garde uniquement le texte, sans la mise en forme d’origine."),
+          step("[data-tour='studio-add-url']","Ajouter une URL","Ajoute un lien Internet, une vidéo YouTube ou une ressource en ligne."),
+          step("[data-tour='studio-add-file']","Ajouter un fichier","Ajoute une image, une vidéo, un son, un PDF ou un document depuis l’ordinateur."),
+          step("[data-tour='studio-tools']","Outils interactifs","Choisissez un groupe puis ajoutez une roue ou un chronomètre à la diapo."),
+          step("[data-tour='studio-delete-object']","Supprimer un objet","Supprime uniquement l’objet actuellement sélectionné."),
+          step("[data-tour='studio-save']","Enregistrer","Enregistre toutes les modifications du contenu sur le serveur."),
+          step("[data-tour='studio-present']","Présenter","Ouvre la diapo en mode tableau pour la projeter aux élèves."),
+          step("[data-tour='studio-word']","Imprimer / Word","Ouvre l’aperçu permettant de préparer le document Word destiné à l’impression."),
+          step("[data-tour='studio-close']","Fermer","Quitte l’éditeur et revient à la séance."),
+          step("#studioTextFormatToolbar","Mise en forme du texte","Après avoir sélectionné du texte : police, taille, agrandissement, gras, italique, souligné, barré, indice, exposant, listes, retraits, alignements, suppression du style, surlignage et couleur deviennent disponibles.",()=>{const bar=document.querySelector('#studioTextFormatToolbar'),actions=document.querySelector('#studioGeneralActions');if(bar)bar.hidden=false;if(actions)actions.hidden=true;})
+        ];
       }
 
       function startTutorial() {
@@ -2775,6 +2856,9 @@
       function endTutorial() {
         tourRunning = false;
         activeTutorialSteps = null;
+        const formatToolbar = document.querySelector("#studioTextFormatToolbar"), generalActions = document.querySelector("#studioGeneralActions");
+        if (formatToolbar) formatToolbar.hidden = true;
+        if (generalActions) generalActions.hidden = false;
         const overlay = document.querySelector("#tourOverlay");
         if (!overlay) return;
         overlay.hidden = true;
@@ -3009,28 +3093,28 @@
                   <select class="studio-format-select studio-color-select" aria-label="Couleur du texte" title="Couleur du texte" onmousedown="rememberStudioTextSelection()" onchange="formatStudioText('foreColor',event,this.value);this.selectedIndex=0"><option value="">Couleur du texte…</option>${[["#24171a","Noir"],["#555555","Gris foncé"],["#888888","Gris"],["#b21f3d","Rouge"],["#7b1830","Bordeaux"],["#d06b16","Orange"],["#d4a400","Jaune foncé"],["#187b51","Vert"],["#16877d","Turquoise"],["#2457b2","Bleu"],["#173b7a","Bleu foncé"],["#713c9b","Violet"],["#c04b91","Rose"],["#ffffff","Blanc"]].map(([color,label])=>`<option value="${color}">${label}</option>`).join("")}</select>
                 </div>
                 <div id="studioGeneralActions" class="studio-general-actions">
-                <button class="btn" onclick="renameActivity('${activity.id}')">Titre</button>
-                <button class="btn" onclick="renameStudioSlideInstruction('${activity.id}')">Consigne diapo</button>
-                <button class="btn" id="studioInstructionToggleBtn" onclick="toggleStudioSlideInstruction('${activity.id}')">${activity.slides[currentStudioSlideIndex]?.showInstruction === false ? "Afficher consigne" : "Masquer consigne"}</button>
-                <button class="btn primary" onclick="addSlide('${activity.id}')">+ Diapo (contenu)</button>
-                <button class="btn" id="studioUndoBtn" onclick="undoStudioChange('${activity.id}')" ${studioUndoStack.length?"":"disabled"}>↶ Annuler</button>
-                <button class="btn" id="studioRedoBtn" onclick="redoStudioChange('${activity.id}')" ${studioRedoStack.length?"":"disabled"}>↷ Rétablir</button>
-                <button class="btn danger" onclick="deleteStudioSlide('${activity.id}',currentStudioSlideIndex,event)" ${activity.slides.length>1?"":"disabled"}>Suppr. diapo</button>
-                <button class="btn" onclick="addTextElement('${activity.id}')">+ Texte</button>
-                <button class="btn" onclick="addUrlElement('${activity.id}')">+ URL</button>
-                <label class="btn">+ Fichier <input type="file" accept="image/*,audio/*,video/*,.avi,.mkv,.wmv,.flv,.m4v,.mpeg,.mpg,.3gp,.ts,.m2ts,.pdf,.doc,.docx,.odt,.xls,.xlsx,.ods,.ppt,.pptx,.odp,.txt,.rtf,.csv,.json,.xml,.html,.htm,.zip" hidden onchange="addFileElement('${activity.id}',this.files[0],this);this.value=''"></label>
-                <div class="studio-tool-actions">
+                <button class="btn" data-tour="studio-title" onclick="renameActivity('${activity.id}')">Titre</button>
+                <button class="btn" data-tour="studio-instruction" onclick="renameStudioSlideInstruction('${activity.id}')">Consigne diapo</button>
+                <button class="btn" data-tour="studio-instruction-toggle" id="studioInstructionToggleBtn" onclick="toggleStudioSlideInstruction('${activity.id}')">${activity.slides[currentStudioSlideIndex]?.showInstruction === false ? "Afficher consigne" : "Masquer consigne"}</button>
+                <button class="btn primary" data-tour="studio-add-slide" onclick="addSlide('${activity.id}')">+ Diapo (contenu)</button>
+                <span data-tour="studio-history" class="studio-history-actions"><button class="btn" id="studioUndoBtn" onclick="undoStudioChange('${activity.id}')" ${studioUndoStack.length?"":"disabled"}>↶ Annuler</button>
+                <button class="btn" id="studioRedoBtn" onclick="redoStudioChange('${activity.id}')" ${studioRedoStack.length?"":"disabled"}>↷ Rétablir</button></span>
+                <button class="btn danger" data-tour="studio-delete-slide" onclick="deleteStudioSlide('${activity.id}',currentStudioSlideIndex,event)" ${activity.slides.length>1?"":"disabled"}>Suppr. diapo</button>
+                <button class="btn" data-tour="studio-add-text" onclick="addTextElement('${activity.id}')">+ Texte</button>
+                <button class="btn" data-tour="studio-add-url" onclick="addUrlElement('${activity.id}')">+ URL</button>
+                <label class="btn" data-tour="studio-add-file">+ Fichier <input type="file" accept="image/*,audio/*,video/*,.avi,.mkv,.wmv,.flv,.m4v,.mpeg,.mpg,.3gp,.ts,.m2ts,.pdf,.doc,.docx,.odt,.xls,.xlsx,.ods,.ppt,.pptx,.odp,.txt,.rtf,.csv,.json,.xml,.html,.htm,.zip" hidden onchange="addFileElement('${activity.id}',this.files[0],this);this.value=''"></label>
+                <div class="studio-tool-actions" data-tour="studio-tools">
                   <label class="studio-tool-picker">Groupe pour la roue
                     <select id="studioToolClass">${(state.studentClasses || []).map((classe) => `<option value="${escapeAttr(classe.id)}">${escapeHtml(classe.title)}</option>`).join("") || '<option value="">Aucun groupe</option>'}</select>
                   </label>
                   <button class="btn studio-tool-button studio-wheel-button" onclick="addToolElement('${activity.id}','wheel')">+ Roue</button>
                   <button class="btn studio-tool-button studio-timer-button" onclick="addToolElement('${activity.id}','timer')">+ Chrono</button>
                 </div>
-                <button class="btn danger" onclick="deleteSelectedElement()">Suppr. objet</button>
-                <button class="btn primary" onclick="saveStudio('${activity.id}',false,this)">Enregistrer</button>
-                <button class="btn" onclick="showBoard('${activity.id}',0)">Présenter</button>
-                <button class="btn" onclick="previewStudioActivity('${activity.id}',this)">Imprimer / Word</button>
-                <button class="btn primary" onclick="closeEditor()">Fermer</button>
+                <button class="btn danger" data-tour="studio-delete-object" onclick="deleteSelectedElement()">Suppr. objet</button>
+                <button class="btn primary" data-tour="studio-save" onclick="saveStudio('${activity.id}',false,this)">Enregistrer</button>
+                <button class="btn" data-tour="studio-present" onclick="showBoard('${activity.id}',0)">Présenter</button>
+                <button class="btn" data-tour="studio-word" onclick="previewStudioActivity('${activity.id}',this)">Imprimer / Word</button>
+                <button class="btn primary" data-tour="studio-close" onclick="closeEditor()">Fermer</button>
                 </div>
               </div>
             </header>

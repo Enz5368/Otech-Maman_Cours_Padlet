@@ -1129,6 +1129,9 @@
       .tutorial-guide-card ol { margin:0; padding:0 28px 22px 58px; color:var(--text); }
       .tutorial-guide-card li { padding:5px 0 5px 4px; line-height:1.5; }
       .tutorial-guide-note { margin:0 20px 22px; padding:12px 14px; border-radius:12px; background:#fff4d8; color:var(--wine-900); line-height:1.45; }
+      .tutorial-guide-description { margin:0; padding:0 22px 14px; color:var(--muted); line-height:1.5; }
+      .tutorial-launch { margin:0 22px 22px; }
+      .studio-history-actions { display:inline-flex; gap:8px; }
       @media (max-width: 900px) { .tutorial-guide-grid { grid-template-columns:1fr; } }
       .activity-location { display:flex; align-items:center; gap:8px; min-width:0; color:var(--wine-900); }
       .activity-location > span { display:flex; align-items:baseline; gap:5px; min-width:0; }
