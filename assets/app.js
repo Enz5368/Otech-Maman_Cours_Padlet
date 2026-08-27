@@ -4491,7 +4491,7 @@
             <div class="row wrap"><button class="btn primary" onclick="exportLessonWord('${lesson.id}',this)">Exporter Word (.docx)</button><button class="btn" onclick="closeEditor()">Fermer</button></div>
           </header>
           <div class="print-preview-scroll">
-            <article class="printable-lesson" id="lessonPrintPreview">
+            <article class="printable-lesson word-multi-preview" id="lessonPrintPreview">
               ${activities.map((activity, activityIndex) => `<section class="print-lesson-activity">
                 ${(activity.slides || []).map((slide, index) => renderPrintableSlide(activity, slide, index, true)).join("")}
               </section>`).join("") || empty("Cette séance ne contient aucune activité.")}
@@ -4508,7 +4508,7 @@
         lessons.forEach((lesson) => (lesson.activities || []).forEach(ensureActivitySlides));
         const modal = document.querySelector("#editorModal");
         modal.hidden = false;
-        modal.innerHTML = `<section class="print-preview-shell"><header class="print-preview-toolbar"><div><strong>Aperçu de la séquence complète</strong><p class="small muted">Deux diapos par feuille A4 portrait par défaut. Chaque diapo peut passer en page entière paysage.</p></div><div class="row wrap"><button class="btn primary" onclick="exportSequenceWord('${sequence.id}',this)">Exporter Word (.docx)</button><button class="btn" onclick="closeEditor()">Fermer</button></div></header><div class="print-preview-scroll"><article class="printable-lesson" id="sequencePrintPreview">${lessons.map((lesson) => `<section class="print-lesson-activity">${(lesson.activities || []).map((activity) => `<section class="print-lesson-activity">${(activity.slides || []).map((slide,slideIndex) => renderPrintableSlide(activity,slide,slideIndex,true)).join("")}</section>`).join("")}</section>`).join("")}</article></div></section>`;
+        modal.innerHTML = `<section class="print-preview-shell"><header class="print-preview-toolbar"><div><strong>Aperçu de la séquence complète</strong><p class="small muted">Plusieurs diapos sont visibles. Retirez ou remettez chacune dans l'export Word.</p></div><div class="row wrap"><button class="btn" onclick="setAllWordSlidesIncluded('sequencePrintPreview')">Tout remettre</button><button class="btn primary" onclick="exportSequenceWord('${sequence.id}',this)">Exporter Word (.docx)</button><button class="btn" onclick="closeEditor()">Fermer</button></div></header><div class="print-preview-scroll"><article class="printable-lesson word-multi-preview" id="sequencePrintPreview">${lessons.map((lesson) => `<section class="print-lesson-activity">${(lesson.activities || []).map((activity) => `<section class="print-lesson-activity">${(activity.slides || []).map((slide,slideIndex) => renderPrintableSlide(activity,slide,slideIndex,true)).join("")}</section>`).join("")}</section>`).join("")}</article></div></section>`;
       }
 
       function openActivityPrintPreview(activityId) {
@@ -4559,12 +4559,13 @@
         const context = findActivity(activity.id);
         const breadcrumb = context ? `${context.classe.title} › Séquence ${sequenceNumber(context.classe, context.sequence)} ${context.sequence.title} › Séance ${context.lesson.title} › ${activity.title}` : activity.title;
         const wordLayout = slide.wordLayout === "landscape" ? "landscape" : "half";
-        return `<section class="print-slide-page" data-word-layout="${wordLayout}">
+        return `<section class="print-slide-page" data-word-layout="${wordLayout}" data-word-export="true">
           ${wordOptions ? `<label class="word-slide-layout-control">Mise en page Word
             <select onchange="setWordSlideLayout('${activity.id}','${slide.id}',this.value,this)">
               <option value="half"${wordLayout === "half" ? " selected" : ""}>½ page · A4 portrait</option>
               <option value="landscape"${wordLayout === "landscape" ? " selected" : ""}>Page entière · paysage</option>
             </select>
+            <button type="button" class="word-slide-export-toggle" onclick="toggleWordSlideIncluded(this)">Retirer de l'export</button>
           </label>` : ""}
           <p class="print-slide-path">${escapeHtml(breadcrumb)}</p>
           <h2>${escapeHtml(slideInstruction(slide,index))}</h2>
@@ -4581,6 +4582,23 @@
         slide.wordLayout = value === "landscape" ? "landscape" : "half";
         const page = select.closest(".print-slide-page");
         if (page) page.dataset.wordLayout = slide.wordLayout;
+      }
+
+      function toggleWordSlideIncluded(button) {
+        const page = button.closest(".print-slide-page");
+        if (!page) return;
+        const include = page.dataset.wordExport === "false";
+        page.dataset.wordExport = include ? "true" : "false";
+        button.textContent = include ? "Retirer de l'export" : "Remettre dans l'export";
+        button.setAttribute("aria-pressed", include ? "false" : "true");
+      }
+
+      function setAllWordSlidesIncluded(previewId) {
+        document.querySelectorAll(`#${previewId} .print-slide-page`).forEach((page) => {
+          page.dataset.wordExport = "true";
+          const button = page.querySelector(".word-slide-export-toggle");
+          if (button) button.textContent = "Retirer de l'export";
+        });
       }
 
       function renderPrintableElement(element) {
@@ -4667,7 +4685,7 @@
         if (!preview) throw new Error("ouvrez d’abord l’aperçu");
         await document.fonts?.ready;
         if (previewId === "lessonPrintPreview" || previewId === "sequencePrintPreview") {
-          return makeWordHandoutDocx([...preview.querySelectorAll(".print-slide-page")]);
+          return makeWordHandoutDocx([...preview.querySelectorAll('.print-slide-page:not([data-word-export="false"])')]);
         }
         const pages = [...preview.querySelectorAll(":scope > .print-lesson-head, :scope > .print-activity-head, .print-lesson-activity > .print-activity-head, .print-slide-page, .print-resources")];
         if (!pages.length) throw new Error("aucune page à exporter");
