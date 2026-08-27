@@ -4780,14 +4780,14 @@
         context.scale(scaleX, scaleY);
         for (const element of [page, ...page.querySelectorAll("*")]) {
           if (element.closest?.(".word-slide-layout-control")) continue;
-          await paintPreviewElement(context, element, pageRect);
+          await paintPreviewElement(context, element, pageRect, page);
         }
         context.restore();
         const png = await new Promise((resolve, reject) => canvas.toBlob((blob) => blob ? resolve(blob) : reject(new Error("création de l’image impossible")), "image/png"));
         return new Uint8Array(await png.arrayBuffer());
       }
 
-      async function paintPreviewElement(context, element, pageRect) {
+      async function paintPreviewElement(context, element, pageRect, page) {
         const style = getComputedStyle(element);
         if (style.display === "none" || style.visibility === "hidden" || Number(style.opacity) === 0) return;
         const rect = element.getBoundingClientRect();
@@ -4814,7 +4814,8 @@
           } catch (_) {}
           return;
         }
-        for (const node of element.childNodes) if (node.nodeType === Node.TEXT_NODE && node.textContent?.trim()) paintPreviewTextNode(context, node, pageRect, style);
+        const previewScale = pageRect.width / Math.max(1, page.offsetWidth || pageRect.width);
+        for (const node of element.childNodes) if (node.nodeType === Node.TEXT_NODE && node.textContent?.trim()) paintPreviewTextNode(context, node, pageRect, style, previewScale);
       }
 
       async function paintPreviewMedia(context, url, x, y, width, height, objectFit) {
@@ -4839,7 +4840,7 @@
         } finally { bitmap.close(); }
       }
 
-      function paintPreviewTextNode(context, node, pageRect, style) {
+      function paintPreviewTextNode(context, node, pageRect, style, previewScale = 1) {
         const text = node.textContent || "";
         const lines = [];
         for (let index = 0; index < text.length; index += 1) {
@@ -4857,9 +4858,10 @@
           line.bottom = Math.max(line.bottom, rect.bottom - pageRect.top);
         }
         context.fillStyle = style.color || "#000";
-        context.font = `${style.fontStyle} ${style.fontWeight} ${style.fontSize} ${style.fontFamily}`;
+        const fontSize = Math.max(1, parseFloat(style.fontSize) * previewScale);
+        context.font = `${style.fontStyle} ${style.fontWeight} ${fontSize}px ${style.fontFamily}`;
         context.textBaseline = "alphabetic";
-        lines.forEach((line) => context.fillText(line.text, line.left, line.bottom - Math.max(0, parseFloat(style.fontSize) * .12)));
+        lines.forEach((line) => context.fillText(line.text, line.left, line.bottom - Math.max(0, fontSize * .12)));
       }
 
       function docxPreviewPageParagraph(relId, pageBreakBefore, pageNumber) {
