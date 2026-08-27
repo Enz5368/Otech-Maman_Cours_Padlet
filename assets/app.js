@@ -4919,13 +4919,12 @@
       }
 
       async function buildExportFiles() {
-        const activityMediaJobs = [];
         const files = [{
           path: "donnees-completes.json",
           content: JSON.stringify(state, null, 2)
         }, {
           path: "README.txt",
-          content: "Export local In viaggio per l'Italia\n\nLe fichier donnees-completes.json contient toute la sauvegarde importable.\nDans le dossier classes, chaque classe possède son propre dossier avec un document Word par séquence.\nLes sous-dossiers conservent aussi le détail des séances, présentations et médias.\n"
+          content: "Export local In viaggio per l'Italia\n\nLe fichier donnees-completes.json contient toute la sauvegarde importable.\nDans le dossier classes, chaque classe possède son propre dossier avec un document Word par séquence.\nLes médias sont conservés séparément dans le dossier medias.\n"
         }];
 
         state.classes.forEach((classe, classIndex) => {
@@ -4936,20 +4935,6 @@
               path: `${classFolder}/${String(sequenceIndex + 1).padStart(2, "0")}-${exportSlug(sequence.title, 40)}.docx`,
               content: makeSequenceDocx({ sequence, classe }, false),
               binary: true
-            });
-            const sequenceFolder = `${classFolder}/sequences/${String(sequenceIndex + 1).padStart(2, "0")}-${exportSlug(sequence.title, 14)}`;
-            files.push({ path: `${sequenceFolder}/sequence.json`, content: JSON.stringify(sequence, null, 2) });
-            (sequence.lessons || []).forEach((lesson, lessonIndex) => {
-              const lessonFolder = `${sequenceFolder}/seances/${String(lessonIndex + 1).padStart(2, "0")}-${exportSlug(lesson.title, 14)}`;
-              files.push({ path: `${lessonFolder}/seance.json`, content: JSON.stringify(lesson, null, 2) });
-              (lesson.activities || []).forEach((activity, activityIndex) => {
-                const activitySlug = exportSlug(activity.title, 14);
-                const activityFolder = `${lessonFolder}/presentations/${String(activityIndex + 1).padStart(2, "0")}-${activitySlug}`;
-                files.push({ path: `${activityFolder}/presentation.json`, content: JSON.stringify(activity, null, 2) });
-                files.push({ path: `${activityFolder}/resume.txt`, content: presentationSummary(classe, sequence, lesson, activity) });
-                files.push({ path: `${activityFolder}/${activitySlug}.pptx`, content: makePptx(activity), binary: true });
-                activityMediaJobs.push(collectActivityMediaExportFiles(activity, activityFolder));
-              });
             });
           });
         });
@@ -4966,7 +4951,6 @@
         files.push({ path: "outils/roue-compteurs.json", content: JSON.stringify(state.tools?.wheelCounts || {}, null, 2) });
         files.push({ path: "outils/roue-reglages.json", content: JSON.stringify(state.tools?.wheelLimits || {}, null, 2) });
         files.push({ path: "outils/roue-absents.json", content: JSON.stringify(state.tools?.wheelAbsences || {}, null, 2) });
-        files.push(...(await Promise.all(activityMediaJobs)).flat());
         await appendStoredFilesToExport(files);
         await Promise.all(files.map(async (file) => {
           if (file.content instanceof Promise) file.content = await file.content;
@@ -4983,29 +4967,6 @@
           });
         }
         return files;
-      }
-
-      async function collectActivityMediaExportFiles(activity, activityFolder) {
-        const supported = new Set(["image", "audio", "video", "pdf", "document"]);
-        const elements = (activity.slides || []).flatMap((slide) => slide.elements || []);
-        const uniqueElements = [...new Map(elements
-          .filter((element) => supported.has(element.kind) && element.value)
-          .map((element) => [element.value, element])).values()];
-        return Promise.all(uniqueElements.map(async (element, index) => {
-          try {
-            const downloaded = await fetchExportMedia(element.value);
-            const mimeType = downloaded.mimeType || mimeFromDataUrl(element.value) || defaultMediaMime(element.kind);
-            const extension = mediaExtension(mimeType, element.kind);
-            return {
-              path: `${activityFolder}/${String(index + 1).padStart(2, "0")}-${element.kind}.${extension}`,
-              content: downloaded.bytes,
-              binary: true
-            };
-          } catch (error) {
-            recordExportWarning(`Média de la présentation « ${activity.title || "sans titre"} »`, element.value, error);
-            return null;
-          }
-        })).then((items) => items.filter(Boolean));
       }
 
       function exportSlug(value, maxLength = 14) {

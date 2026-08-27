@@ -351,18 +351,15 @@ def test_export_pptx_embarque_les_medias_et_produit_un_zip_windows_valide() -> N
         assert "ppt/theme/theme1.xml" in template.namelist()
     assert "zipDosDateTime(new Date())" in APP_JS
     assert "appendStoredFilesToExport(files)" in APP_JS
-    assert "collectActivityMediaExportFiles(activity, activityFolder)" in APP_JS
-    assert "`${activityFolder}/${String(index + 1).padStart(2, \"0\")}-${element.kind}.${extension}`" in APP_JS
-    assert "`${activityFolder}/medias/" not in APP_JS
     assert 'path: `medias/${String(index + 1).padStart(3, "0")}-${baseName}${extension}`' in APP_JS
     assert "exportSlug(classe.title, 14)" in APP_JS
-    assert "exportSlug(sequence.title, 14)" in APP_JS
     assert "makeSequenceDocx({ sequence, classe }, false)" in APP_JS
     assert "embedMedia = true" in APP_JS
     assert 'element.kind !== "tool"' in APP_JS
     assert 'exportSlug(sequence.title, 40)}.docx`' in APP_JS
-    assert "exportSlug(lesson.title, 14)" in APP_JS
-    assert "exportSlug(activity.title, 14)" in APP_JS
+    assert "classFolder}/sequences/" not in APP_JS
+    assert "sequenceFolder" not in APP_JS
+    assert "lessonFolder" not in APP_JS
     assert ".slice(-maxLength)" in APP_JS
 
 
@@ -568,7 +565,7 @@ def test_tutoriel_complet_est_accessible_et_passable() -> None:
 
 
 def test_export_impression_et_documents_libreoffice() -> None:
-    assert 'new Set(["image", "audio", "video", "pdf", "document"])' in APP_JS
+    assert "appendStoredFilesToExport(files)" in APP_JS
     assert '"application/pdf": "pdf"' in APP_JS
     assert '"application/vnd.oasis.opendocument.text": "odt"' in APP_JS
     assert 'extractZipEntry(arrayBuffer, "content.xml")' in APP_JS
@@ -601,7 +598,7 @@ def test_serveur_accepte_les_formats_opendocument_du_selecteur() -> None:
         assert f'"{extension}": "{mime_type}"' in storage
         assert f'"{mime_type}"' in storage
     assert "extension in OPENDOCUMENT_MIME_BY_EXTENSION" in storage
-    assert "espace-prof-78" in INDEX
+    assert "espace-prof-79" in INDEX
     assert "Précédent" in APP_JS
     assert "Suivant" in APP_JS
     assert "setTimeout(startFreeExampleTutorial, 250);" in APP_JS
@@ -711,7 +708,7 @@ def test_plan_de_classe_style_cinema_et_emploi_du_temps_lycee() -> None:
     assert 'aria-label="Emploi du temps du lundi au vendredi"' in APP_JS
     assert ".timetable-course" in STYLES
     assert "assets/styles.css?v=espace-prof-44" in INDEX
-    assert "assets/app.js?v=espace-prof-78" in INDEX
+    assert "assets/app.js?v=espace-prof-79" in INDEX
     assert "assets/api-client.js?v=espace-prof-6" in INDEX
 
 
