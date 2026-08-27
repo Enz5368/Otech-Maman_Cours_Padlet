@@ -2690,7 +2690,7 @@
               ${isLoggedIn() && storageInfo ? `<p class="small muted">Espace serveur : ${formatBytes(storageInfo.used_bytes)} utilisés sur ${formatBytes(storageInfo.quota_bytes)}. Images : ${formatBytes(storageInfo.categories?.images)} · Vidéos : ${formatBytes(storageInfo.categories?.videos)} · Documents : ${formatBytes(storageInfo.categories?.documents)} · Sauvegardes : ${formatBytes(storageInfo.categories?.backups)}</p>` : ""}
               ${canEdit() ? `<div class="row wrap" style="margin-top:12px">
                 <button class="btn" onclick="exportData()">Exporter</button>
-                <button class="btn primary" onclick="exportZip()">Exporter ZIP</button>
+                <button class="btn primary" onclick="exportZip(this)">Exporter ZIP</button>
                 <button class="btn" id="importDataBtn" type="button" onclick="document.querySelector('#importDataInput').click()">Importer ZIP ou JSON</button>
                 <input id="importDataInput" type="file" accept=".zip,.json,application/zip,application/json" hidden onchange="importData(this.files[0],document.querySelector('#importDataBtn'));this.value=''">
                 <button class="btn danger" onclick="resetData()">Réinitialiser</button>
@@ -4892,13 +4892,15 @@
         URL.revokeObjectURL(link.href);
       }
 
-      async function exportZip() {
+      async function exportZip(button = null) {
         if (!requireLogin()) return;
+        const unlock = beginSaveLock(button);
         exportMediaFetchCache = new Map();
         exportWarnings = [];
         try {
+          toast("Préparation du ZIP en cours… Cela peut prendre quelques minutes.");
           const files = await buildExportFiles();
-          const blob = new Blob([makeZip(files)], { type: "application/zip" });
+          const blob = new Blob(makeZipParts(files), { type: "application/zip" });
           const link = document.createElement("a");
           link.href = URL.createObjectURL(blob);
           link.download = `in-viaggio-export-${new Date().toISOString().slice(0, 10)}.zip`;
@@ -4912,6 +4914,7 @@
           toast(`Export impossible : ${error.message || "un média n'a pas pu être intégré"}.`);
         } finally {
           exportMediaFetchCache.clear();
+          unlock();
         }
       }
 
@@ -5312,6 +5315,10 @@
       }
 
       function makeZip(files) {
+        return concatUint8(makeZipParts(files));
+      }
+
+      function makeZipParts(files) {
         const encoder = new TextEncoder();
         const localParts = [];
         const centralParts = [];
@@ -5341,7 +5348,7 @@
           [2, 0], [2, 0], [2, files.length], [2, files.length],
           [4, centralSize], [4, offset], [2, 0]
         ]);
-        return concatUint8([...localParts, ...centralParts, end]);
+        return [...localParts, ...centralParts, end];
       }
 
       function zipDosDateTime(date) {

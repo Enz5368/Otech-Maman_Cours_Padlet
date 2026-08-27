@@ -329,6 +329,9 @@ def test_import_accepte_les_exports_zip_et_attend_le_serveur() -> None:
 
 def test_export_pptx_embarque_les_medias_et_produit_un_zip_windows_valide() -> None:
     assert "const files = await buildExportFiles();" in APP_JS
+    assert "new Blob(makeZipParts(files)" in APP_JS
+    assert "function makeZipParts(files)" in APP_JS
+    assert 'onclick="exportZip(this)"' in APP_JS
     assert 'const supported = new Set(["image", "audio", "video"]);' in APP_JS
     assert 'fetch(url, { credentials: "include" })' in APP_JS
     assert "exportMediaFetchCache" in APP_JS
@@ -598,7 +601,7 @@ def test_serveur_accepte_les_formats_opendocument_du_selecteur() -> None:
         assert f'"{extension}": "{mime_type}"' in storage
         assert f'"{mime_type}"' in storage
     assert "extension in OPENDOCUMENT_MIME_BY_EXTENSION" in storage
-    assert "espace-prof-77" in INDEX
+    assert "espace-prof-78" in INDEX
     assert "Précédent" in APP_JS
     assert "Suivant" in APP_JS
     assert "setTimeout(startFreeExampleTutorial, 250);" in APP_JS
@@ -708,7 +711,7 @@ def test_plan_de_classe_style_cinema_et_emploi_du_temps_lycee() -> None:
     assert 'aria-label="Emploi du temps du lundi au vendredi"' in APP_JS
     assert ".timetable-course" in STYLES
     assert "assets/styles.css?v=espace-prof-44" in INDEX
-    assert "assets/app.js?v=espace-prof-77" in INDEX
+    assert "assets/app.js?v=espace-prof-78" in INDEX
     assert "assets/api-client.js?v=espace-prof-6" in INDEX
 
 
