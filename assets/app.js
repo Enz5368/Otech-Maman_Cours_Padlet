@@ -2269,6 +2269,7 @@
                 <button class="btn" onclick="manageCategories()">Organiser les séquences</button>
                 <button class="btn" onclick="openEditor('class','${classe.id}')">Modification</button>
                 <button class="btn primary" onclick="openEditor('sequence',null,{classId:'${classe.id}'})">Ajouter une séquence</button>
+                <button class="btn primary" onclick="document.querySelector('#sequenceImport-${classe.id}').click()">Importer une séquence</button><input id="sequenceImport-${classe.id}" type="file" accept=".json,.zip,application/json,application/zip" hidden onchange="importCourseBranch(this.files[0],'sequence','${classe.id}',this);this.value=''">
                 <button class="btn danger" onclick="removeItem('class','${classe.id}')">Supprimer la classe</button>
               </div>`)}
             </div>
@@ -2320,6 +2321,7 @@
                 <button class="btn" onclick="manageCategories()">Organiser les séances</button>
                 <button class="btn" onclick="openEditor('sequence','${sequence.id}')">Modification</button>
                 <button class="btn primary" onclick="openEditor('lesson',null,{classId:'${classe.id}',sequenceId:'${sequence.id}'})">Ajouter une séance</button>
+                <button class="btn primary" onclick="document.querySelector('#lessonImport-${sequence.id}').click()">Importer une séance</button><input id="lessonImport-${sequence.id}" type="file" accept=".json,.zip,application/json,application/zip" hidden onchange="importCourseBranch(this.files[0],'lesson','${sequence.id}',this);this.value=''">
                 <button class="btn danger" onclick="removeItem('sequence','${sequence.id}')">Supprimer la séquence</button>
               </div>`)}
             </div>
@@ -5499,6 +5501,91 @@
         }
         return table;
       })();
+
+      function collectCourseImportCandidates(payload, type) {
+        const candidates = [];
+        const seen = new Set();
+        const visit = (value) => {
+          if (!value || typeof value !== "object" || seen.has(value)) return;
+          seen.add(value);
+          if (type === "sequence" && Array.isArray(value.lessons)) candidates.push(value);
+          else if (type === "lesson" && Array.isArray(value.activities)) candidates.push(value);
+          Object.values(value).forEach((child) => {
+            if (Array.isArray(child)) child.forEach(visit);
+            else if (child && typeof child === "object") visit(child);
+          });
+        };
+        visit(payload?.content && typeof payload.content === "object" ? payload.content : payload);
+        return candidates;
+      }
+
+      function chooseCourseImportCandidate(candidates, type) {
+        if (!candidates.length) throw new Error(`aucune ${type === "sequence" ? "séquence" : "séance"} trouvée dans ce fichier`);
+        if (candidates.length === 1) return candidates[0];
+        const label = type === "sequence" ? "séquence" : "séance";
+        const choices = candidates.map((item,index) => `${index + 1}. ${item.title || `Sans titre ${index + 1}`}`).join("\n");
+        const answer = prompt(`Choisissez la ${label} à importer :\n\n${choices}`, "1");
+        if (answer === null) return null;
+        const index = Number(answer) - 1;
+        if (!Number.isInteger(index) || !candidates[index]) throw new Error("numéro de choix invalide");
+        return candidates[index];
+      }
+
+      function freshImportedActivity(source) {
+        const activity = { ...structuredClone(source), id: uid("act") };
+        activity.resources = (source.resources || []).map((resource) => ({ ...structuredClone(resource), id: uid("res") }));
+        activity.slides = (source.slides || []).map((slide) => ({ ...structuredClone(slide), id: uid("slide"), elements: (slide.elements || []).map((element) => ({ ...structuredClone(element), id: uid("el") })) }));
+        return activity;
+      }
+
+      function freshImportedLesson(source, sequenceId, order) {
+        const lesson = { ...createBlank("lesson", {}), ...structuredClone(source), id: uid("lesson"), sequenceId, order, updatedAt: new Date().toISOString() };
+        lesson.activities = (source.activities || []).map(freshImportedActivity);
+        return lesson;
+      }
+
+      function freshImportedSequence(source, classId, order) {
+        const sequence = { ...createBlank("sequence", {}), ...structuredClone(source), id: uid("seq"), classId, order, updatedAt: new Date().toISOString() };
+        sequence.lessons = (source.lessons || []).map((lesson,index) => freshImportedLesson(lesson, sequence.id, index + 1));
+        return sequence;
+      }
+
+      async function readCourseImportFile(file) {
+        const name = String(file?.name || "").toLowerCase();
+        if (name.endsWith(".json") || file?.type === "application/json") return JSON.parse(await file.text());
+        if (name.endsWith(".zip") || /zip/.test(file?.type || "")) {
+          const buffer = await file.arrayBuffer();
+          try { return JSON.parse(new TextDecoder("utf-8").decode(await extractZipEntry(buffer, "donnees-completes.json"))); }
+          catch (_) { return JSON.parse(new TextDecoder("utf-8").decode(await extractZipEntry(buffer, "classe.json"))); }
+        }
+        throw new Error("choisissez un fichier ZIP ou JSON");
+      }
+
+      async function importCourseBranch(file, type, destinationId, input) {
+        if (!requireLogin() || !file) return;
+        try {
+          const payload = await readCourseImportFile(file);
+          const source = chooseCourseImportCandidate(collectCourseImportCandidates(payload, type), type);
+          if (!source) return;
+          if (type === "sequence") {
+            const classe = findItem("class", destinationId);
+            if (!classe) throw new Error("classe de destination introuvable");
+            const imported = freshImportedSequence(source, classe.id, classe.sequences.length + 1);
+            classe.sequences.push(imported);
+            if (await saveData(`Séquence « ${imported.title} » importée avec toutes ses séances et tous ses contenus.`)) openSequencePage(classe.id, imported.id);
+          } else {
+            const sequence = findItem("sequence", destinationId);
+            if (!sequence) throw new Error("séquence de destination introuvable");
+            const context = findSequenceContext(sequence.id);
+            const imported = freshImportedLesson(source, sequence.id, sequence.lessons.length + 1);
+            sequence.lessons.push(imported);
+            if (await saveData(`Séance « ${imported.title} » importée avec tous ses contenus et toutes ses ressources.`)) openLessonPage(context.classe.id, sequence.id, imported.id);
+          }
+        } catch (error) {
+          console.error("Import de branche impossible", error);
+          toast(`Import impossible : ${error.message || "fichier invalide"}.`);
+        } finally { if (input) input.value = ""; }
+      }
 
       async function importData(file, triggerButton) {
         if (!requireLogin()) return;
