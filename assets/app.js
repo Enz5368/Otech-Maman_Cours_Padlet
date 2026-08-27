@@ -4487,28 +4487,13 @@
         modal.hidden = false;
         modal.innerHTML = `<section class="print-preview-shell">
           <header class="print-preview-toolbar">
-            <div><strong>Aperçu avant export Word</strong><p class="small muted">Toutes les activités, images et premières images des vidéos seront intégrées au document paysage.</p></div>
+            <div><strong>Aperçu avant export Word</strong><p class="small muted">Deux diapos par feuille A4 portrait par défaut. Chaque diapo peut passer en page entière paysage.</p></div>
             <div class="row wrap"><button class="btn primary" onclick="exportLessonWord('${lesson.id}',this)">Exporter Word (.docx)</button><button class="btn" onclick="closeEditor()">Fermer</button></div>
           </header>
           <div class="print-preview-scroll">
             <article class="printable-lesson" id="lessonPrintPreview">
-              <header class="print-lesson-head">
-                <p class="print-breadcrumb">${escapeHtml(classe.title)} · Séquence n° ${sequenceNumber(classe, sequence)} · ${escapeHtml(sequence.title)}</p>
-                <h1>${escapeHtml(lesson.title)}</h1>
-                ${lesson.description ? `<p>${escapeHtml(lesson.description)}</p>` : ""}
-                <p class="pill">${activities.length} activité(s)</p>
-              </header>
               ${activities.map((activity, activityIndex) => `<section class="print-lesson-activity">
-                <header class="print-activity-head">
-                  <p class="print-breadcrumb">Activité ${activityIndex + 1} sur ${activities.length}</p>
-                  <h1>${escapeHtml(activity.title)}</h1>
-                  ${activity.description ? `<p>${escapeHtml(activity.description)}</p>` : ""}
-                  <dl class="print-activity-meta">
-                    ${printMeta("Objectif", activity.objective)}${printMeta("Consigne", activity.instruction)}${printMeta("Durée", activity.estimatedDuration)}${printMeta("Modalité", activity.modality)}${printMeta("Niveau", activity.level)}
-                  </dl>
-                </header>
-                ${(activity.slides || []).map((slide, index) => renderPrintableSlide(activity, slide, index)).join("")}
-                ${(activity.resources || []).length ? `<section class="print-resources"><h2>Ressources</h2><ul>${activity.resources.map((resource) => `<li><strong>${escapeHtml(resource.title)}</strong>${resource.url ? ` — ${escapeHtml(resource.url)}` : ""}</li>`).join("")}</ul></section>` : ""}
+                ${(activity.slides || []).map((slide, index) => renderPrintableSlide(activity, slide, index, true)).join("")}
               </section>`).join("") || empty("Cette séance ne contient aucune activité.")}
             </article>
           </div>
@@ -4523,7 +4508,7 @@
         lessons.forEach((lesson) => (lesson.activities || []).forEach(ensureActivitySlides));
         const modal = document.querySelector("#editorModal");
         modal.hidden = false;
-        modal.innerHTML = `<section class="print-preview-shell"><header class="print-preview-toolbar"><div><strong>Aperçu de la séquence complète</strong><p class="small muted">Chaque feuille A4 paysage est séparée visuellement ci-dessous. Le document Word reproduira exactement ces pages, sans les outils interactifs.</p></div><div class="row wrap"><button class="btn primary" onclick="exportSequenceWord('${sequence.id}',this)">Exporter Word (.docx)</button><button class="btn" onclick="closeEditor()">Fermer</button></div></header><div class="print-preview-scroll"><article class="printable-lesson" id="sequencePrintPreview"><header class="print-lesson-head"><p class="print-breadcrumb">${escapeHtml(classe.title)} · Séquence n° ${sequenceNumber(classe,sequence)}</p><h1>${escapeHtml(sequence.title)}</h1>${sequence.description ? `<p>${escapeHtml(sequence.description)}</p>` : ""}${sequence.finalTask ? `<p><strong>Tâche finale :</strong> ${escapeHtml(sequence.finalTask)}</p>` : ""}</header>${lessons.map((lesson,index) => `<section class="print-lesson-activity"><header class="print-activity-head"><p class="print-breadcrumb">Séance ${index+1} sur ${lessons.length}</p><h1>${escapeHtml(lesson.title)}</h1>${lesson.description ? `<p>${escapeHtml(lesson.description)}</p>` : ""}${lessonSuitcase(lesson)}</header>${(lesson.activities || []).map((activity,activityIndex) => `<section class="print-lesson-activity"><header class="print-activity-head"><p class="print-breadcrumb">Activité ${activityIndex+1}</p><h1>${escapeHtml(activity.title)}</h1>${activity.description ? `<p>${escapeHtml(activity.description)}</p>` : ""}</header>${(activity.slides || []).map((slide,slideIndex) => renderPrintableSlide(activity,slide,slideIndex)).join("")}</section>`).join("")}</section>`).join("")}</article></div></section>`;
+        modal.innerHTML = `<section class="print-preview-shell"><header class="print-preview-toolbar"><div><strong>Aperçu de la séquence complète</strong><p class="small muted">Deux diapos par feuille A4 portrait par défaut. Chaque diapo peut passer en page entière paysage.</p></div><div class="row wrap"><button class="btn primary" onclick="exportSequenceWord('${sequence.id}',this)">Exporter Word (.docx)</button><button class="btn" onclick="closeEditor()">Fermer</button></div></header><div class="print-preview-scroll"><article class="printable-lesson" id="sequencePrintPreview">${lessons.map((lesson) => `<section class="print-lesson-activity">${(lesson.activities || []).map((activity) => `<section class="print-lesson-activity">${(activity.slides || []).map((slide,slideIndex) => renderPrintableSlide(activity,slide,slideIndex,true)).join("")}</section>`).join("")}</section>`).join("")}</article></div></section>`;
       }
 
       function openActivityPrintPreview(activityId) {
@@ -4570,13 +4555,32 @@
         return value ? `<div><dt>${escapeHtml(label)}</dt><dd>${escapeHtml(value)}</dd></div>` : "";
       }
 
-      function renderPrintableSlide(activity, slide, index) {
-        return `<section class="print-slide-page">
+      function renderPrintableSlide(activity, slide, index, wordOptions = false) {
+        const context = findActivity(activity.id);
+        const breadcrumb = context ? `${context.classe.title} › Séquence ${sequenceNumber(context.classe, context.sequence)} ${context.sequence.title} › Séance ${context.lesson.title} › ${activity.title}` : activity.title;
+        const wordLayout = slide.wordLayout === "landscape" ? "landscape" : "half";
+        return `<section class="print-slide-page" data-word-layout="${wordLayout}">
+          ${wordOptions ? `<label class="word-slide-layout-control">Mise en page Word
+            <select onchange="setWordSlideLayout('${activity.id}','${slide.id}',this.value,this)">
+              <option value="half"${wordLayout === "half" ? " selected" : ""}>½ page · A4 portrait</option>
+              <option value="landscape"${wordLayout === "landscape" ? " selected" : ""}>Page entière · paysage</option>
+            </select>
+          </label>` : ""}
+          <p class="print-slide-path">${escapeHtml(breadcrumb)}</p>
           <h2>${escapeHtml(slideInstruction(slide,index))}</h2>
           <div class="print-slide-canvas">
             ${elementsForBoardSlide(activity, index).filter((element) => element.kind !== "tool").map(renderPrintableElement).join("")}
           </div>
         </section>`;
+      }
+
+      function setWordSlideLayout(activityId, slideId, value, select) {
+        const result = findActivity(activityId);
+        const slide = (result?.activity.slides || []).find((item) => item.id === slideId);
+        if (!slide) return;
+        slide.wordLayout = value === "landscape" ? "landscape" : "half";
+        const page = select.closest(".print-slide-page");
+        if (page) page.dataset.wordLayout = slide.wordLayout;
       }
 
       function renderPrintableElement(element) {
@@ -4662,6 +4666,9 @@
         const preview = document.getElementById(previewId);
         if (!preview) throw new Error("ouvrez d’abord l’aperçu");
         await document.fonts?.ready;
+        if (previewId === "lessonPrintPreview" || previewId === "sequencePrintPreview") {
+          return makeWordHandoutDocx([...preview.querySelectorAll(".print-slide-page")]);
+        }
         const pages = [...preview.querySelectorAll(":scope > .print-lesson-head, :scope > .print-activity-head, .print-lesson-activity > .print-activity-head, .print-slide-page, .print-resources")];
         if (!pages.length) throw new Error("aucune page à exporter");
         const media = [];
@@ -4673,6 +4680,69 @@
           paragraphs.push(docxPreviewPageParagraph(asset.relId, index > 0, index + 1));
         }
         return makeLandscapeDocx(paragraphs, media);
+      }
+
+      async function makeWordHandoutDocx(slides) {
+        if (!slides.length) throw new Error("aucune diapo à exporter");
+        const sheets = [];
+        let halfSlides = [];
+        const flushHalfSlides = async () => {
+          if (!halfSlides.length) return;
+          sheets.push({ orientation: "portrait", bytes: await composePortraitWordSheet(halfSlides) });
+          halfSlides = [];
+        };
+        for (const slide of slides) {
+          const bytes = await rasterizePreviewPage(slide);
+          if (slide.dataset.wordLayout === "landscape") {
+            await flushHalfSlides();
+            sheets.push({ orientation: "landscape", bytes });
+          } else {
+            halfSlides.push(bytes);
+            if (halfSlides.length === 2) await flushHalfSlides();
+          }
+        }
+        await flushHalfSlides();
+        return makeMixedOrientationDocx(sheets);
+      }
+
+      async function composePortraitWordSheet(slides) {
+        const width = 1120, height = 1584, margin = 20, gap = 20;
+        const slotHeight = (height - margin * 2 - gap) / 2;
+        const canvas = document.createElement("canvas");
+        canvas.width = width * 2;
+        canvas.height = height * 2;
+        const context = canvas.getContext("2d");
+        context.scale(2, 2);
+        context.fillStyle = "#ffffff";
+        context.fillRect(0, 0, width, height);
+        for (const [index, bytes] of slides.entries()) {
+          const bitmap = await createImageBitmap(new Blob([bytes], { type: "image/png" }));
+          try { context.drawImage(bitmap, margin, margin + index * (slotHeight + gap), width - margin * 2, slotHeight); }
+          finally { bitmap.close(); }
+        }
+        const png = await new Promise((resolve, reject) => canvas.toBlob((blob) => blob ? resolve(blob) : reject(new Error("création de la feuille portrait impossible")), "image/png"));
+        return new Uint8Array(await png.arrayBuffer());
+      }
+
+      function makeMixedOrientationDocx(sheets) {
+        const media = sheets.map((sheet, index) => ({ ...sheet, relId: `rId${index + 1}`, fileName: `page-${index + 1}.png` }));
+        const paragraphs = media.map((sheet, index) => docxMixedPageParagraph(sheet.relId, sheet.orientation, index + 1, index < media.length - 1));
+        const lastOrientation = media.at(-1)?.orientation || "portrait";
+        const documentXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"><w:body>${paragraphs.join("")}${docxSectionProperties(lastOrientation, false)}</w:body></w:document>`;
+        const rels = media.map((item) => `<Relationship Id="${item.relId}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/${item.fileName}"/>`).join("");
+        return makeZip([{ path:"[Content_Types].xml", content:`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Default Extension="png" ContentType="image/png"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/></Types>` }, { path:"_rels/.rels", content:`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>` }, { path:"word/_rels/document.xml.rels", content:`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">${rels}</Relationships>` }, { path:"word/document.xml", content:documentXml }, ...media.map((item) => ({ path:`word/media/${item.fileName}`, content:item.bytes, binary:true }))]);
+      }
+
+      function docxSectionProperties(orientation, nextPage) {
+        const landscape = orientation === "landscape";
+        return `<w:sectPr>${nextPage ? '<w:type w:val="nextPage"/>' : ""}<w:pgSz w:w="${landscape ? 16838 : 11906}" w:h="${landscape ? 11906 : 16838}"${landscape ? ' w:orient="landscape"' : ""}/><w:pgMar w:top="360" w:right="360" w:bottom="360" w:left="360"/></w:sectPr>`;
+      }
+
+      function docxMixedPageParagraph(relId, orientation, pageNumber, sectionBreak) {
+        const landscape = orientation === "landscape";
+        const cx = Math.round((landscape ? 10.75 : 7.4) * 914400);
+        const cy = Math.round(cx * (landscape ? 210 / 297 : 297 / 210));
+        return `<w:p><w:pPr><w:jc w:val="center"/><w:spacing w:before="0" w:after="0"/>${sectionBreak ? docxSectionProperties(orientation, true) : ""}</w:pPr><w:r><w:drawing><wp:inline distT="0" distB="0" distL="0" distR="0"><wp:extent cx="${cx}" cy="${cy}"/><wp:docPr id="${pageNumber}" name="Page ${pageNumber}"/><a:graphic><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:pic><pic:nvPicPr><pic:cNvPr id="${pageNumber}" name="Page ${pageNumber}"/><pic:cNvPicPr/></pic:nvPicPr><pic:blipFill><a:blip r:embed="${relId}"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill><pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="${cx}" cy="${cy}"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr></pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing></w:r></w:p>`;
       }
 
       async function rasterizePreviewPage(page) {
@@ -4690,7 +4760,10 @@
         const scaleY = height / Math.max(1, pageRect.height);
         context.save();
         context.scale(scaleX, scaleY);
-        for (const element of [page, ...page.querySelectorAll("*")]) await paintPreviewElement(context, element, pageRect);
+        for (const element of [page, ...page.querySelectorAll("*")]) {
+          if (element.closest?.(".word-slide-layout-control")) continue;
+          await paintPreviewElement(context, element, pageRect);
+        }
         context.restore();
         const png = await new Promise((resolve, reject) => canvas.toBlob((blob) => blob ? resolve(blob) : reject(new Error("création de l’image impossible")), "image/png"));
         return new Uint8Array(await png.arrayBuffer());
