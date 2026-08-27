@@ -536,12 +536,12 @@ def test_accroche_accepte_un_lien_video_et_seances_ont_une_valise() -> None:
 def test_importe_une_sequence_ou_une_seance_complete() -> None:
     assert "Importer une séquence" in APP_JS
     assert "Importer une séance" in APP_JS
-    assert "async function importCourseBranch(" in APP_JS
-    assert "function freshImportedSequence(" in APP_JS
-    assert "function freshImportedLesson(" in APP_JS
-    assert "function freshImportedActivity(" in APP_JS
-    assert 'uid("slide")' in APP_JS and 'uid("el")' in APP_JS
-    assert 'extractZipEntry(buffer, "classe.json")' in APP_JS
+    assert "function openImportCourseDialog(" in APP_JS
+    assert "async function importExistingCourseItem(" in APP_JS
+    assert "cloneSequenceForClass(source, destination.id)" in APP_JS
+    assert "cloneLessonForSequence(source, destination.id)" in APP_JS
+    assert "Choisir depuis le site" in APP_JS
+    assert "Importer ici" in APP_JS
 
 
 def test_enregistrement_du_studio_conserve_la_position() -> None:
@@ -629,7 +629,7 @@ def test_serveur_accepte_les_formats_opendocument_du_selecteur() -> None:
         assert f'"{extension}": "{mime_type}"' in storage
         assert f'"{mime_type}"' in storage
     assert "extension in OPENDOCUMENT_MIME_BY_EXTENSION" in storage
-    assert "espace-prof-88" in INDEX
+    assert "espace-prof-89" in INDEX
     assert "Précédent" in APP_JS
     assert "Suivant" in APP_JS
     assert "setTimeout(startFreeExampleTutorial, 250);" in APP_JS
@@ -741,7 +741,7 @@ def test_plan_de_classe_style_cinema_et_emploi_du_temps_lycee() -> None:
     assert 'aria-label="Emploi du temps du lundi au vendredi"' in APP_JS
     assert ".timetable-course" in STYLES
     assert "assets/styles.css?v=espace-prof-51" in INDEX
-    assert "assets/app.js?v=espace-prof-88" in INDEX
+    assert "assets/app.js?v=espace-prof-89" in INDEX
     assert "assets/api-client.js?v=espace-prof-6" in INDEX
 
 

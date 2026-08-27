@@ -832,6 +832,49 @@
         if (saved) { closeEditor(); render(); }
       }
 
+      function openImportCourseDialog(type, destinationId) {
+        if (!requireLogin()) return;
+        const destination = findItem(type === "sequence" ? "class" : "sequence", destinationId);
+        if (!destination) return toast("La destination n’existe plus.");
+        let sources = [];
+        if (type === "sequence") {
+          sources = state.classes.filter((classe) => classe.id !== destination.id).flatMap((classe) => (classe.sequences || []).map((sequence) => ({ id: sequence.id, label: `${classe.title} — ${sequence.title}` })));
+        } else {
+          sources = state.classes.flatMap((classe) => (classe.sequences || []).filter((sequence) => sequence.id !== destination.id).flatMap((sequence) => (sequence.lessons || []).map((lesson) => ({ id: lesson.id, label: `${classe.title} — ${sequence.title} — ${lesson.title}` }))));
+        }
+        const label = type === "sequence" ? "séquence" : "séance";
+        if (!sources.length) return toast(`Aucune autre ${label} n’est disponible sur le site.`);
+        const modal = document.querySelector("#editorModal");
+        modal.hidden = false;
+        modal.innerHTML = `<section class="editor-card copy-course-dialog">
+          <header class="subtree-head"><div><p>Importer une ${label} existante</p><h2>Choisir depuis le site</h2></div><button class="btn icon" type="button" onclick="closeEditor()">X</button></header>
+          <form class="copy-course-form" onsubmit="importExistingCourseItem(event,'${type}','${destination.id}')">
+            <label class="label">${type === "sequence" ? "Séquence source" : "Séance source"}<select name="sourceId" required>${sources.map((source) => `<option value="${escapeAttr(source.id)}">${escapeHtml(source.label)}</option>`).join("")}</select></label>
+            <p class="muted small">Une copie complète et indépendante sera ajoutée ici avec ses contenus, diapositives et ressources.</p>
+            <div class="row"><button class="btn primary" type="submit">Importer ici</button><button class="btn" type="button" onclick="closeEditor()">Annuler</button></div>
+          </form>
+        </section>`;
+      }
+
+      async function importExistingCourseItem(event, type, destinationId) {
+        event.preventDefault();
+        const sourceId = String(new FormData(event.currentTarget).get("sourceId") || "");
+        const source = findItem(type, sourceId);
+        const destination = findItem(type === "sequence" ? "class" : "sequence", destinationId);
+        if (!source || !destination) return toast("La source ou la destination n’existe plus.");
+        if (type === "sequence") {
+          const copy = cloneSequenceForClass(source, destination.id);
+          copy.order = (destination.sequences || []).length + 1;
+          destination.sequences.push(copy);
+        } else {
+          const copy = cloneLessonForSequence(source, destination.id);
+          copy.order = (destination.lessons || []).length + 1;
+          destination.lessons.push(copy);
+        }
+        const saved = await saveData(`${type === "sequence" ? "Séquence" : "Séance"} importée depuis le site.`, event.submitter);
+        if (saved) { closeEditor(); render(); }
+      }
+
       function activityLocationBreadcrumb({ classe, sequence, lesson }, variant = "") {
         if (!classe || !sequence || !lesson) return "";
         return `<nav class="activity-location ${escapeAttr(variant)}" aria-label="Emplacement de la présentation">
@@ -2269,7 +2312,7 @@
                 <button class="btn" onclick="manageCategories()">Organiser les séquences</button>
                 <button class="btn" onclick="openEditor('class','${classe.id}')">Modification</button>
                 <button class="btn primary" onclick="openEditor('sequence',null,{classId:'${classe.id}'})">Ajouter une séquence</button>
-                <button class="btn primary" onclick="document.querySelector('#sequenceImport-${classe.id}').click()">Importer une séquence</button><input id="sequenceImport-${classe.id}" type="file" accept=".json,.zip,application/json,application/zip" hidden onchange="importCourseBranch(this.files[0],'sequence','${classe.id}',this);this.value=''">
+                <button class="btn primary" onclick="openImportCourseDialog('sequence','${classe.id}')">Importer une séquence</button>
                 <button class="btn danger" onclick="removeItem('class','${classe.id}')">Supprimer la classe</button>
               </div>`)}
             </div>
@@ -2321,7 +2364,7 @@
                 <button class="btn" onclick="manageCategories()">Organiser les séances</button>
                 <button class="btn" onclick="openEditor('sequence','${sequence.id}')">Modification</button>
                 <button class="btn primary" onclick="openEditor('lesson',null,{classId:'${classe.id}',sequenceId:'${sequence.id}'})">Ajouter une séance</button>
-                <button class="btn primary" onclick="document.querySelector('#lessonImport-${sequence.id}').click()">Importer une séance</button><input id="lessonImport-${sequence.id}" type="file" accept=".json,.zip,application/json,application/zip" hidden onchange="importCourseBranch(this.files[0],'lesson','${sequence.id}',this);this.value=''">
+                <button class="btn primary" onclick="openImportCourseDialog('lesson','${sequence.id}')">Importer une séance</button>
                 <button class="btn danger" onclick="removeItem('sequence','${sequence.id}')">Supprimer la séquence</button>
               </div>`)}
             </div>
