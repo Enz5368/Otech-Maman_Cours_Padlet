@@ -1553,9 +1553,29 @@
         return children.length ? `<ul class="tree-level">${children.join("")}</ul>` : "";
       }
 
+      function suitcaseValues(source, fallback = {}) {
+        return {
+          cultural: source?.cultural || fallback?.cultural || "",
+          lexicon: source?.lexicon || fallback?.lexicon || "",
+          conjugation: source?.conjugation || fallback?.conjugation || "",
+          grammar: source?.grammar || fallback?.grammar || "",
+          lifeSkills: source?.lifeSkills || fallback?.lifeSkills || ""
+        };
+      }
+
+      function suitcaseCard(source, fallback, label) {
+        const values = suitcaseValues(source, fallback);
+        const entries = [["Culture",values.cultural],["Lexique",values.lexicon],["Conjugaison",values.conjugation],["Grammaire",values.grammar],["Je sais…",values.lifeSkills]].filter(([,value]) => String(value || "").trim());
+        return `<aside class="lesson-suitcase" aria-label="Valise pédagogique de ${escapeAttr(label)}"><img class="lesson-suitcase-image" src="assets/valise-italie.png" alt=""><section><strong>Ma valise de séquence</strong><div>${entries.map(([entryLabel,value]) => `<span><b>${entryLabel}</b>${escapeHtml(value)}</span>`).join("") || "<em>À compléter dans la modification de la séquence.</em>"}</div></section></aside>`;
+      }
+
+      function sequenceSuitcase(sequence) {
+        return suitcaseCard(sequence, null, sequence.title || "la séquence");
+      }
+
       function lessonSuitcase(lesson) {
-        const entries = [["Culture",lesson.cultural],["Lexique",lesson.lexicon],["Conjugaison",lesson.conjugation],["Grammaire",lesson.grammar],["Je sais…",lesson.lifeSkills]].filter(([,value]) => String(value || "").trim());
-        return `<aside class="lesson-suitcase" aria-label="Valise pédagogique de ${escapeAttr(lesson.title || "la séance")}"><img class="lesson-suitcase-image" src="assets/valise-italie.png" alt=""><section><strong>Ma valise</strong><div>${entries.map(([label,value]) => `<span><b>${label}</b>${escapeHtml(value)}</span>`).join("") || "<em>À compléter dans la modification de la séance.</em>"}</div></section></aside>`;
+        const context = findLessonContext(lesson.id);
+        return suitcaseCard(context?.sequence, lesson, lesson.title || "la séance");
       }
 
       function openEditableSubtree(classId, sequenceId = "") {
@@ -2294,6 +2314,7 @@
                 <p class="small" style="margin:0 0 4px;font-weight:850;color:var(--wine-700)">Séquence n° ${sequenceNumber(classe, sequence)}</p>
                 <h2 style="margin:0;color:var(--wine-900);font-size:34px">${escapeHtml(sequence.title)}</h2>
                 <p class="muted">${escapeHtml(sequence.description)}</p>
+                ${sequenceSuitcase(sequence)}
               </div>
               ${editOnly(`<div class="row wrap">
                 <button class="btn" onclick="manageCategories()">Organiser les séances</button>
@@ -2751,7 +2772,7 @@
       function createBlank(type, defaults) {
         const base = { id: "", title: "", slug: "", description: "", order: 0, isVisible: true, updatedAt: new Date().toISOString(), ...defaults };
         if (type === "activity") return { ...base, objective: "", instruction: "", estimatedDuration: "20 min", modality: "classe entière", level: "", privateNotes: "", resources: [], slides: [{ id: uid("slide"), elements: [] }] };
-        if (type === "sequence") return { ...base, finalTask: "", lessons: [] };
+        if (type === "sequence") return { ...base, finalTask: "", cultural: "", lexicon: "", conjugation: "", grammar: "", lifeSkills: "", lessons: [] };
         if (type === "resource") return { ...base, type: "DOCUMENT", category: "Documents", url: "", activityId: defaults.activityId || "" };
         if (type === "studentClass") return { ...base, students: [] };
         return base;
@@ -2768,8 +2789,8 @@
             <label class="label">Visible <select name="isVisible"><option value="true" ${item.isVisible !== false ? "selected" : ""}>Oui</option><option value="false" ${item.isVisible === false ? "selected" : ""}>Non</option></select></label>
           </div>`;
         if (type === "class") return base + `<label class="label">Catégorie <select name="category">${state.categories.map((category) => `<option ${((item.category || "Collège") === category) ? "selected" : ""}>${escapeHtml(category)}</option>`).join("")}</select></label>`;
-        if (type === "sequence") return base + textarea("finalTask", "Tâche finale", item.finalTask || "", "wide") + selectField("classId", "Classe", item.classId || "", flat.classes);
-        if (type === "lesson") return base + selectField("sequenceId", "Séquence", item.sequenceId || "", flat.sequences) + `<fieldset class="lesson-suitcase-fields"><legend><img class="lesson-suitcase-legend-image" src="assets/valise-italie.png" alt=""> Ma valise pédagogique</legend><p class="small muted wide">Indiquez ce qui est travaillé pendant cette séance.</p><div class="form-grid">${textarea("cultural", "Culture", item.cultural || "", "wide")}${textarea("lexicon", "Lexique", item.lexicon || "")}${textarea("conjugation", "Conjugaison", item.conjugation || "")}${textarea("grammar", "Grammaire", item.grammar || "")}${textarea("lifeSkills", "Je sais… (vie quotidienne)", item.lifeSkills || "", "wide")}</div></fieldset>`;
+        if (type === "sequence") return base + textarea("finalTask", "Tâche finale", item.finalTask || "", "wide") + selectField("classId", "Classe", item.classId || "", flat.classes) + `<fieldset class="lesson-suitcase-fields"><legend><img class="lesson-suitcase-legend-image" src="assets/valise-italie.png" alt=""> Valise de la séquence</legend><p class="small muted wide">Cette valise sera automatiquement reprise dans toutes les séances de la séquence.</p><div class="form-grid">${textarea("cultural", "Culture", item.cultural || "", "wide")}${textarea("lexicon", "Lexique", item.lexicon || "")}${textarea("conjugation", "Conjugaison", item.conjugation || "")}${textarea("grammar", "Grammaire", item.grammar || "")}${textarea("lifeSkills", "Je sais… (vie quotidienne)", item.lifeSkills || "", "wide")}</div></fieldset>`;
+        if (type === "lesson") return base + selectField("sequenceId", "Séquence", item.sequenceId || "", flat.sequences) + `<p class="small muted">La valise pédagogique est définie dans la séquence et reprise automatiquement dans cette séance.</p>`;
         if (type === "studentClass") return base + textarea("students", "Élèves (un nom par ligne)", Array.isArray(item.students) ? item.students.join("\n") : "", "wide");
         if (type === "activity") return base + `
           ${selectField("lessonId", "Séance", item.lessonId || "", flat.lessons)}
@@ -4892,7 +4913,8 @@
       }
 
       async function lessonDocxParagraphs({ lesson, sequence, classe }, lessonIndex = 0, media = [], embedMedia = true) {
-        const paragraphs = [docxParagraph(lesson.title || `Séance ${lessonIndex + 1}`, true, 34, lessonIndex > 0), docxParagraph(`${classe.title} · ${sequence.title}`, false, 20), docxParagraph(lesson.description ? `Objectif : ${lesson.description}` : "", false, 22), docxParagraph("Ma valise pédagogique", true, 26), ...[["Culture",lesson.cultural],["Lexique",lesson.lexicon],["Conjugaison",lesson.conjugation],["Grammaire",lesson.grammar],["Je sais…",lesson.lifeSkills]].map(([label,value]) => docxParagraph(value ? `${label} : ${value}` : "", false, 20))];
+        const suitcase = suitcaseValues(sequence, lesson);
+        const paragraphs = [docxParagraph(lesson.title || `Séance ${lessonIndex + 1}`, true, 34, lessonIndex > 0), docxParagraph(`${classe.title} · ${sequence.title}`, false, 20), docxParagraph(lesson.description ? `Objectif : ${lesson.description}` : "", false, 22), docxParagraph("Valise pédagogique de la séquence", true, 26), ...[["Culture",suitcase.cultural],["Lexique",suitcase.lexicon],["Conjugaison",suitcase.conjugation],["Grammaire",suitcase.grammar],["Je sais…",suitcase.lifeSkills]].map(([label,value]) => docxParagraph(value ? `${label} : ${value}` : "", false, 20))];
         for (const [index, activity] of (lesson.activities || []).entries()) paragraphs.push(...await activityDocxParagraphs(activity,index,media,embedMedia));
         return paragraphs;
       }
