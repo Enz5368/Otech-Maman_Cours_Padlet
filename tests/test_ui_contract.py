@@ -183,6 +183,10 @@ def test_le_studio_accepte_collage_double_clic_et_texte_auto_ajuste() -> None:
     assert "insertStudioClipboardImage" in APP_JS
     assert "function fitStudioText" in APP_JS
     assert "while (size > 8" in APP_JS
+    assert 'getData("text/plain")' in APP_JS
+    assert 'document.execCommand("insertText", false, plainText)' in APP_JS
+    assert "slideSize.width - 40" in APP_JS
+    assert "slideSize.height - 40" in APP_JS
 
 
 def test_les_liens_en_nouvel_onglet_reutilisent_trois_emplacements() -> None:
@@ -610,7 +614,7 @@ def test_serveur_accepte_les_formats_opendocument_du_selecteur() -> None:
         assert f'"{extension}": "{mime_type}"' in storage
         assert f'"{mime_type}"' in storage
     assert "extension in OPENDOCUMENT_MIME_BY_EXTENSION" in storage
-    assert "espace-prof-84" in INDEX
+    assert "espace-prof-85" in INDEX
     assert "Précédent" in APP_JS
     assert "Suivant" in APP_JS
     assert "setTimeout(startFreeExampleTutorial, 250);" in APP_JS
@@ -656,7 +660,9 @@ def test_barre_texte_propose_taille_et_couleurs() -> None:
     assert "function studioTextOverflows(" in APP_JS
     assert "trop grande pour cette zone de texte" in APP_JS
     assert "appliquée à la place" in APP_JS
-    assert 'toast("Sélectionnez le texte dont vous voulez changer la taille.")' in APP_JS
+    assert "function applyStudioWholeTextSize(" in APP_JS
+    assert "Math.min(240" in APP_JS
+    assert "120,144,180,220,240" in APP_JS
     assert "font-size:${node.style.fontSize}" in APP_JS
     assert "'subscript'" in APP_JS and "'superscript'" in APP_JS
     assert "'justifyLeft'" in APP_JS and "'justifyFull'" in APP_JS
@@ -720,7 +726,7 @@ def test_plan_de_classe_style_cinema_et_emploi_du_temps_lycee() -> None:
     assert 'aria-label="Emploi du temps du lundi au vendredi"' in APP_JS
     assert ".timetable-course" in STYLES
     assert "assets/styles.css?v=espace-prof-50" in INDEX
-    assert "assets/app.js?v=espace-prof-84" in INDEX
+    assert "assets/app.js?v=espace-prof-85" in INDEX
     assert "assets/api-client.js?v=espace-prof-6" in INDEX
 
 

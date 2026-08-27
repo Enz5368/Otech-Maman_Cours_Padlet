@@ -2877,7 +2877,7 @@
               <div class="studio-actions">
                 <div id="studioTextFormatToolbar" class="studio-text-format" role="toolbar" aria-label="Mise en forme du texte" hidden>
                   <select class="studio-format-select studio-font-family" aria-label="Police" title="Police" onmousedown="rememberStudioTextSelection()" onchange="setStudioTextFont(this.value,event)"><option>Calibri</option><option>Arial</option><option>Aptos</option><option>Verdana</option><option>Georgia</option><option>Times New Roman</option><option>Trebuchet MS</option></select>
-                  <select class="studio-format-select studio-font-size" aria-label="Taille des lettres" title="Taille des lettres" onmousedown="rememberStudioTextSelection()" onchange="setStudioTextSize(this.value,event)">${[10,12,14,16,18,20,24,28,32,36,40,48,54,60,72,84,96].map(size=>`<option value="${size}" ${size===32?"selected":""}>${size}</option>`).join("")}</select>
+                  <select class="studio-format-select studio-font-size" aria-label="Taille des lettres" title="Taille des lettres" onmousedown="rememberStudioTextSelection()" onchange="setStudioTextSize(this.value,event)">${[10,12,14,16,18,20,24,28,32,36,40,48,54,60,72,84,96,120,144,180,220,240].map(size=>`<option value="${size}" ${size===32?"selected":""}>${size}</option>`).join("")}</select>
                   <button class="btn format-button" type="button" title="Réduire la taille" aria-label="Réduire la taille du texte" onmousedown="resizeStudioText(-2,event)">A−</button>
                   <button class="btn format-button" type="button" title="Augmenter la taille" aria-label="Augmenter la taille du texte" onmousedown="resizeStudioText(2,event)">A+</button>
                   <button class="btn format-button" type="button" title="Gras (Ctrl+B)" aria-label="Gras" onmousedown="formatStudioText('bold',event)"><strong>G</strong></button>
@@ -3094,11 +3094,15 @@
         };
       }
 
-      function insertStudioText(text, slideIndex, x = 90, y = 90) {
+      function insertStudioText(text, slideIndex, x = 90, y = 90, fillAvailable = false) {
         recordStudioHistory(document.querySelector(".studio")?.dataset.activityId);
         const value = String(text ?? "").replace(/\r\n/g, "\n");
+        if (fillAvailable) { x = 20; y = 20; }
         document.querySelector("#slideStrip")?.insertAdjacentHTML("beforeend", renderStudioElement({
-          id: uid("el"), kind: "text", x, y, w: Math.min(520, slideSize.width - x), h: 150, value, fontSize: 38
+          id: uid("el"), kind: "text", x, y,
+          w: fillAvailable ? slideSize.width - 40 : Math.min(520, slideSize.width - x),
+          h: fillAvailable ? slideSize.height - 40 : 150,
+          value, fontSize: 38
         }, slideIndex));
         initStudioDrag();
         const node = [...document.querySelectorAll(".studio .slide-el")].at(-1);
@@ -3148,7 +3152,15 @@
           insertStudioText("", Number(slide.dataset.slideIndex || 0), point.x, point.y);
         });
         studio.addEventListener("paste", async (event) => {
-          if (event.target.closest(".slide-text,input,textarea,[contenteditable=true]")) return;
+          const editableText = event.target.closest(".slide-text");
+          if (editableText) {
+            event.preventDefault();
+            const plainText = event.clipboardData?.getData("text/plain") || "";
+            document.execCommand("insertText", false, plainText);
+            fitStudioText(editableText.closest(".slide-el"));
+            return;
+          }
+          if (event.target.closest("input,textarea,[contenteditable=true]")) return;
           const slide = selectedSlide();
           if (!slide) return;
           const items = [...(event.clipboardData?.items || [])];
@@ -3269,9 +3281,9 @@
         const node = document.querySelector(".studio .slide-el.selected[data-kind='text']");
         const text = node?.querySelector(".slide-text");
         if (!node || !text) return toast("Sélectionnez d'abord une zone de texte.");
-        const size = Math.max(8, Math.min(96, Number(value) || 32));
+        const size = Math.max(8, Math.min(240, Number(value) || 32));
         if (applyStudioTextSelectionSize(text, size)) return;
-        toast("Sélectionnez le texte dont vous voulez changer la taille.");
+        applyStudioWholeTextSize(node, text, size);
       }
 
       function resizeStudioText(delta, event) {
@@ -3287,16 +3299,26 @@
         const current = studioTextSelectionRange && !studioTextSelectionRange.collapsed
           ? parseFloat(getComputedStyle(selectedElement || text).fontSize) || 34
           : Number(node.dataset.maxFontSize || parseFloat(text.style.fontSize) || 34);
-        const size = Math.max(8, Math.min(96, current + Number(delta || 0)));
+        const step = current >= 96 ? 12 : current >= 48 ? 6 : 2;
+        const size = Math.max(8, Math.min(240, current + Math.sign(Number(delta || 0)) * step));
         if (applyStudioTextSelectionSize(text, size)) return;
-        toast("Sélectionnez le texte dont vous voulez changer la taille.");
+        applyStudioWholeTextSize(node, text, size);
+      }
+
+      function applyStudioWholeTextSize(node, text, requestedSize) {
+        const size = Math.max(8, Math.min(240, Number(requestedSize) || 32));
+        node.dataset.maxFontSize = String(size);
+        text.style.fontSize = `${size}px`;
+        fitStudioText(node);
+        const appliedSize = Math.round(parseFloat(text.style.fontSize) || size);
+        if (appliedSize < size) toast(`La taille ${size} px est trop grande pour cette zone de texte. Taille ${appliedSize} px appliquée à la place.`);
       }
 
       function applyStudioTextSelectionSize(text, size) {
         if (!studioTextSelectionRange || studioTextSelectionRange.collapsed || !restoreStudioTextSelection()) return false;
         const range = window.getSelection().getRangeAt(0);
         if (!text.contains(range.commonAncestorContainer)) return false;
-        const requestedSize = Math.max(8, Math.min(96, Number(size) || 32));
+        const requestedSize = Math.max(8, Math.min(240, Number(size) || 32));
         const span = document.createElement("span");
         span.style.fontSize = `${requestedSize}px`;
         span.append(range.extractContents());
@@ -3543,7 +3565,7 @@
       function addTextElement(activityId) {
         const slide = selectedSlide();
         if (!slide) return;
-        insertStudioText("", Number(slide.dataset.slideIndex || 0));
+        insertStudioText("", Number(slide.dataset.slideIndex || 0), 20, 20, true);
       }
 
       function addUrlElement(activityId) {
