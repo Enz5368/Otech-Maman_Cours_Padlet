@@ -2613,11 +2613,55 @@
         document.querySelector("#content").innerHTML = `
           <section class="page-head">
             <div class="breadcrumb">Tutoriel</div>
-            <h2 style="margin:0;color:var(--wine-900);font-size:34px">Visite guidée</h2>
-            <p class="muted">Lancez le tutoriel pour parcourir toutes les parties du site. Vous pouvez le passer ou le quitter à tout moment.</p>
+            <h2 style="margin:0;color:var(--wine-900);font-size:34px">Tutoriels pratiques</h2>
+            <p class="muted">Choisissez une fiche pour apprendre une action précise, ou lancez la visite guidée complète.</p>
+          </section>
+          <section class="tutorial-guide-grid" aria-label="Tutoriels pratiques">
+            <details class="tutorial-guide-card" open>
+              <summary><span class="tutorial-guide-icon">1</span><span><strong>Créer un cours</strong><small>De la classe jusqu’aux diapos</small></span></summary>
+              <ol>
+                <li>Ouvrez <b>Cours par niveau modifiable</b>, puis cliquez sur <b>Ajouter une classe</b>.</li>
+                <li>Ouvrez la classe créée et cliquez sur <b>Ajouter une séquence</b>.</li>
+                <li>Dans la séquence, cliquez sur <b>Ajouter une séance</b>.</li>
+                <li>Ouvrez la séance et choisissez <b>Ajouter un contenu</b>.</li>
+                <li>Dans l’éditeur, ajoutez vos textes, fichiers, images ou liens, puis créez d’autres diapos avec <b>+ Diapo (contenu)</b>.</li>
+                <li>Terminez avec <b>Enregistrer</b>. Le cours est ensuite disponible dans <b>Cours par niveau à projeter</b>.</li>
+              </ol>
+            </details>
+            <details class="tutorial-guide-card">
+              <summary><span class="tutorial-guide-icon">2</span><span><strong>Changer son emploi du temps</strong><small>Ajouter, déplacer ou modifier un cours</small></span></summary>
+              <ol>
+                <li>Ouvrez <b>Emploi du temps</b> dans le menu de gauche.</li>
+                <li>Cliquez sur une case vide pour ajouter un cours à ce jour et à cette heure.</li>
+                <li>Choisissez les horaires. Vous pouvez aussi associer une classe, un groupe et une description.</li>
+                <li>Pour déplacer un cours, faites-le glisser vers une autre case.</li>
+                <li>Pour changer ses informations, double-cliquez sur le cours, modifiez les champs puis cliquez sur <b>Enregistrer</b>.</li>
+              </ol>
+            </details>
+            <details class="tutorial-guide-card">
+              <summary><span class="tutorial-guide-icon">3</span><span><strong>Exporter en Word pour imprimer</strong><small>Préparer les diapos avant l’impression</small></span></summary>
+              <ol>
+                <li>Depuis une séquence ou une séance, cliquez sur <b>Arbre / Export Word</b>.</li>
+                <li>Vérifiez l’aperçu : les diapos sont placées par défaut deux par feuille A4 portrait.</li>
+                <li>Pour chaque diapo, choisissez si elle reste sur une demi-page ou prend une page entière en paysage.</li>
+                <li>Utilisez <b>Retirer de l’export</b> pour ne pas imprimer une diapo, et <b>Remettre dans l’export</b> pour la rétablir.</li>
+                <li>Cliquez sur <b>Exporter Word (.docx)</b>, ouvrez le fichier téléchargé dans Word, puis utilisez la commande <b>Imprimer</b> de Word.</li>
+              </ol>
+              <p class="tutorial-guide-note"><b>À retenir :</b> l’export Word sert à obtenir un document prêt à être imprimé derrière.</p>
+            </details>
+            <details class="tutorial-guide-card">
+              <summary><span class="tutorial-guide-icon">4</span><span><strong>Exporter le ZIP</strong><small>Créer une sauvegarde complète</small></span></summary>
+              <ol>
+                <li>Ouvrez <b>Réglages</b> dans le menu de gauche.</li>
+                <li>Dans la partie <b>Données</b>, cliquez sur <b>Exporter ZIP</b>.</li>
+                <li>Attendez la préparation du fichier, puis enregistrez le ZIP téléchargé dans un endroit sûr.</li>
+                <li>Le ZIP range les cours par dossiers de classes et contient les exports Word des séquences ainsi que les données nécessaires à une restauration.</li>
+                <li>Pour récupérer cette sauvegarde plus tard, revenez dans <b>Réglages</b> et utilisez <b>Importer ZIP ou JSON</b>.</li>
+              </ol>
+            </details>
           </section>
           <section class="card">
-            <h2>Comprendre tout le site en quelques clics</h2>
+            <h2>Visite guidée de tout le site</h2>
             <p class="muted">La visite change de page automatiquement, encadre chaque fonction importante et explique son utilisation.</p>
             <div class="row wrap" style="margin-top:18px">
               <button class="btn primary" onclick="startTutorial()">Lancer le tutoriel</button>
