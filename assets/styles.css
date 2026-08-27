@@ -1713,9 +1713,9 @@
       .word-slide-export-toggle { border:0; border-top:1px solid var(--line); background:transparent; padding:5px 2px 1px; color:var(--wine-700); font:inherit; font-weight:900; cursor:pointer; }
       .print-slide-page[data-word-export="false"] { opacity:.48; filter:grayscale(.65); }
       .print-slide-page[data-word-export="false"]::after { content:"Retirée de l'export"; position:absolute; z-index:4; inset:0; display:grid; place-items:center; background:rgba(255,255,255,.3); color:var(--wine-900); font-size:28px; font-weight:950; pointer-events:none; }
-      .word-multi-preview { display:grid; grid-template-columns:repeat(auto-fit,minmax(440px,1fr)); gap:18px; align-items:start; }
+      .word-multi-preview { display:grid; grid-template-columns:repeat(auto-fit,minmax(720px,1fr)); gap:22px; align-items:start; }
       .word-multi-preview .print-lesson-activity { display:contents; }
-      .word-multi-preview .print-slide-page { width:1120px; margin:0; zoom:.4; justify-self:center; }
+      .word-multi-preview .print-slide-page { width:1120px; margin:0; zoom:.64; justify-self:center; }
       .print-slide-path { min-height:26px; margin:0 0 5px; padding-right:215px; color:var(--muted); font-size:10px; font-weight:750; line-height:1.25; }
       .print-slide-page h2 { margin:3px 0 12px; font-size:20px; }
       .print-slide-page h2, .print-resources h2 { color: var(--wine-900); }

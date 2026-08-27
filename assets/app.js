@@ -1194,7 +1194,7 @@
             ${classe.isVisible ? "" : "<span class='pill'>Masque</span>"}
           </div>
           <div class="class-grid-card-actions">
-            <button class="btn" onclick="openEditableSubtree('${classe.id}')">Arbre</button>
+            <button class="btn" onclick="openEditableSubtree('${classe.id}')">Arbre / Export Word</button>
             ${editOnly(moveButtons("class", classe.id))}
             <button class="btn primary" onclick="openClassPage('${classe.id}')">Ouvrir</button>
             ${editOnly(`<button class="btn danger" onclick="removeItem('class','${classe.id}')">Supprimer</button>`)}
@@ -1222,7 +1222,7 @@
             <p class="muted small">${classe.sequences.length} séquence(s)</p>
           </div>
           <div class="row wrap">
-            <button class="btn" onclick="openTableauSubtree('class','${classe.id}')">Arbre</button>
+            <button class="btn" onclick="openTableauSubtree('class','${classe.id}')">Arbre / Export Word</button>
             <button class="btn primary" onclick="openTableauClass('${classe.id}')">Ouvrir</button>
           </div>
         </article>`;
@@ -1253,7 +1253,7 @@
           </div>
           <div class="row wrap">
             ${sequenceHookDocumentControl(sequence)}
-            <button class="btn" onclick="openTableauSubtree('sequence','${classe.id}','${sequence.id}')">Arbre</button>
+            <button class="btn" onclick="openTableauSubtree('sequence','${classe.id}','${sequence.id}')">Arbre / Export Word</button>
             <button class="btn primary" onclick="openTableauSequence('${classe.id}','${sequence.id}')">Ouvrir</button>
           </div>
         </article>`;
@@ -1342,7 +1342,7 @@
             <p class="muted small">${lesson.activities.length} activité(s)</p>
           </div>
           <div class="row wrap">
-            <button class="btn" onclick="openTableauSubtree('lesson','${classe.id}','${sequence.id}','${lesson.id}')">Arbre</button>
+            <button class="btn" onclick="openTableauSubtree('lesson','${classe.id}','${sequence.id}','${lesson.id}')">Arbre / Export Word</button>
             <button class="btn primary" onclick="openTableauLesson('${classe.id}','${sequence.id}','${lesson.id}')">Ouvrir</button>
           </div>
         </article>`;
@@ -1478,7 +1478,7 @@
                 <p class="muted">Clique sur Modifier pour entrer dans une classe et gérer ses séquences sur une page dédiée.</p>
               </div>
               <div class="row wrap">
-                <button class="btn" onclick="setView('tree')">Arbre</button>
+                <button class="btn" onclick="setView('tree')">Arbre / Export Word</button>
                 ${editOnly(`<button class="btn" onclick="manageCategories()">Organiser les catégories</button><button class="btn primary" onclick="openEditor('class')">Ajouter une classe</button>`)}
               </div>
             </div>
@@ -2267,7 +2267,7 @@
           </div>
           <div class="row wrap">
             ${sequenceHookDocumentControl(sequence)}
-            <button class="btn" onclick="openEditableSubtree('${classe.id}','${sequence.id}')">Arbre</button>
+            <button class="btn" onclick="openEditableSubtree('${classe.id}','${sequence.id}')">Arbre / Export Word</button>
             <span class="pill">${sequence.lessons.length} séance(s)</span>
             <span class="pill">Tâche finale${sequence.finalTask ? ` : ${escapeHtml(sequence.finalTask)}` : ""}</span>
             <span class="pill">${activityCount} activité(s)</span>
