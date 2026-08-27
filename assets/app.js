@@ -1555,7 +1555,7 @@
 
       function lessonSuitcase(lesson) {
         const entries = [["Culture",lesson.cultural],["Lexique",lesson.lexicon],["Conjugaison",lesson.conjugation],["Grammaire",lesson.grammar],["Je sais…",lesson.lifeSkills]].filter(([,value]) => String(value || "").trim());
-        return `<aside class="lesson-suitcase" aria-label="Valise pédagogique de ${escapeAttr(lesson.title || "la séance")}"><strong>🧳 Ma valise</strong><div>${entries.map(([label,value]) => `<span><b>${label}</b>${escapeHtml(value)}</span>`).join("") || "<em>À compléter dans la modification de la séance.</em>"}</div></aside>`;
+        return `<aside class="lesson-suitcase" aria-label="Valise pédagogique de ${escapeAttr(lesson.title || "la séance")}"><img class="lesson-suitcase-image" src="assets/valise-italie.png" alt=""><section><strong>Ma valise</strong><div>${entries.map(([label,value]) => `<span><b>${label}</b>${escapeHtml(value)}</span>`).join("") || "<em>À compléter dans la modification de la séance.</em>"}</div></section></aside>`;
       }
 
       function openEditableSubtree(classId, sequenceId = "") {
@@ -2769,7 +2769,7 @@
           </div>`;
         if (type === "class") return base + `<label class="label">Catégorie <select name="category">${state.categories.map((category) => `<option ${((item.category || "Collège") === category) ? "selected" : ""}>${escapeHtml(category)}</option>`).join("")}</select></label>`;
         if (type === "sequence") return base + textarea("finalTask", "Tâche finale", item.finalTask || "", "wide") + selectField("classId", "Classe", item.classId || "", flat.classes);
-        if (type === "lesson") return base + selectField("sequenceId", "Séquence", item.sequenceId || "", flat.sequences) + `<fieldset class="lesson-suitcase-fields"><legend>🧳 Ma valise pédagogique</legend><p class="small muted wide">Indiquez ce qui est travaillé pendant cette séance.</p><div class="form-grid">${textarea("cultural", "Culture", item.cultural || "", "wide")}${textarea("lexicon", "Lexique", item.lexicon || "")}${textarea("conjugation", "Conjugaison", item.conjugation || "")}${textarea("grammar", "Grammaire", item.grammar || "")}${textarea("lifeSkills", "Je sais… (vie quotidienne)", item.lifeSkills || "", "wide")}</div></fieldset>`;
+        if (type === "lesson") return base + selectField("sequenceId", "Séquence", item.sequenceId || "", flat.sequences) + `<fieldset class="lesson-suitcase-fields"><legend><img class="lesson-suitcase-legend-image" src="assets/valise-italie.png" alt=""> Ma valise pédagogique</legend><p class="small muted wide">Indiquez ce qui est travaillé pendant cette séance.</p><div class="form-grid">${textarea("cultural", "Culture", item.cultural || "", "wide")}${textarea("lexicon", "Lexique", item.lexicon || "")}${textarea("conjugation", "Conjugaison", item.conjugation || "")}${textarea("grammar", "Grammaire", item.grammar || "")}${textarea("lifeSkills", "Je sais… (vie quotidienne)", item.lifeSkills || "", "wide")}</div></fieldset>`;
         if (type === "studentClass") return base + textarea("students", "Élèves (un nom par ligne)", Array.isArray(item.students) ? item.students.join("\n") : "", "wide");
         if (type === "activity") return base + `
           ${selectField("lessonId", "Séance", item.lessonId || "", flat.lessons)}
@@ -2901,7 +2901,7 @@
                 <div id="studioGeneralActions" class="studio-general-actions">
                 <button class="btn" onclick="renameActivity('${activity.id}')">Titre</button>
                 <button class="btn" onclick="renameStudioSlideInstruction('${activity.id}')">Consigne diapo</button>
-                <button class="btn" onclick="addSlide('${activity.id}')">+ Diapo (contenu)</button>
+                <button class="btn primary" onclick="addSlide('${activity.id}')">+ Diapo (contenu)</button>
                 <button class="btn" id="studioUndoBtn" onclick="undoStudioChange('${activity.id}')" ${studioUndoStack.length?"":"disabled"}>↶ Annuler</button>
                 <button class="btn" id="studioRedoBtn" onclick="redoStudioChange('${activity.id}')" ${studioRedoStack.length?"":"disabled"}>↷ Rétablir</button>
                 <button class="btn danger" onclick="deleteStudioSlide('${activity.id}',currentStudioSlideIndex,event)" ${activity.slides.length>1?"":"disabled"}>Suppr. diapo</button>
@@ -2919,7 +2919,7 @@
                 <button class="btn primary" onclick="saveStudio('${activity.id}',false,this)">Enregistrer</button>
                 <button class="btn" onclick="showBoard('${activity.id}',0)">Présenter</button>
                 <button class="btn" onclick="previewStudioActivity('${activity.id}',this)">Imprimer / Word</button>
-                <button class="btn" onclick="closeEditor()">Fermer</button>
+                <button class="btn primary" onclick="closeEditor()">Fermer</button>
                 </div>
               </div>
             </header>

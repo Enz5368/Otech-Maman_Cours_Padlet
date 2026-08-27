@@ -2109,14 +2109,17 @@
       .tree-heading strong { color: white; }
       .tree-class { border-left-color: var(--wine-700); background: linear-gradient(90deg, rgba(116,24,42,0.05), #ffffff 60%); }
       .tree-sequence { border-left-color: var(--sea); background: linear-gradient(90deg, rgba(47,111,115,0.05), #ffffff 60%); }
-      .lesson-suitcase { margin:8px 0 10px 20px; max-width:720px; border:2px solid #b47a37; border-radius:14px; padding:10px 12px; background:linear-gradient(135deg,#fff8df,#f2d49a); color:#5c3518; box-shadow:inset 0 0 0 3px rgba(255,255,255,.45); }
-      .lesson-suitcase > strong { display:block; margin-bottom:7px; font-size:14px; }
-      .lesson-suitcase > div { display:flex; flex-wrap:wrap; gap:6px; }
+      .lesson-suitcase { display:flex; align-items:center; gap:12px; margin:8px 0 10px 20px; max-width:720px; border:2px solid #b47a37; border-radius:14px; padding:8px 12px; background:linear-gradient(135deg,#fff8df,#f2d49a); color:#5c3518; box-shadow:inset 0 0 0 3px rgba(255,255,255,.45); }
+      .lesson-suitcase-image { flex:0 0 auto; width:48px; height:66px; border-radius:8px; object-fit:contain; background:white; }
+      .lesson-suitcase > section { min-width:0; }
+      .lesson-suitcase > section > strong { display:block; margin-bottom:7px; font-size:14px; }
+      .lesson-suitcase > section > div { display:flex; flex-wrap:wrap; gap:6px; }
       .lesson-suitcase span { display:inline-flex; gap:5px; border-radius:999px; padding:5px 9px; background:rgba(255,255,255,.72); font-size:12px; }
       .lesson-suitcase span b::after { content:" :"; }
       .lesson-suitcase em { font-size:12px; opacity:.72; }
       .lesson-suitcase-fields { grid-column:1/-1; border:2px solid #d4a55f; border-radius:14px; padding:14px; background:#fffaf0; }
       .lesson-suitcase-fields legend { padding:0 8px; color:var(--wine-900); font-weight:900; }
+      .lesson-suitcase-legend-image { width:30px; height:40px; margin-right:5px; border-radius:5px; object-fit:contain; vertical-align:middle; background:white; }
       .tree-lesson { border-left-color: var(--olive); background: linear-gradient(90deg, rgba(100,116,71,0.05), #ffffff 60%); }
       .tree-activity { border-left-color: var(--gold); background: linear-gradient(90deg, rgba(201,154,61,0.06), #ffffff 60%); }
       .tree-resource { border-left-color: #8a7fae; background: linear-gradient(90deg, rgba(138,127,174,0.06), #ffffff 60%); }
