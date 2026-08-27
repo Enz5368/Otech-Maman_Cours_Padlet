@@ -182,7 +182,7 @@
           state = ensureDemoData(await response.json());
           if (!state.schedule.length && state.classes[0]) {
             const demoGroup = state.studentClasses[0]?.title || "Groupe exemple";
-            [["lundi", 480, 600], ["mardi", 630, 720], ["jeudi", 840, 960], ["vendredi", 540, 630]].forEach(([day, start, end], index) => state.schedule.push({ id: uid("schedule"), day, start, end, level: state.classes[0].title, groupTitle: demoGroup, description: ["Cours de démonstration", "Travail en groupe", "Activité à projeter", "Bilan de la semaine"][index], classId: state.classes[0].id }));
+            [["lundi", 480, 600], ["mardi", 630, 720], ["jeudi", 840, 960], ["vendredi", 540, 630]].forEach(([day, start, end], index) => state.schedule.push({ id: uid("schedule"), day, start, end, level: state.classes[0].title, groupTitle: demoGroup, description: ["Cours de démonstration", "Travail en groupe", "Contenu à projeter", "Bilan de la semaine"][index], classId: state.classes[0].id }));
           }
           await convertFreePptxDocuments();
         } catch (error) {
@@ -266,11 +266,11 @@
                     title: "Chi e Leonardo?",
                     description: "Identifier Leonardo et presenter une personne.",
                     activities: [
-                      makeActivity("Carte d’identité de Leonardo", "Activité courte pour découvrir Leonardo da Vinci.", "Comprendre une activité simple.", "Observe les images et retrouve les informations importantes.", 1, [
+                      makeActivity("Carte d’identité de Leonardo", "Contenu court pour découvrir Leonardo da Vinci.", "Comprendre un contenu simple.", "Observe les images et retrouve les informations importantes.", 1, [
                         demoPresentationSlide,
                         imageSlide("Osserva", "Nome: Leonardo\nCitta: Vinci\nPaese: Italia\nEpoca: Rinascimento", "https://upload.wikimedia.org/wikipedia/commons/b/ba/Leonardo_self.jpg")
                       ]),
-                      makeActivity("Vero o falso?", "Petite activite orale sur Leonardo.", "Reagir a des phrases simples.", "Dis si la phrase est vera o falsa, puis corrige avec la classe.", 2, [
+                      makeActivity("Vero o falso?", "Petit contenu oral sur Leonardo.", "Reagir a des phrases simples.", "Dis si la phrase est vera o falsa, puis corrige avec la classe.", 2, [
                         titleSlide("Vero o falso?", "Leonardo era solo un pittore.\nLeonardo viveva in Italia.\nLa Gioconda e un quadro famoso."),
                         titleSlide("Correzione", "Leonardo non era solo pittore: era anche inventore, scienziato e ingegnere.")
                       ])
@@ -422,7 +422,7 @@
           id: uid("slide"),
           duration: activity.estimatedDuration || "5 min",
           elements: [
-            { id: uid("el"), kind: "text", x: 70, y: 62, w: 820, h: 105, value: activity.title || "Activité", fontSize: 50 },
+            { id: uid("el"), kind: "text", x: 70, y: 62, w: 820, h: 105, value: activity.title || "Contenu", fontSize: 50 },
             { id: uid("el"), kind: "text", x: 70, y: 205, w: 820, h: 210, value: activity.instruction || activity.objective || activity.description || "Nouvelle diapo", fontSize: 34 }
           ]
         }];
@@ -807,7 +807,7 @@
           <header class="subtree-head"><div><p>Copier une ${label}</p><h2>${escapeHtml(source.title)}</h2></div><button class="btn icon" type="button" onclick="closeEditor()">X</button></header>
           <form class="copy-course-form" onsubmit="copyCourseItem(event,'${type}','${source.id}')">
             <label class="label">Destination<select name="destinationId" required>${destinations.map((destination) => `<option value="${escapeAttr(destination.id)}">${escapeHtml(destination.label)}</option>`).join("")}</select></label>
-            <p class="muted small">La copie sera indépendante : ses activités, diapositives et ressources pourront être modifiées sans changer l’original.</p>
+            <p class="muted small">La copie sera indépendante : ses contenus, diapositives et ressources pourront être modifiées sans changer l’original.</p>
             <div class="row"><button class="btn primary" type="submit">Copier dans cette classe</button><button class="btn" type="button" onclick="closeEditor()">Annuler</button></div>
           </form>
         </section>`;
@@ -1126,13 +1126,13 @@
         document.querySelector("#appPage").hidden = false;
         document.querySelector("#boardPage").hidden = true;
         const titles = {
-          dashboard: ["Cours par niveau à projeter", "Naviguer jusqu'à l’activité à afficher."],
-          classes: ["Cours par niveau modifiable", "Classe > Séquence > Séance > Activités."],
+          dashboard: ["Cours par niveau à projeter", "Naviguer jusqu'à le contenu à afficher."],
+          classes: ["Cours par niveau modifiable", "Classe > Séquence > Séance > Contenus."],
           tree: ["Arbre", "Vue complète des classes et de toutes leurs branches."],
           studentClasses: ["Groupes Classes", "Groupes réels et listes d'élèves."],
           tools: ["Roue de la fortune et chrono", "Tirages et minuteur de classe."],
           schedule: ["Emploi du temps", "Retrouver le cours prévu selon votre agenda."],
-          search: ["Recherche ressource ou activité", "Retrouver rapidement une activité ou une ressource."],
+          search: ["Recherche ressource ou contenu", "Retrouver rapidement un contenu ou une ressource."],
           tutorial: ["Tutoriel", "Découvrir toutes les fonctions du site à son rythme."],
           settings: ["Réglages", "Configuration locale du site HTML."]
         };
@@ -1168,7 +1168,7 @@
           <section class="page-head">
             <div class="breadcrumb">Cours par niveau à projeter / Classes</div>
             <h2 style="margin:0;color:var(--wine-900);font-size:34px">Choisir une classe</h2>
-            <p class="muted">Cette vue sert uniquement à trouver et afficher une activité.</p>
+            <p class="muted">Cette vue sert uniquement à trouver et afficher un contenu.</p>
           </section>
           <nav class="dashboard-shortcuts" aria-label="Accès rapides">
             ${workspaceShortcuts.map((shortcut) => `<a class="shortcut-card" data-shortcut-title="${escapeAttr(shortcut.title)}" href="${escapeAttr(shortcut.url)}" target="_blank" rel="noopener noreferrer"><span>Accès rapide</span><strong>${escapeHtml(shortcut.title)}</strong><small>${escapeHtml(shortcut.description)}</small></a>`).join("")}
@@ -1339,7 +1339,7 @@
           <div>
             <p class="small" style="font-weight:850;color:var(--wine-700)">Séance</p>
             <h3>${escapeHtml(lesson.title)}</h3>
-            <p class="muted small">${lesson.activities.length} activité(s)</p>
+            <p class="muted small">${lesson.activities.length} contenu(s)</p>
           </div>
           <div class="row wrap">
             <button class="btn" onclick="openTableauSubtree('lesson','${classe.id}','${sequence.id}','${lesson.id}')">Arbre / Export Word</button>
@@ -1406,7 +1406,7 @@
 
       function projectTreeActivityNode(activity) {
         return `<li>
-          <button class="tree-node tree-activity" onclick="closeEditor();openBoardInNewTab('${activity.id}',0)"><span>Activités</span><strong>${escapeHtml(activity.title)}</strong></button>
+          <button class="tree-node tree-activity" onclick="closeEditor();openBoardInNewTab('${activity.id}',0)"><span>Contenus</span><strong>${escapeHtml(activity.title)}</strong></button>
           ${treeChildren((activity.resources || []).filter((resource) => resource.isVisible !== false).map(projectTreeResourceNode))}
         </li>`;
       }
@@ -1427,19 +1427,19 @@
           <section class="page-head">
             <div class="breadcrumb"><button onclick="currentTableauPage={type:'classes'};render()">Cours par niveau à projeter</button> / <button onclick="openTableauClass('${classe.id}')">${escapeHtml(classe.title)}</button> / <button onclick="openTableauSequence('${classe.id}','${sequence.id}')">${escapeHtml(sequence.title)}</button> / ${escapeHtml(lesson.title)}</div>
             <h2 style="margin:0;color:var(--wine-900);font-size:34px">${escapeHtml(lesson.title)}</h2>
-            <p class="muted">Choisir l’activité à afficher.</p>
+            <p class="muted">Choisir le contenu à afficher.</p>
             ${lessonSuitcase(lesson)}
           </section>
-          <section class="numbered-list">${lesson.activities.filter((activity) => activity.isVisible !== false).map(tableauActivityCard).join("") || empty("Aucune activité visible.")}</section>
+          <section class="numbered-list">${lesson.activities.filter((activity) => activity.isVisible !== false).map(tableauActivityCard).join("") || empty("Aucun contenu visible.")}</section>
         `;
       }
 
       function tableauActivityCard(activity) {
         return `<article class="card entity-card">
           <div>
-            <p class="small" style="font-weight:850;color:var(--wine-700)">Activités</p>
+            <p class="small" style="font-weight:850;color:var(--wine-700)">Contenus</p>
             <h3 style="font-size:24px">${escapeHtml(activity.title)}</h3>
-            <p class="muted small">${escapeHtml(activity.description || "Activité à projeter.")}</p>
+            <p class="muted small">${escapeHtml(activity.description || "Contenu à projeter.")}</p>
           </div>
           <div class="row wrap">
             <button class="btn" onclick="openActivityPrintPreview('${activity.id}')">Aperçu / imprimer</button>
@@ -1452,9 +1452,9 @@
         return `<article class="card activity-card">
           <div class="activity-card-body">
             <div>
-              <p class="small" style="font-weight:850;color:var(--wine-700)">${escapeHtml(activity.level || activity.classTitle || "Activité")}</p>
+              <p class="small" style="font-weight:850;color:var(--wine-700)">${escapeHtml(activity.level || activity.classTitle || "Contenu")}</p>
               <h3>${escapeHtml(activity.title)}</h3>
-              <p class="muted small">${escapeHtml(activity.objective || activity.description || "Activité")}</p>
+              <p class="muted small">${escapeHtml(activity.objective || activity.description || "Contenu")}</p>
             </div>
             <div class="activity-actions">
               <button class="btn primary" onclick="openBoardInNewTab('${activity.id}',0)">Présenter</button>
@@ -1495,7 +1495,7 @@
           <section class="page-head">
             <div class="breadcrumb">Arbre / Tous les cours</div>
             <h2 style="margin:0;color:var(--wine-900);font-size:34px">Arbre des cours</h2>
-            <p class="muted">Classes → séquences → séances → activités → ressources. Cliquez sur un intitulé pour ouvrir l'élément.</p>
+            <p class="muted">Classes → séquences → séances → contenus → ressources. Cliquez sur un intitulé pour ouvrir l'élément.</p>
           </section>
           <section class="course-tree-scroll" aria-label="Arbre hiérarchique des cours">
             ${state.classes.length ? `<div class="course-tree">
@@ -1539,7 +1539,7 @@
       function treeActivityNode(activity) {
         return `<li>
           <button class="tree-node tree-activity" onclick="openActivityStudio('${activity.id}')">
-            <span>Activités</span><strong>${escapeHtml(activity.title)}</strong>${activity.isVisible === false ? "<em>Masquée</em>" : ""}
+            <span>Contenus</span><strong>${escapeHtml(activity.title)}</strong>${activity.isVisible === false ? "<em>Masquée</em>" : ""}
           </button>
           ${treeChildren((activity.resources || []).map(treeResourceNode))}
         </li>`;
@@ -1627,7 +1627,7 @@
         }
         if (currentPage.type === "lesson") {
           const lesson = findItem("lesson", currentPage.lessonId);
-          return lesson && { title: `Organiser les activités de ${lesson.title}`, label: "Activités", items: lesson.activities };
+          return lesson && { title: `Organiser les contenus de ${lesson.title}`, label: "Contenus", items: lesson.activities };
         }
         return null;
       }
@@ -2270,7 +2270,7 @@
             <button class="btn" onclick="openEditableSubtree('${classe.id}','${sequence.id}')">Arbre / Export Word</button>
             <span class="pill">${sequence.lessons.length} séance(s)</span>
             <span class="pill">Tâche finale${sequence.finalTask ? ` : ${escapeHtml(sequence.finalTask)}` : ""}</span>
-            <span class="pill">${activityCount} activité(s)</span>
+            <span class="pill">${activityCount} contenu(s)</span>
             ${editOnly(moveButtons("sequence", sequence.id))}
             ${editOnly(`<button class="btn" onclick="openCopySequence('${sequence.id}')">Copier vers une classe</button>`)}
             <button class="btn primary" onclick="openSequencePage('${classe.id}','${sequence.id}')">${canEdit() ? "Modifier" : "Voir"}</button>
@@ -2315,7 +2315,7 @@
             <p class="muted small">${escapeHtml(lesson.description)}</p>
           </div>
           <div class="row wrap">
-            <span class="pill">${lesson.activities.length} activité(s)</span>
+            <span class="pill">${lesson.activities.length} contenu(s)</span>
             ${editOnly(moveButtons("lesson", lesson.id))}
             ${editOnly(`<button class="btn" onclick="openCopyLesson('${lesson.id}')">Copier vers une classe</button>`)}
             <button class="btn primary" onclick="openLessonPage('${classe.id}','${sequence.id}','${lesson.id}')">${canEdit() ? "Modifier" : "Voir"}</button>
@@ -2343,15 +2343,15 @@
               </div>
               ${editOnly(`<div class="row wrap">
 
-                <button class="btn" onclick="manageCategories()">Organiser les activités</button>
+                <button class="btn" onclick="manageCategories()">Organiser les contenus</button>
                 <button class="btn" onclick="openEditor('lesson','${lesson.id}')">Modification</button>
-                <button class="btn primary" onclick="createActivityInLesson('${lesson.id}')">Ajouter une activité</button>
+                <button class="btn primary" onclick="createActivityInLesson('${lesson.id}')">Ajouter un contenu</button>
                 <button class="btn danger" onclick="removeItem('lesson','${lesson.id}')">Supprimer la séance</button>
               </div>`)}
             </div>
-            ${editOnly(`<div class="pptx-drop-hint">Déposez un fichier PowerPoint (.pptx) ici pour créer automatiquement une activité.</div>`)}
+            ${editOnly(`<div class="pptx-drop-hint">Déposez un fichier PowerPoint (.pptx) ici pour créer automatiquement un contenu.</div>`)}
           </section>
-          <section class="numbered-list">${lesson.activities.map(activityCard).join("") || empty("Aucune activité.")}</section>
+          <section class="numbered-list">${lesson.activities.map(activityCard).join("") || empty("Aucun contenu.")}</section>
         `;
       }
 
@@ -2391,12 +2391,12 @@
             <strong>${escapeHtml(lesson.title)} ${lesson.isVisible ? "" : "<span class='pill'>Masque</span>"}</strong>
             ${editOnly(`<div class="row">
               ${moveButtons("lesson", lesson.id)}
-              <button class="btn" onclick="createActivityInLesson('${lesson.id}')">+ Activité</button>
+              <button class="btn" onclick="createActivityInLesson('${lesson.id}')">+ Contenu</button>
               <button class="btn" onclick="openEditor('lesson','${lesson.id}')">Modifier</button>
               <button class="btn danger" onclick="removeItem('lesson','${lesson.id}')">Supprimer</button>
             </div>`)}
           </div>
-          <div class="tree-child">${lesson.activities.map(activityCard).join("") || empty("Aucune activité.")}</div>
+          <div class="tree-child">${lesson.activities.map(activityCard).join("") || empty("Aucun contenu.")}</div>
         </div>`;
       }
 
@@ -2404,7 +2404,7 @@
         return `<article class="card activity-card">
           <div class="activity-card-body">
             <div>
-              <p class="small" style="font-weight:850;color:var(--wine-700)">${escapeHtml(activity.level || activity.classTitle || "Activité")}</p>
+              <p class="small" style="font-weight:850;color:var(--wine-700)">${escapeHtml(activity.level || activity.classTitle || "Contenu")}</p>
               <h3>${escapeHtml(activity.title)} ${activity.isVisible ? "" : "<span class='pill'>Masque</span>"}</h3>
               <p class="muted small">${escapeHtml(activity.objective || activity.description)}</p>
             </div>
@@ -2460,7 +2460,7 @@
         document.querySelector("#content").innerHTML = `
           <section class="card search-hero">
             <h2>Recherche globale</h2>
-            <p class="muted">Retrouvez un cours, une séance, une activité, une consigne, le texte d’une diapositive ou une ressource avec un mot ou quelques lettres.</p>
+            <p class="muted">Retrouvez un cours, une séance, un contenu, une consigne, le texte d’une diapositive ou une ressource avec un mot ou quelques lettres.</p>
             <input id="globalSearch" type="search" autocomplete="off" autofocus placeholder="Ex. vacan, Italie, conjugaison, vidéo…" oninput="renderSearchResults(this.value)" />
           </section>
           <section id="searchResults" class="search-results"></section>
@@ -2493,7 +2493,7 @@
               add("Séance",lesson.title,lessonPath,lesson,`openTableauLesson('${classe.id}','${sequence.id}','${lesson.id}')`,lesson.description);
               (lesson.activities || []).forEach((activity) => {
                 const activityPath = `${lessonPath} › ${activity.title}`;
-                add("Activité",activity.title,activityPath,activity,`openBoardInNewTab('${activity.id}',0)`,activity.objective || activity.instruction || activity.description);
+                add("Contenu",activity.title,activityPath,activity,`openBoardInNewTab('${activity.id}',0)`,activity.objective || activity.instruction || activity.description);
                 (activity.resources || []).forEach((resource) => add("Ressource",resource.title,`${activityPath} › ${resource.title}`,resource,`openSearchResource('${resource.id}','${activity.id}',event)`,resource.description || resource.category || resource.type));
               });
             });
@@ -2521,15 +2521,15 @@
       }
 
       const tutorialSteps = [
-        { view: "dashboard", selector: "[data-view='dashboard']", title: "Cours à projeter", text: "Cette partie sert à retrouver rapidement une classe, une séquence, une séance puis l’activité à présenter devant les élèves. Elle ne modifie pas le contenu." },
+        { view: "dashboard", selector: "[data-view='dashboard']", title: "Cours à projeter", text: "Cette partie sert à retrouver rapidement une classe, une séquence, une séance puis le contenu à présenter devant les élèves. Elle ne modifie pas le contenu." },
         { view: "dashboard", selector: ".upcoming-courses-card", title: "Trois prochains cours", text: "Cette carte affiche les trois prochains cours prévus aujourd’hui. Cliquez sur un cours pour ouvrir directement le cours associé dans votre espace." },
         { view: "dashboard", selector: "[data-shortcut-title='Cahier de texte']", title: "Cahier de texte externe", text: "Ce raccourci quitte MON ESPACE PROF et ouvre le site Pronote professeur dans un nouvel onglet. Vos données Pronote ne sont pas stockées ici." },
         { view: "dashboard", selector: "[data-shortcut-title='Messagerie']", title: "Messagerie externe", text: "Ce raccourci ouvre la messagerie de l’académie de Grenoble sur un autre site, dans un nouvel onglet." },
-        { view: "classes", selector: "[data-view='classes']", title: "Cours modifiables", text: "C’est ici que vous préparez la structure complète : classes, séquences, séances, activités et ressources. Les modifications sont enregistrées dans votre espace." },
-        { view: "classes", selector: "#content", title: "Créer et organiser", text: "Ouvrez chaque niveau successivement. Vous pouvez ajouter, renommer, réordonner ou supprimer les éléments, puis organiser les activités d’une séance." },
-        { view: "classes", selector: "#content", title: "Éditeur des activités", text: "Dans une activité, ajoutez des diapos, du texte, des URL, PDF, ODT, images, vidéos ou MP3. Les formats AVI, MOV, MKV, WMV, FLV, MPEG, M4V, 3GP et TS sont convertis automatiquement en MP4 compatible. Les objets et les diapos se déplacent par glisser-déposer ; Annuler permet de récupérer une suppression accidentelle." },
+        { view: "classes", selector: "[data-view='classes']", title: "Cours modifiables", text: "C’est ici que vous préparez la structure complète : classes, séquences, séances, contenus et ressources. Les modifications sont enregistrées dans votre espace." },
+        { view: "classes", selector: "#content", title: "Créer et organiser", text: "Ouvrez chaque niveau successivement. Vous pouvez ajouter, renommer, réordonner ou supprimer les éléments, puis organiser les contenus d’une séance." },
+        { view: "classes", selector: "#content", title: "Éditeur des contenus", text: "Dans un contenu, ajoutez des diapos, du texte, des URL, PDF, ODT, images, vidéos ou MP3. Les formats AVI, MOV, MKV, WMV, FLV, MPEG, M4V, 3GP et TS sont convertis automatiquement en MP4 compatible. Les objets et les diapos se déplacent par glisser-déposer ; Annuler permet de récupérer une suppression accidentelle." },
         { view: "classes", selector: "#content", title: "Impression et export", text: "L’aperçu d’impression permet de choisir Portrait ou Paysage et place chaque diapo sur une page. Le ZIP conserve aussi les PDF, documents LibreOffice et médias." },
-        { view: "tree", selector: "[data-view='tree']", title: "Arbre", text: "L’arbre présente toute la hiérarchie du cours sur une seule page et fournit un accès direct à chaque classe, séquence, séance ou activité." },
+        { view: "tree", selector: "[data-view='tree']", title: "Arbre", text: "L’arbre présente toute la hiérarchie du cours sur une seule page et fournit un accès direct à chaque classe, séquence, séance ou contenu." },
         { view: "studentClasses", selector: "[data-view='studentClasses']", title: "Groupes Classes", text: "Créez vos groupes et renseignez les élèves. Ces listes alimentent le plan de classe, la roue de la fortune et le suivi des absences." },
         { view: "studentClasses", selector: "#content", title: "Plan de classe", text: "Choisissez jusqu’à 40 bureaux, nommez-les, supprimez ceux qui sont inutiles et déplacez librement les sièges dans ou hors de la grille." },
         { view: "tools", selector: "[data-view='tools']", title: "Outils de classe", text: "Utilisez la roue de la fortune, la liste des absents, les compteurs, l’historique et le chronomètre avec le groupe sélectionné." },
@@ -2537,7 +2537,7 @@
         { view: "schedule", selector: "#content", title: "Déplacer un cours", text: "Faites glisser un cours vers une autre case pour modifier son jour ou son heure. Cliquez dessus pour le modifier, le supprimer ou ouvrir son cours associé." },
         { view: "search", selector: "[data-view='search']", title: "Recherche", text: "Saisissez un mot du titre, de la consigne, du niveau ou d’une ressource pour retrouver rapidement un contenu dans tout votre espace." },
         { view: "settings", selector: "[data-view='settings']", title: "Réglages et sauvegardes", text: "Vérifiez le stockage, exportez une sauvegarde ZIP complète et consultez les sauvegardes disponibles avant toute opération importante." },
-        { view: "dashboard", selector: "#openBoardBtn", title: "Mode tableau", text: "Le mode tableau présente l’activité en plein écran. Utilisez les commandes pour passer d’une diapo à l’autre pendant le cours." },
+        { view: "dashboard", selector: "#openBoardBtn", title: "Mode tableau", text: "Le mode tableau présente le contenu en plein écran. Utilisez les commandes pour passer d’une diapo à l’autre pendant le cours." },
         { view: "dashboard", selector: "#pronoteExternalLink", title: "Lien vers Pronote", text: "Le bouton « Cahier de texte » mène à un autre site : Pronote s’ouvre dans un nouvel onglet afin de ne pas fermer MON ESPACE PROF." },
         { view: "dashboard", selector: "#messagingExternalLink", title: "Lien vers la messagerie", text: "Le bouton « Messagerie » mène lui aussi à un autre site et s’ouvre dans un nouvel onglet." },
         { view: "tutorial", selector: ".sidebar-mail", title: "OrellanaTech et assistance", text: "Le nom « OrellanaTech » mène au site externe d’OrellanaTech dans un nouvel onglet. Un clic sur le téléphone ou l’adresse e-mail copie simplement l’information pour pouvoir la réutiliser." }
@@ -2575,13 +2575,13 @@
         const firstActivity = firstLesson?.activities?.[0];
         activeTutorialSteps = [
           { view: "dashboard", selector: "#content", title: "Démo gratuite complète", text: "La démo reprend les fonctions du véritable espace avec un cours sur Leonardo da Vinci. Vos essais restent uniquement en mémoire pendant cette visite." },
-          { view: "classes", selector: "#content", title: "Cours modifiables", text: "Créez, modifiez, déplacez et supprimez les classes, séquences, séances, activités et ressources comme dans le véritable espace." },
+          { view: "classes", selector: "#content", title: "Cours modifiables", text: "Créez, modifiez, déplacez et supprimez les classes, séquences, séances, contenus et ressources comme dans le véritable espace." },
           { view: "tree", selector: "#content", title: "Arbre", text: "Explorez toute l’organisation du cours depuis une vue unique." },
           { view: "studentClasses", selector: "#content", title: "Groupes Classes", text: "Ajoutez des groupes et des élèves pour tester les outils de classe." },
           { view: "studentClasses", selector: "#content", title: "Plan de classe", text: "Choisissez directement de 1 à 40 bureaux, puis ajoutez, supprimez et déplacez-les librement dans toute la salle." },
           { view: "tools", selector: "#content", title: "Outils", text: "Testez la roue, les absences, les compteurs et le chronomètre exactement comme dans le véritable espace." },
           { view: "schedule", selector: "#content", title: "Emploi du temps", text: "Cliquez sur une case : seules les heures sont obligatoires. Le cours, la description et le groupe choisi dans la liste déroulante restent facultatifs." },
-          { view: "search", selector: "#content", title: "Recherche", text: "Retrouvez rapidement une activité ou une ressource dans toutes les données de démonstration." },
+          { view: "search", selector: "#content", title: "Recherche", text: "Retrouvez rapidement un contenu ou une ressource dans toutes les données de démonstration." },
           { view: "tutorial", selector: "#content", title: "Tutoriel", text: "Relancez cette visite complète à tout moment ou passez-la avec le bouton prévu." },
           { view: "dashboard", selector: "[data-shortcut-title='Cahier de texte']", title: "Cahier de texte externe", text: "Ce raccourci mène à Pronote, un autre site, qui s’ouvre dans un nouvel onglet." },
           { view: "dashboard", selector: "[data-shortcut-title='Messagerie']", title: "Messagerie externe", text: "Ce raccourci mène à la messagerie académique, sur un autre site ouvert dans un nouvel onglet." },
@@ -2589,10 +2589,10 @@
           { view: "settings", selector: "#content", title: "Réglages", text: "Exportez un ZIP complet : les PDF, documents LibreOffice, MP3 et autres médias sont inclus pour rester consultables hors ligne." },
           { view: "dashboard", selector: "#content", title: "Classe 5eme", text: "On commence par la classe 5eme.", enter: () => firstClass && openTableauClass(firstClass.id) },
           { view: "dashboard", selector: "#content", title: "Séquence", text: "Le tutoriel ouvre la première séquence de l'exemple.", enter: () => firstClass && firstSequence && openTableauSequence(firstClass.id, firstSequence.id) },
-          { view: "dashboard", selector: "#content", title: "Séance", text: "Puis la visite ouvre la première séance pour trouver ses activités.", enter: () => firstClass && firstSequence && firstLesson && openTableauLesson(firstClass.id, firstSequence.id, firstLesson.id) },
-          { view: "dashboard", selector: "#content", title: "Activité", text: "Le tutoriel ouvre maintenant l’activité exemple." },
-          { view: "classes", selector: "#content", title: "Éditeur des activités", text: "Déposez un PPTX pour importer ses diapos. Ajoutez ou collez aussi des PDF, documents LibreOffice/ODT, MP3 et vidéos. Sur le véritable espace, les formats AVI, MOV, MKV, WMV, FLV, MPEG, M4V, 3GP et TS sont convertis automatiquement en MP4 compatible. Supprimez depuis une miniature, puis utilisez Annuler/Rétablir ou Ctrl+Z pour récupérer une diapo ou un objet supprimé." },
-          { view: "dashboard", selector: "#boardPage", title: "Diapo (activité) exemple", text: "Cette activité contient un titre, une image et la vidéo déposée localement.", enter: () => firstActivity && showBoard(firstActivity.id, 0) }
+          { view: "dashboard", selector: "#content", title: "Séance", text: "Puis la visite ouvre la première séance pour trouver ses contenus.", enter: () => firstClass && firstSequence && firstLesson && openTableauLesson(firstClass.id, firstSequence.id, firstLesson.id) },
+          { view: "dashboard", selector: "#content", title: "Contenu", text: "Le tutoriel ouvre maintenant le contenu exemple." },
+          { view: "classes", selector: "#content", title: "Éditeur des contenus", text: "Déposez un PPTX pour importer ses diapos. Ajoutez ou collez aussi des PDF, documents LibreOffice/ODT, MP3 et vidéos. Sur le véritable espace, les formats AVI, MOV, MKV, WMV, FLV, MPEG, M4V, 3GP et TS sont convertis automatiquement en MP4 compatible. Supprimez depuis une miniature, puis utilisez Annuler/Rétablir ou Ctrl+Z pour récupérer une diapo ou un objet supprimé." },
+          { view: "dashboard", selector: "#boardPage", title: "Diapo (contenu) exemple", text: "Ce contenu contient un titre, une image et la vidéo déposée localement.", enter: () => firstActivity && showBoard(firstActivity.id, 0) }
         ];
         tourIndex = 0;
         tourRunning = true;
@@ -2786,7 +2786,7 @@
             <label class="label">Type <select name="type">${Object.entries(resourceTypes).map(([value, label]) => `<option value="${value}" ${item.type === value ? "selected" : ""}>${label}</option>`).join("")}</select></label>
             <label class="label">Catégorie <select name="category">${categories.map((cat) => `<option ${item.category === cat ? "selected" : ""}>${cat}</option>`).join("")}</select></label>
             ${field("url", "URL ou fichier", item.url, false, "text", "wide")}
-            ${selectField("activityId", "Lier à une activité", item.activityId || "", flat.activities, true)}
+            ${selectField("activityId", "Lier à un contenu", item.activityId || "", flat.activities, true)}
             <label class="label wide">Ajouter un fichier local <input type="file" onchange="fileToDataUrl(this.files[0])"></label>
           </div>
           <p class="small muted">Les fichiers ajoutés en HTML sont stockés dans le navigateur sous forme de données locales. Pour les gros fichiers, préférez une URL.</p>`;
@@ -2839,9 +2839,9 @@
         const activity = {
           ...createBlank("activity", { lessonId }),
           id: uid("act"),
-          title: "Nouvelle activité",
+          title: "Nouveau contenu",
           slug: slugify("nouvelle-presentation"),
-          description: "Activité à projeter.",
+          description: "Contenu à projeter.",
           objective: "",
           instruction: "",
           level: "",
@@ -2849,11 +2849,11 @@
           slides: [{ id: uid("slide"), elements: [] }]
         };
         lesson.activities.push(activity);
-        if (await saveData("Activité créée sur le serveur.")) openActivityStudio(activity.id);
+        if (await saveData("Contenu créé sur le serveur.")) openActivityStudio(activity.id);
       }
 
       function prepareLessonPptxDrop(event){ if(!canEdit()||![...(event.dataTransfer?.items||[])].some(item=>item.kind==="file"))return; event.preventDefault(); event.currentTarget.classList.add("drop-target"); }
-      async function importPptxIntoLesson(lessonId,event){ event.preventDefault(); event.currentTarget.classList.remove("drop-target"); if(!requireLogin())return; const files=[...(event.dataTransfer?.files||[])].filter(file=>/\.pptx$/i.test(file.name||"")||file.type==="application/vnd.openxmlformats-officedocument.presentationml.presentation"); if(!files.length){toast("Déposez un fichier PowerPoint au format .pptx.");return;} const lesson=findItem("lesson",lessonId), finishUploadLock=beginSaveLock(null); try { for(const file of files){ const slides=await importPptxAsSiteSlides(file); const title=String(file.name||"PowerPoint").replace(/\.pptx$/i,""); lesson.activities.push({...createBlank("activity",{lessonId}),id:uid("act"),title,slug:slugify(title),description:"Activité créée depuis un PowerPoint.",objective:"",instruction:"",level:"",resources:[],slides:slides.map(slide=>({...slide,duration:slide.duration||"5 min"}))}); } if(await saveData(`${files.length} activité(s) créée(s) depuis PowerPoint.`))render(); } catch(error){toast(`Import PowerPoint impossible : ${error.message||"erreur"}.`);} finally {finishUploadLock();} }
+      async function importPptxIntoLesson(lessonId,event){ event.preventDefault(); event.currentTarget.classList.remove("drop-target"); if(!requireLogin())return; const files=[...(event.dataTransfer?.files||[])].filter(file=>/\.pptx$/i.test(file.name||"")||file.type==="application/vnd.openxmlformats-officedocument.presentationml.presentation"); if(!files.length){toast("Déposez un fichier PowerPoint au format .pptx.");return;} const lesson=findItem("lesson",lessonId), finishUploadLock=beginSaveLock(null); try { for(const file of files){ const slides=await importPptxAsSiteSlides(file); const title=String(file.name||"PowerPoint").replace(/\.pptx$/i,""); lesson.activities.push({...createBlank("activity",{lessonId}),id:uid("act"),title,slug:slugify(title),description:"Contenu créé depuis un PowerPoint.",objective:"",instruction:"",level:"",resources:[],slides:slides.map(slide=>({...slide,duration:slide.duration||"5 min"}))}); } if(await saveData(`${files.length} contenu(s) créé(s) depuis PowerPoint.`))render(); } catch(error){toast(`Import PowerPoint impossible : ${error.message||"erreur"}.`);} finally {finishUploadLock();} }
 
       function openActivityStudio(id) {
         if (!requireLogin()) return;
@@ -2871,7 +2871,7 @@
               <div>
                 ${activityLocationBreadcrumb(result, "studio-location")}
                 <strong>${escapeHtml(activity.title)}</strong>
-                <div class="studio-note">Diapos (activités) horizontales. Les cadres pointillés indiquent ce qui sera visible au tableau.</div>
+                <div class="studio-note">Diapos (contenus) horizontales. Les cadres pointillés indiquent ce qui sera visible au tableau.</div>
                 <div class="studio-save-status" id="studioSaveStatus" role="status" hidden></div>
               </div>
               <div class="studio-actions">
@@ -2901,7 +2901,7 @@
                 <div id="studioGeneralActions" class="studio-general-actions">
                 <button class="btn" onclick="renameActivity('${activity.id}')">Titre</button>
                 <button class="btn" onclick="renameStudioSlideInstruction('${activity.id}')">Consigne diapo</button>
-                <button class="btn" onclick="addSlide('${activity.id}')">+ Diapo (activité)</button>
+                <button class="btn" onclick="addSlide('${activity.id}')">+ Diapo (contenu)</button>
                 <button class="btn" id="studioUndoBtn" onclick="undoStudioChange('${activity.id}')" ${studioUndoStack.length?"":"disabled"}>↶ Annuler</button>
                 <button class="btn" id="studioRedoBtn" onclick="redoStudioChange('${activity.id}')" ${studioRedoStack.length?"":"disabled"}>↷ Rétablir</button>
                 <button class="btn danger" onclick="deleteStudioSlide('${activity.id}',currentStudioSlideIndex,event)" ${activity.slides.length>1?"":"disabled"}>Suppr. diapo</button>
@@ -2924,7 +2924,7 @@
               </div>
             </header>
             <div class="studio-workspace">
-              <div class="studio-sidebar"><aside class="slide-thumbnails" aria-label="Miniatures des diapos">${activity.slides.map((slide, index) => renderSlideThumbnail(slide, index)).join("")}</aside><div class="studio-activity-content"><span>Contenu de l’activité</span><strong>${escapeHtml(activity.instruction || activity.objective || activity.description || "Aucun contenu renseigné")}</strong></div></div>
+              <div class="studio-sidebar"><aside class="slide-thumbnails" aria-label="Miniatures des diapos">${activity.slides.map((slide, index) => renderSlideThumbnail(slide, index)).join("")}</aside><div class="studio-activity-content"><span>Informations du contenu</span><strong>${escapeHtml(activity.instruction || activity.objective || activity.description || "Aucun contenu renseigné")}</strong></div></div>
               <div class="slide-world">
               <div class="slide-strip" id="slideStrip" style="height:${stripHeight}px">
                 ${activity.slides.map((slide, index) => renderStudioSlide(slide, index)).join("")}
@@ -2946,7 +2946,7 @@
       }
 
       function slideInstruction(slide, index) {
-        return String(slide?.instruction || "").trim() || `Consigne de l’activité ${index + 1}`;
+        return String(slide?.instruction || "").trim() || `Consigne du contenu ${index + 1}`;
       }
 
       function seatingPlanFor(group) {
@@ -2993,7 +2993,7 @@
       function recordStudioHistory(activityId){ const snapshot=captureStudioSlides(activityId); if(!snapshot?.length)return; studioUndoStack.push(snapshot); if(studioUndoStack.length>30)studioUndoStack.shift(); studioRedoStack=[]; updateStudioHistoryButtons(); }
       async function undoStudioChange(activityId){ if(!studioUndoStack.length)return; const activity=findItem("activity",activityId);studioRedoStack.push(captureStudioSlides(activityId));activity.slides=cloneStudioSlides(studioUndoStack.pop());const selected=Math.min(currentStudioSlideIndex,activity.slides.length-1);await saveData("Modification annulée.");openActivityStudio(activityId);currentStudioSlideIndex=selected;selectStudioSlide(selected);updateStudioHistoryButtons(); }
       async function redoStudioChange(activityId){ if(!studioRedoStack.length)return; const activity=findItem("activity",activityId);studioUndoStack.push(captureStudioSlides(activityId));activity.slides=cloneStudioSlides(studioRedoStack.pop());const selected=Math.min(currentStudioSlideIndex,activity.slides.length-1);await saveData("Modification rétablie.");openActivityStudio(activityId);currentStudioSlideIndex=selected;selectStudioSlide(selected);updateStudioHistoryButtons(); }
-      function deleteStudioSlide(activityId,index,event){ event?.stopPropagation(); const activity=findItem("activity",activityId),slides=captureStudioSlides(activityId);if(!activity||slides.length<=1){toast("Une activité doit garder au moins une diapo.");return;}recordStudioHistory(activityId);slides.splice(index,1);activity.slides=slides;const selected=Math.max(0,Math.min(index,slides.length-1));openActivityStudio(activityId);currentStudioSlideIndex=selected;selectStudioSlide(selected);updateStudioHistoryButtons(); }
+      function deleteStudioSlide(activityId,index,event){ event?.stopPropagation(); const activity=findItem("activity",activityId),slides=captureStudioSlides(activityId);if(!activity||slides.length<=1){toast("Un contenu doit garder au moins une diapo.");return;}recordStudioHistory(activityId);slides.splice(index,1);activity.slides=slides;const selected=Math.max(0,Math.min(index,slides.length-1));openActivityStudio(activityId);currentStudioSlideIndex=selected;selectStudioSlide(selected);updateStudioHistoryButtons(); }
 
       function startStudioSlideReorder(index,event){ event.dataTransfer.effectAllowed="move"; event.dataTransfer.setData("application/x-studio-slide",String(index)); event.currentTarget.classList.add("dragging"); }
       function clearStudioSlideDropTargets(){ document.querySelectorAll(".slide-thumbnail").forEach(node=>node.classList.remove("dragging","drop-target")); }
@@ -3829,7 +3829,7 @@
 
       async function renameActivity(activityId) {
         const activity = findItem("activity", activityId);
-        const title = prompt("Titre de l’activité", activity.title);
+        const title = prompt("Titre du contenu", activity.title);
         if (!title) return;
         activity.title = title.trim();
         activity.slug = slugify(activity.title);
@@ -3837,7 +3837,7 @@
         if (await saveData("Titre enregistré sur le serveur.")) openActivityStudio(activityId);
       }
 
-      async function saveStudio(activityId, close = false, triggerButton = null, refreshStudio = true, successMessage = "Activité enregistrée sur le serveur.") {
+      async function saveStudio(activityId, close = false, triggerButton = null, refreshStudio = true, successMessage = "Contenu enregistré sur le serveur.") {
         const selectedIndex = currentStudioSlideIndex;
         const pageScroll = { x: window.scrollX, y: window.scrollY };
         const studioScroll = document.querySelector(".studio")?.scrollTop || 0;
@@ -3877,7 +3877,7 @@
           });
           const status = document.querySelector("#studioSaveStatus");
           if (status) {
-            status.textContent = "Activité enregistrée sur le serveur.";
+            status.textContent = "Contenu enregistré sur le serveur.";
             status.className = "studio-save-status success";
             status.hidden = false;
           }
@@ -4212,7 +4212,7 @@
       }
 
       function labelType(type) {
-        return { class: "Classe", studentClass: "Groupes Classes", sequence: "Séquence", lesson: "Séance", activity: "Activités", resource: "Ressource" }[type] || type;
+        return { class: "Classe", studentClass: "Groupes Classes", sequence: "Séquence", lesson: "Séance", activity: "Contenus", resource: "Ressource" }[type] || type;
       }
 
       function showBoard(id, slideIndex = 0) {
@@ -4494,7 +4494,7 @@
             <article class="printable-lesson word-multi-preview" id="lessonPrintPreview">
               ${activities.map((activity, activityIndex) => `<section class="print-lesson-activity">
                 ${(activity.slides || []).map((slide, index) => renderPrintableSlide(activity, slide, index, true)).join("")}
-              </section>`).join("") || empty("Cette séance ne contient aucune activité.")}
+              </section>`).join("") || empty("Cette séance ne contient aucun contenu.")}
             </article>
           </div>
         </section>`;
@@ -4876,7 +4876,7 @@
       }
 
       async function activityDocxParagraphs(activity, activityIndex = 0, media = [], embedMedia = true) {
-        const paragraphs = [docxParagraph(`Activité ${activityIndex + 1} — ${activity.title || "Sans titre"}`, true, 28), docxParagraph(activity.description || "", false, 20), docxParagraph(activity.objective ? `Objectif : ${activity.objective}` : "", true, 20), docxParagraph(activity.instruction ? `Consigne : ${activity.instruction}` : "", false, 20)];
+        const paragraphs = [docxParagraph(`Contenu ${activityIndex + 1} — ${activity.title || "Sans titre"}`, true, 28), docxParagraph(activity.description || "", false, 20), docxParagraph(activity.objective ? `Objectif : ${activity.objective}` : "", true, 20), docxParagraph(activity.instruction ? `Consigne : ${activity.instruction}` : "", false, 20)];
         for (const [index, slide] of (activity.slides || []).entries()) {
           paragraphs.push(docxParagraph(slideInstruction(slide,index), true, 24));
           for (const element of elementsForBoardSlide(activity,index).sort((a,b) => Number(a.y||0)-Number(b.y||0))) {
@@ -4939,7 +4939,7 @@
 
       function makeActivityDocx({ activity, lesson, sequence, classe }) {
         const paragraphs = [
-          docxParagraph(activity.title || "Activité", true, 36),
+          docxParagraph(activity.title || "Contenu", true, 36),
           docxParagraph(`${classe.title} · ${sequence.title} · ${lesson.title}`, false, 20),
           docxParagraph(activity.description || "", false, 22),
           docxParagraph(activity.objective ? `Objectif : ${activity.objective}` : "", true, 22),

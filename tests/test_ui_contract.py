@@ -109,7 +109,7 @@ def test_les_entrees_de_gauche_reutilisent_leur_onglet_existant() -> None:
     assert "target.focus();" in APP_JS
 
 
-def test_les_activites_ont_un_apercu_impression_et_un_export_word() -> None:
+def test_les_contenus_ont_un_apercu_impression_et_un_export_word() -> None:
     assert "Aperçu / imprimer" in APP_JS
     assert "function openActivityPrintPreview(activityId)" in APP_JS
     assert "async function exportActivityWord(activityId" in APP_JS
@@ -366,7 +366,7 @@ def test_export_pptx_embarque_les_medias_et_produit_un_zip_windows_valide() -> N
 def test_studio_confirme_visiblement_la_sauvegarde_et_recharge_les_medias() -> None:
     assert "saveStudio('${activity.id}',false,this)" in APP_JS
     assert 'id="studioSaveStatus" role="status"' in APP_JS
-    assert "Activité enregistrée sur le serveur." in APP_JS
+    assert "Contenu enregistré sur le serveur." in APP_JS
     assert "const savedWorkspace = await operation;" in APP_JS
     assert "state = confirmedState;" in APP_JS
     assert "const uploaded = await window.ServerAPI.upload(file);" in APP_JS
@@ -552,7 +552,7 @@ def test_recherche_globale_accepte_fragments_accents_et_tout_le_contenu() -> Non
     assert 'replace(/[\\u0300-\\u036f]/g, "")' in APP_JS
     assert "entry.searchable.includes(q)" in APP_JS
     assert "searchTextFrom(data)" in APP_JS
-    for entity in ("Classe", "Séquence", "Séance", "Activité", "Ressource"):
+    for entity in ("Classe", "Séquence", "Séance", "Contenu", "Ressource"):
         assert f'"{entity}"' in APP_JS
     assert 'button.closest(".sidebar")' in APP_JS
 def test_import_pptx_devient_des_diapos_natives_du_site() -> None:
@@ -610,7 +610,7 @@ def test_serveur_accepte_les_formats_opendocument_du_selecteur() -> None:
         assert f'"{extension}": "{mime_type}"' in storage
         assert f'"{mime_type}"' in storage
     assert "extension in OPENDOCUMENT_MIME_BY_EXTENSION" in storage
-    assert "espace-prof-83" in INDEX
+    assert "espace-prof-84" in INDEX
     assert "Précédent" in APP_JS
     assert "Suivant" in APP_JS
     assert "setTimeout(startFreeExampleTutorial, 250);" in APP_JS
@@ -693,7 +693,7 @@ def test_objets_interdiapos_et_documents_manipulables() -> None:
     assert "selectStudioSlide(destination)" in APP_JS
     assert "hydrateDocumentPreviews();" in APP_JS
     assert "Temps prévu" in APP_JS
-    assert "Contenu de l’activité" in APP_JS
+    assert "Informations du contenu" in APP_JS
     assert "plain-document-preview" in APP_JS
     assert "sheet-preview" in APP_JS
     assert ".slide-frame.drop-target" in STYLES
@@ -720,7 +720,7 @@ def test_plan_de_classe_style_cinema_et_emploi_du_temps_lycee() -> None:
     assert 'aria-label="Emploi du temps du lundi au vendredi"' in APP_JS
     assert ".timetable-course" in STYLES
     assert "assets/styles.css?v=espace-prof-50" in INDEX
-    assert "assets/app.js?v=espace-prof-83" in INDEX
+    assert "assets/app.js?v=espace-prof-84" in INDEX
     assert "assets/api-client.js?v=espace-prof-6" in INDEX
 
 
