@@ -587,7 +587,7 @@ def test_export_impression_et_documents_libreoffice() -> None:
     assert 'value="portrait">Portrait' in APP_JS
     assert 'value="landscape">Paysage' in APP_JS
     assert "composePortraitWordSheet" in APP_JS
-    assert "espace-prof-49" in INDEX
+    assert "espace-prof-50" in INDEX
 
 
 def test_diapos_affichent_classe_sequence_et_seance() -> None:
@@ -719,7 +719,7 @@ def test_plan_de_classe_style_cinema_et_emploi_du_temps_lycee() -> None:
     assert '["lundi", "mardi", "mercredi", "jeudi", "vendredi"]' in APP_JS
     assert 'aria-label="Emploi du temps du lundi au vendredi"' in APP_JS
     assert ".timetable-course" in STYLES
-    assert "assets/styles.css?v=espace-prof-49" in INDEX
+    assert "assets/styles.css?v=espace-prof-50" in INDEX
     assert "assets/app.js?v=espace-prof-82" in INDEX
     assert "assets/api-client.js?v=espace-prof-6" in INDEX
 
