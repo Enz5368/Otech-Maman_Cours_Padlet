@@ -124,3 +124,86 @@ test('other explicit workspace saves are not silently suppressed by a studio ses
   assert.equal(await h.context.saveData('Save'), true);
   assert.equal(h.counters.requests, 1);
 });
+
+function setupViewport() {
+  const h = setup();
+  const c = h.context;
+  c.state.activities[0].slides = Array.from({length: 6}, (_, i) => ({id: `s${i}`, elements: []}));
+  h.frames.splice(0, h.frames.length, ...c.state.activities[0].slides.map(slide => ({dataset: {slideId: slide.id}})));
+  const selectors = ['#editorModal', '.studio', '.studio-workspace', '.slide-world', '.slide-thumbnails'];
+  const nodes = Object.fromEntries(selectors.map(selector => [selector, {
+    scrollTop: 0, scrollLeft: 0,
+    scrollTo({top, left}) {this.scrollTop = top; this.scrollLeft = left;},
+  }]));
+  Object.assign(h.modal, nodes['#editorModal']);
+  nodes['#editorModal'] = h.modal;
+  nodes['.studio'].dataset = {activityId: 'activity'};
+  h.modal.querySelector = () => nodes['.studio'];
+  Object.defineProperty(h.modal, 'innerHTML', {set() {
+    Object.values(nodes).forEach(node => {node.scrollTop = 0; node.scrollLeft = 0;});
+  }});
+  c.document.querySelector = selector => nodes[selector] || null;
+  c.window.scrollX = 12;
+  c.window.scrollY = 200;
+  c.window.scrollTo = ({left, top}) => {c.window.scrollX = left; c.window.scrollY = top;};
+  Object.assign(c, {
+    currentStudioSlideIndex: 3, studioHistoryActivityId: 'activity', studioUndoStack: [], studioRedoStack: [],
+    slideSize: {width: 960, height: 540, gap: 36}, requireLogin: () => true,
+    findActivity: () => ({activity: c.state.activities[0]}), ensureActivitySlides: activity => activity,
+    activityLocationBreadcrumb: () => '', escapeHtml: value => value, escapeAttr: value => value,
+    renderSlideThumbnail: () => '', renderStudioSlide: () => '', renderStudioElement: () => '',
+    initStudioDrag() {}, initStudioCanvasInput() {}, initStudioTextToolbarVisibility() {},
+    hydrateDocumentPreviews() {}, updateStudioHistoryButtons() {},
+    selectStudioSlide: index => {c.currentStudioSlideIndex = index;},
+    prompt: () => 'Updated', slugify: value => value,
+    slideInstruction: () => '', clearStudioSlideDropTargets() {},
+  });
+  for (const name of ['captureStudioViewport', 'restoreStudioViewport', 'openActivityStudio', 'recordStudioHistory',
+    'toggleStudioSlideInstruction', 'renameStudioSlideInstruction', 'renameActivity', 'undoStudioChange',
+    'redoStudioChange', 'addSlide', 'deleteStudioSlide', 'moveStudioSlideBy', 'reorderStudioSlide']) {
+    vm.runInContext(functionSource(name), c);
+  }
+  nodes['.slide-world'].scrollTop = 1734;
+  nodes['.slide-world'].scrollLeft = 85;
+  nodes['.slide-thumbnails'].scrollTop = 250;
+  return {...h, nodes};
+}
+
+test('show/hide instruction and renaming preserve active slide and exact viewport', async () => {
+  const h = setupViewport();
+  for (const action of ['toggleStudioSlideInstruction', 'toggleStudioSlideInstruction', 'renameStudioSlideInstruction', 'renameActivity']) {
+    await h.context[action]('activity');
+    assert.equal(h.context.currentStudioSlideIndex, 3, action);
+    assert.equal(h.nodes['.slide-world'].scrollTop, 1734, action);
+    assert.equal(h.nodes['.slide-world'].scrollLeft, 85, action);
+    assert.equal(h.nodes['.slide-thumbnails'].scrollTop, 250, action);
+    assert.equal(h.context.window.scrollY, 200, action);
+  }
+  assert.equal(h.counters.requests, 0);
+});
+
+test('history, add, delete and reorder actions preserve viewport after rebuilding', async () => {
+  for (const action of ['undo', 'redo', 'add', 'delete', 'move', 'drag']) {
+    const h = setupViewport();
+    const c = h.context;
+    c.studioUndoStack.push(c.captureStudioSlides('activity'));
+    c.studioRedoStack.push(c.captureStudioSlides('activity'));
+    if (action === 'undo') await c.undoStudioChange('activity');
+    if (action === 'redo') await c.redoStudioChange('activity');
+    if (action === 'add') c.addSlide('activity');
+    if (action === 'delete') c.deleteStudioSlide('activity', 3);
+    if (action === 'move') await c.moveStudioSlideBy(3, 1);
+    if (action === 'drag') await c.reorderStudioSlide(4, {preventDefault() {}, dataTransfer: {getData: () => '3'}});
+    assert.equal(h.nodes['.slide-world'].scrollTop, 1734, action);
+    assert.equal(h.nodes['.slide-world'].scrollLeft, 85, action);
+    assert.equal(h.nodes['.slide-thumbnails'].scrollTop, 250, action);
+    assert.equal(h.counters.requests, 0, action);
+  }
+});
+
+test('opening a different activity or a closed editor does not reuse another viewport', () => {
+  const h = setupViewport();
+  assert.equal(h.context.captureStudioViewport('another'), null);
+  h.modal.hidden = true;
+  assert.equal(h.context.captureStudioViewport('activity'), null);
+});

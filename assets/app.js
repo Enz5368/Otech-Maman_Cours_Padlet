@@ -3068,13 +3068,37 @@
       function prepareLessonPptxDrop(event){ if(!canEdit()||![...(event.dataTransfer?.items||[])].some(item=>item.kind==="file"))return; event.preventDefault(); event.currentTarget.classList.add("drop-target"); }
       async function importPptxIntoLesson(lessonId,event){ event.preventDefault(); event.currentTarget.classList.remove("drop-target"); if(!requireLogin())return; const files=[...(event.dataTransfer?.files||[])].filter(file=>/\.pptx$/i.test(file.name||"")||file.type==="application/vnd.openxmlformats-officedocument.presentationml.presentation"); if(!files.length){toast("Déposez un fichier PowerPoint au format .pptx.");return;} const lesson=findItem("lesson",lessonId), finishUploadLock=beginSaveLock(null); try { for(const file of files){ const slides=await importPptxAsSiteSlides(file); const title=String(file.name||"PowerPoint").replace(/\.pptx$/i,""); lesson.activities.push({...createBlank("activity",{lessonId}),id:uid("act"),title,slug:slugify(title),description:"Contenu créé depuis un PowerPoint.",objective:"",instruction:"",level:"",resources:[],slides:slides.map(slide=>({...slide,duration:slide.duration||"5 min"}))}); } if(await saveData(`${files.length} contenu(s) créé(s) depuis PowerPoint.`))render(); } catch(error){toast(`Import PowerPoint impossible : ${error.message||"erreur"}.`);} finally {finishUploadLock();} }
 
+      function captureStudioViewport(id) {
+        const modal = document.querySelector("#editorModal");
+        const studio = modal?.querySelector(".studio");
+        if (modal?.hidden || studio?.dataset.activityId !== id) return null;
+        return {
+          index: currentStudioSlideIndex,
+          x: window.scrollX,
+          y: window.scrollY,
+          scrolls: ["#editorModal", ".studio", ".studio-workspace", ".slide-world", ".slide-thumbnails"].map((selector) => {
+            const node = document.querySelector(selector);
+            return { selector, top: node?.scrollTop || 0, left: node?.scrollLeft || 0 };
+          })
+        };
+      }
+
+      function restoreStudioViewport(viewport) {
+        if (!viewport) return;
+        window.scrollTo({ left: viewport.x, top: viewport.y, behavior: "instant" });
+        viewport.scrolls.forEach(({ selector, top, left }) => {
+          document.querySelector(selector)?.scrollTo({ top, left, behavior: "instant" });
+        });
+      }
+
       function openActivityStudio(id) {
         if (!requireLogin()) return;
         const result = findActivity(id);
         if (!result) return;
+        const viewport = captureStudioViewport(id);
         const activity = ensureActivitySlides(result.activity);
         if(studioHistoryActivityId!==id){studioHistoryActivityId=id;studioUndoStack=[];studioRedoStack=[];}
-        currentStudioSlideIndex = 0;
+        currentStudioSlideIndex = Math.max(0, Math.min(viewport?.index || 0, activity.slides.length - 1));
         const stripHeight = activity.slides.length * slideSize.height + Math.max(0, activity.slides.length - 1) * slideSize.gap;
         const modal = document.querySelector("#editorModal");
         modal.hidden = false;
@@ -3152,6 +3176,7 @@
         initStudioCanvasInput();
         initStudioTextToolbarVisibility();
         hydrateDocumentPreviews();
+        restoreStudioViewport(viewport);
         if (!studioSavedSnapshot || studioSavedSnapshot.id !== id) {
           studioSavedSnapshot = { id, content: "" };
           studioSavedSnapshot.content = studioSnapshot();
@@ -3231,7 +3256,6 @@
         openActivityStudio(activity.id);
         currentStudioSlideIndex = targetIndex;
         selectStudioSlide(targetIndex);
-        document.querySelector(`.slide-thumbnail[data-index="${targetIndex}"]`)?.scrollIntoView({block:"nearest"});
       }
 
       async function reorderStudioSlide(targetIndex, event) {
@@ -3327,7 +3351,7 @@
         document.querySelectorAll(".studio .slide-el.selected").forEach((item) => item.classList.remove("selected"));
         node?.classList.add("selected");
         fitStudioText(node);
-        node?.querySelector(".slide-text")?.focus();
+        node?.querySelector(".slide-text")?.focus({ preventScroll: true });
       }
 
       async function insertStudioClipboardImage(file, slideIndex, x = 100, y = 90) {
