@@ -368,9 +368,9 @@ def test_export_pptx_embarque_les_medias_et_produit_un_zip_windows_valide() -> N
 
 
 def test_studio_confirme_visiblement_la_sauvegarde_et_recharge_les_medias() -> None:
-    assert "saveStudio('${activity.id}',false,this,false,undefined,true)" in APP_JS
+    assert "saveStudio('${activity.id}',false,this)" in APP_JS
     assert 'id="studioSaveStatus" role="status"' in APP_JS
-    assert "Contenu enregistré sur le serveur." in APP_JS
+    assert 'status.className = `studio-save-status ${saved ? "success" : "error"}`' in APP_JS
     assert "const savedWorkspace = await operation;" in APP_JS
     assert "state = confirmedState;" in APP_JS
     assert "const uploaded = await window.ServerAPI.upload(file);" in APP_JS
@@ -545,13 +545,10 @@ def test_importe_une_sequence_ou_une_seance_complete() -> None:
 
 
 def test_enregistrement_du_studio_conserve_la_position() -> None:
-    assert "const pageScroll = { x: window.scrollX, y: window.scrollY };" in APP_JS
-    assert "window.scrollTo(pageScroll.x, pageScroll.y);" in APP_JS
-    save_studio = APP_JS.split("async function saveStudio(", 1)[1].split("return saved;", 1)[0]
-    assert '".slide-world", ".slide-thumbnails"' in save_studio
-    assert "node.scrollTop = top;" in save_studio
-    assert "node.scrollLeft = left;" in save_studio
+    save_studio = APP_JS.split("async function saveStudio(", 1)[1].split("function readSlideElement", 1)[0]
+    assert "openActivityStudio(" not in save_studio
     assert "scrollIntoView" not in save_studio
+    assert "await saveData(undefined, triggerButton, true)" in save_studio
 
 
 def test_apercu_word_permet_demi_page_portrait_ou_page_paysage() -> None:
@@ -649,7 +646,7 @@ def test_serveur_accepte_les_formats_opendocument_du_selecteur() -> None:
         assert f'"{extension}": "{mime_type}"' in storage
         assert f'"{mime_type}"' in storage
     assert "extension in OPENDOCUMENT_MIME_BY_EXTENSION" in storage
-    assert "espace-prof-96" in INDEX
+    assert "espace-prof-97" in INDEX
     assert "Précédent" in APP_JS
     assert "Suivant" in APP_JS
     assert "setTimeout(startFreeExampleTutorial, 250);" in APP_JS
@@ -723,7 +720,7 @@ def test_consigne_de_diapo_est_modifiable_et_conservee() -> None:
     assert "function renameStudioSlideInstruction(" in APP_JS
     assert ">Consigne diapo</button>" in APP_JS
     assert 'instruction:saved?.instruction||""' in APP_JS
-    assert 'instruction: previousSlides.find(item=>item.id===slide.dataset.slideId)?.instruction || ""' in APP_JS
+    assert "activity.slides = captureStudioSlides(activityId);" in APP_JS
     assert "escapeHtml(slideInstruction(slide,index))" in APP_JS
     assert 'class="board-slide-instruction"' in APP_JS
     assert ".board-slide-instruction" in STYLES
@@ -733,7 +730,7 @@ def test_consigne_de_diapo_est_masquable_et_reaffichable() -> None:
     assert "function toggleStudioSlideInstruction(" in APP_JS
     assert 'id="studioInstructionToggleBtn"' in APP_JS
     assert 'showInstruction:saved?.showInstruction!==false' in APP_JS
-    assert 'showInstruction: previousSlides.find(item=>item.id===slide.dataset.slideId)?.showInstruction !== false' in APP_JS
+    assert "activity.slides = captureStudioSlides(activityId);" in APP_JS
     assert "Afficher consigne" in APP_JS and "Masquer consigne" in APP_JS
     assert ".slide-frame.instruction-hidden::before" in STYLES
 
@@ -770,7 +767,7 @@ def test_plan_de_classe_style_cinema_et_emploi_du_temps_lycee() -> None:
     assert 'aria-label="Emploi du temps du lundi au vendredi"' in APP_JS
     assert ".timetable-course" in STYLES
     assert "assets/styles.css?v=espace-prof-55" in INDEX
-    assert "assets/app.js?v=espace-prof-96" in INDEX
+    assert "assets/app.js?v=espace-prof-97" in INDEX
     assert "assets/api-client.js?v=espace-prof-6" in INDEX
 
 
@@ -860,16 +857,16 @@ def test_removed_wikimedia_photo_is_repaired_in_seed_and_saved_workspaces() -> N
     assert "repairKnownBrokenImageUrls(data);" in APP_JS
 
 
-def test_suppression_objet_studio_est_enregistree_immediatement() -> None:
+def test_suppression_objet_studio_reste_en_attente_enregistrement() -> None:
     selected_delete = APP_JS.split("async function deleteSelectedElement()", 1)[1].split(
         "async function deleteStudioElement", 1
     )[0]
     direct_delete = APP_JS.split("async function deleteStudioElement", 1)[1].split(
         "async function saveEditor", 1
     )[0]
-    assert "await saveStudio(activityId" in selected_delete
-    assert "await saveStudio(activityId" in direct_delete
-    assert "Objet supprimé et enregistré." in selected_delete
+    assert "stageStudioChanges(activityId)" in selected_delete
+    assert "stageStudioChanges(activityId)" in direct_delete
+    assert "saveStudio(" not in selected_delete + direct_delete
 
 
 def test_schedule_precedes_pronote_in_sidebar() -> None:

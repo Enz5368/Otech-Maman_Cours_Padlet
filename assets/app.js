@@ -54,6 +54,7 @@
       let currentTableauPage = { type: "classes" };
       let currentStudioSlideIndex = 0;
       let studioSavedSnapshot = null;
+      let studioSavePending = false;
       let studioHistoryActivityId = "";
       let studioUndoStack = [];
       let studioRedoStack = [];
@@ -499,14 +500,13 @@
       }
 
       async function saveData(message, triggerButton, explicitStudioSave = false) {
-        if (studioSavedSnapshot && !explicitStudioSave) return true;
         if (!freeExampleOpen) {
           localStorage.setItem(currentCacheKey(), JSON.stringify({ ...state, cachedAt: new Date().toISOString() }));
         }
         if (!usesServerStorage()) {
           markStateConfirmed();
           if (message) toast(freeExampleOpen ? "Modification appliquée pour cette visite uniquement." : message);
-          render();
+          if (!explicitStudioSave) render();
           return true;
         }
         const finishSaveLock = beginSaveLock(triggerButton);
@@ -522,14 +522,14 @@
           state = confirmedState;
           markStateConfirmed(confirmedState);
           localStorage.setItem(currentCacheKey(), JSON.stringify({ ...confirmedState, cachedAt: new Date().toISOString() }));
-          render();
+          if (!explicitStudioSave) render();
           toast(message || "Enregistrement terminé.");
           return true;
         } catch (error) {
           console.error("Échec de la sauvegarde serveur", error);
-          state = JSON.parse(JSON.stringify(lastConfirmedState));
+          if (!explicitStudioSave) state = JSON.parse(JSON.stringify(lastConfirmedState));
           localStorage.setItem(currentCacheKey(), JSON.stringify({ ...state, cachedAt: new Date().toISOString() }));
-          render();
+          if (!explicitStudioSave) render();
           toast(`Enregistrement impossible : ${error.message || "erreur serveur"}. La modification n'a pas été appliquée.`);
           return false;
         } finally {
@@ -2954,8 +2954,8 @@
 
       async function closeEditor() {
         if (studioHasChanges()) {
-          if (!confirm("Enregistrer les modifications avant de fermer ? Annuler pour continuer ? modifier.")) return;
-          if (!await saveStudio(studioSavedSnapshot.id, false, null, false, "Contenu enregistr? sur le serveur.", true)) return;
+          if (!confirm("Enregistrer les modifications avant de fermer ? Annuler pour continuer à modifier.")) return;
+          if (!await saveStudio(studioSavedSnapshot.id)) return;
         }
         studioSavedSnapshot = null;
         document.querySelector("#editorModal").hidden = true;
@@ -3130,7 +3130,7 @@
                   <button class="btn studio-tool-button studio-timer-button" onclick="addToolElement('${activity.id}','timer')">+ Chrono</button>
                 </div>
                 <button class="btn danger" data-tour="studio-delete-object" onclick="deleteSelectedElement()">Suppr. objet</button>
-                <button class="btn primary" data-tour="studio-save" onclick="saveStudio('${activity.id}',false,this,false,undefined,true)">Enregistrer</button>
+                <button class="btn primary" data-tour="studio-save" onclick="saveStudio('${activity.id}',false,this)">Enregistrer</button>
                 <button class="btn" data-tour="studio-present" onclick="showBoard('${activity.id}',0)">Présenter</button>
                 <button class="btn" data-tour="studio-word" onclick="previewStudioActivity('${activity.id}',this)">Imprimer / Word</button>
                 <button class="btn primary" data-tour="studio-close" onclick="closeEditor()">Fermer</button>
@@ -3206,11 +3206,11 @@
       function updateSlideDuration(index,value){ const activity=findItem("activity",document.querySelector(".studio")?.dataset.activityId); if(activity?.slides[index]) activity.slides[index].duration=String(value||"").trim()||"5 min"; }
 
       function cloneStudioSlides(slides){ return JSON.parse(JSON.stringify(slides||[])); }
-      function captureStudioSlides(activityId){ const activity=findItem("activity",activityId); const frames=[...document.querySelectorAll(`.studio[data-activity-id="${activityId}"] .slide-frame`)]; if(!frames.length)return deduplicateSlideElements(cloneStudioSlides(activity?.slides)); const previous=activity?.slides||[], slides=frames.map(frame=>{const saved=previous.find(slide=>slide.id===frame.dataset.slideId);return {id:frame.dataset.slideId||uid("slide"),duration:saved?.duration||"5 min",instruction:saved?.instruction||"",showInstruction:saved?.showInstruction!==false,elements:[]};}); [...document.querySelectorAll(`.studio[data-activity-id="${activityId}"] .slide-el`)].map(readSlideElement).forEach(element=>{const target=slides[element.slideIndex]||slides[0],clean={...element};delete clean.slideIndex;target.elements.push(clean);}); return deduplicateSlideElements(slides); }
+      function captureStudioSlides(activityId){ const activity=findItem("activity",activityId); const frames=[...document.querySelectorAll(`.studio[data-activity-id="${activityId}"] .slide-frame`)]; if(!frames.length)return deduplicateSlideElements(cloneStudioSlides(activity?.slides)); const previous=activity?.slides||[], slides=frames.map(frame=>{const saved=previous.find(slide=>slide.id===frame.dataset.slideId);return {...saved,id:frame.dataset.slideId||uid("slide"),duration:saved?.duration||"5 min",instruction:saved?.instruction||"",showInstruction:saved?.showInstruction!==false,elements:[]};}); [...document.querySelectorAll(`.studio[data-activity-id="${activityId}"] .slide-el`)].map(readSlideElement).forEach(element=>{const target=slides[element.slideIndex]||slides[0],clean={...element};delete clean.slideIndex;target.elements.push(clean);}); return deduplicateSlideElements(slides); }
       function updateStudioHistoryButtons(){ const undo=document.querySelector("#studioUndoBtn"),redo=document.querySelector("#studioRedoBtn");if(undo)undo.disabled=!studioUndoStack.length;if(redo)redo.disabled=!studioRedoStack.length; }
       function recordStudioHistory(activityId){ const snapshot=captureStudioSlides(activityId); if(!snapshot?.length)return; studioUndoStack.push(snapshot); if(studioUndoStack.length>30)studioUndoStack.shift(); studioRedoStack=[]; updateStudioHistoryButtons(); }
-      async function undoStudioChange(activityId){ if(!studioUndoStack.length)return; const activity=findItem("activity",activityId);studioRedoStack.push(captureStudioSlides(activityId));activity.slides=cloneStudioSlides(studioUndoStack.pop());const selected=Math.min(currentStudioSlideIndex,activity.slides.length-1);await saveData("Modification annulée.");openActivityStudio(activityId);currentStudioSlideIndex=selected;selectStudioSlide(selected);updateStudioHistoryButtons(); }
-      async function redoStudioChange(activityId){ if(!studioRedoStack.length)return; const activity=findItem("activity",activityId);studioUndoStack.push(captureStudioSlides(activityId));activity.slides=cloneStudioSlides(studioRedoStack.pop());const selected=Math.min(currentStudioSlideIndex,activity.slides.length-1);await saveData("Modification rétablie.");openActivityStudio(activityId);currentStudioSlideIndex=selected;selectStudioSlide(selected);updateStudioHistoryButtons(); }
+      async function undoStudioChange(activityId){ if(!studioUndoStack.length)return; const activity=findItem("activity",activityId);studioRedoStack.push(captureStudioSlides(activityId));activity.slides=cloneStudioSlides(studioUndoStack.pop());const selected=Math.min(currentStudioSlideIndex,activity.slides.length-1);openActivityStudio(activityId);currentStudioSlideIndex=selected;selectStudioSlide(selected);updateStudioHistoryButtons(); }
+      async function redoStudioChange(activityId){ if(!studioRedoStack.length)return; const activity=findItem("activity",activityId);studioUndoStack.push(captureStudioSlides(activityId));activity.slides=cloneStudioSlides(studioRedoStack.pop());const selected=Math.min(currentStudioSlideIndex,activity.slides.length-1);openActivityStudio(activityId);currentStudioSlideIndex=selected;selectStudioSlide(selected);updateStudioHistoryButtons(); }
       function deleteStudioSlide(activityId,index,event){ event?.stopPropagation(); const activity=findItem("activity",activityId),slides=captureStudioSlides(activityId);if(!activity||slides.length<=1){toast("Un contenu doit garder au moins une diapo.");return;}recordStudioHistory(activityId);slides.splice(index,1);activity.slides=slides;const selected=Math.max(0,Math.min(index,slides.length-1));openActivityStudio(activityId);currentStudioSlideIndex=selected;selectStudioSlide(selected);updateStudioHistoryButtons(); }
 
       function startStudioSlideReorder(index,event){ event.dataTransfer.effectAllowed="move"; event.dataTransfer.setData("application/x-studio-slide",String(index)); event.currentTarget.classList.add("dragging"); }
@@ -3227,7 +3227,7 @@
         const [slide] = slides.splice(sourceIndex, 1);
         slides.splice(targetIndex, 0, slide);
         activity.slides = slides;
-        if (!await saveData("Ordre des diapos mis à jour.")) return;
+
         openActivityStudio(activity.id);
         currentStudioSlideIndex = targetIndex;
         selectStudioSlide(targetIndex);
@@ -3241,10 +3241,10 @@
         if (!Number.isInteger(sourceIndex) || sourceIndex === targetIndex) return;
         const activity = findItem("activity", document.querySelector(".studio")?.dataset.activityId);
         recordStudioHistory(activity?.id);
-        if (!activity || !await saveStudio(activity.id, false, null, false)) return;
+        if (!activity || !stageStudioChanges(activity.id)) return;
         const [slide] = activity.slides.splice(sourceIndex, 1);
         activity.slides.splice(targetIndex, 0, slide);
-        await saveData("Ordre des diapos mis à jour.");
+
         openActivityStudio(activity.id);
         currentStudioSlideIndex = targetIndex;
         selectStudioSlide(targetIndex);
@@ -3683,7 +3683,7 @@
         const board = document.querySelector("#boardPage");
         const activityId = board?.dataset.activityId;
         const slideIndex = Number(board?.dataset.slideIndex || 0);
-        const saved = await saveData();
+        const saved = studioToolNode ? true : await saveData();
         if (saved && activityId) showBoard(activityId, slideIndex);
         else if (saved && studioToolNode?.isConnected) refreshStudioTool(elementId);
         toast(`${student} est tombé.`);
@@ -3767,7 +3767,7 @@
         const index = Math.max(0, Math.min(currentStudioSlideIndex, activity.slides.length - 1));
         const slide = activity.slides[index];
         slide.showInstruction = slide.showInstruction === false;
-        if (!await saveData(slide.showInstruction ? "Consigne de la diapo affichée." : "Consigne de la diapo masquée.")) return;
+
         openActivityStudio(activityId);
         currentStudioSlideIndex = index;
         selectStudioSlide(index);
@@ -3782,7 +3782,7 @@
         const instruction = prompt("Consigne de cette diapo", slide.instruction || slideInstruction(slide, index));
         if (instruction === null) return;
         slide.instruction = instruction.trim();
-        if (!await saveData("Consigne de la diapo enregistrée.")) return;
+
         openActivityStudio(activityId);
         currentStudioSlideIndex = index;
         selectStudioSlide(index);
@@ -3840,7 +3840,7 @@
       }
 
       async function previewStudioActivity(activityId, triggerButton) {
-        if (await saveStudio(activityId, false, triggerButton, false)) openActivityPrintPreview(activityId);
+        if (stageStudioChanges(activityId)) openActivityPrintPreview(activityId);
       }
 
       function pptxNodeNumber(node, localName, attribute) {
@@ -4042,13 +4042,12 @@
         try {
           if (/\.pptx$/i.test(file.name || "") || file.type === "application/vnd.openxmlformats-officedocument.presentationml.presentation") {
             recordStudioHistory(activityId);
-            if (!await saveStudio(activityId, false, null, false)) return;
+            if (!stageStudioChanges(activityId)) return;
             const activity = findItem("activity", activityId);
             const importedSlides = await importPptxAsSiteSlides(file);
             const onlyBlankSlide = activity.slides.length === 1 && !(activity.slides[0]?.elements || []).length;
             activity.slides = onlyBlankSlide ? importedSlides : [...activity.slides, ...importedSlides];
             activity.updatedAt = new Date().toISOString();
-            await saveData(`${importedSlides.length} diapositive(s) importée(s).`);
             openActivityStudio(activityId);
             currentStudioSlideIndex = onlyBlankSlide ? 0 : activity.slides.length - importedSlides.length;
             selectStudioSlide(currentStudioSlideIndex);
@@ -4089,73 +4088,48 @@
         const activity = findItem("activity", activityId);
         const title = prompt("Titre du contenu", activity.title);
         if (!title) return;
+        stageStudioChanges(activityId);
         activity.title = title.trim();
         activity.slug = slugify(activity.title);
         activity.updatedAt = new Date().toISOString();
-        if (await saveData("Titre enregistré sur le serveur.")) openActivityStudio(activityId);
+        openActivityStudio(activityId);
       }
 
-      async function saveStudio(activityId, close = false, triggerButton = null, refreshStudio = true, successMessage = "Contenu enregistré sur le serveur.") {
-        const selectedIndex = currentStudioSlideIndex;
-        const pageScroll = { x: window.scrollX, y: window.scrollY };
-        const scrollPositions = ["#editorModal", ".studio", ".studio-workspace", ".slide-world", ".slide-thumbnails"].map((selector) => {
-          const node = document.querySelector(selector);
-          return { selector, top: node?.scrollTop || 0, left: node?.scrollLeft || 0 };
-        });
+      function stageStudioChanges(activityId) {
         const activity = findItem("activity", activityId);
-        const previousSlides = activity.slides || [];
-        activity.slides = Array.from(document.querySelectorAll(".slide-frame")).map((slide) => ({
-          id: slide.dataset.slideId || uid("slide"),
-          duration: previousSlides.find(item=>item.id===slide.dataset.slideId)?.duration || "5 min",
-          instruction: previousSlides.find(item=>item.id===slide.dataset.slideId)?.instruction || "",
-          showInstruction: previousSlides.find(item=>item.id===slide.dataset.slideId)?.showInstruction !== false,
-          elements: []
-        }));
-        Array.from(document.querySelectorAll(".slide-el")).map(readSlideElement).forEach((element) => {
-          const slide = activity.slides[element.slideIndex] || activity.slides[0];
-          slide.elements.push(element);
-          delete element.slideIndex;
-        });
-        deduplicateSlideElements(activity.slides);
+        if (!activity) return false;
+        activity.slides = captureStudioSlides(activityId);
+        return true;
+      }
+
+      async function saveStudio(activityId, close = false, triggerButton = null) {
+        if (studioSavePending || !stageStudioChanges(activityId)) return false;
+        studioSavePending = true;
+        const activity = findItem("activity", activityId);
         activity.updatedAt = new Date().toISOString();
-        if (!persist) return true;
-        const saved = await saveData(successMessage, triggerButton, true);
-        if (saved && studioSavedSnapshot) studioSavedSnapshot.content = studioSnapshot();
-        if (saved && close) {
-          closeEditor();
-          render();
-        }
-        if (saved && !close && refreshStudio) {
-          openActivityStudio(activityId);
-          const refreshedActivity = findItem("activity", activityId);
-          currentStudioSlideIndex = Math.min(selectedIndex, Math.max(0, (refreshedActivity?.slides?.length || 1) - 1));
-          selectStudioSlide(currentStudioSlideIndex);
-          requestAnimationFrame(() => {
-            window.scrollTo(pageScroll.x, pageScroll.y);
-            scrollPositions.forEach(({ selector, top, left }) => {
-              const node = document.querySelector(selector);
-              if (node) {
-                node.scrollTop = top;
-                node.scrollLeft = left;
-              }
-            });
-          });
-          const status = document.querySelector("#studioSaveStatus");
+        const status = document.querySelector("#studioSaveStatus");
+        let saved = false;
+        try {
+          saved = await saveData(undefined, triggerButton, true);
+          if (saved && studioSavedSnapshot) studioSavedSnapshot.content = studioSnapshot();
           if (status) {
-            status.textContent = "Contenu enregistré sur le serveur.";
-            status.className = "studio-save-status success";
+            status.textContent = saved ? "Modifications enregistr\u00e9es." : "Enregistrement impossible. Vos modifications sont conserv\u00e9es : r\u00e9essayez.";
+            status.className = `studio-save-status ${saved ? "success" : "error"}`;
             status.hidden = false;
           }
-        }
-        if (!saved) {
-          const status = document.querySelector("#studioSaveStatus");
+          if (saved && close) await closeEditor();
+          return saved;
+        } catch (error) {
           if (status) {
-            status.textContent = "Échec de l'enregistrement. Les modifications n'ont pas été appliquées.";
+            status.textContent = "Enregistrement impossible. Vos modifications sont conserv\u00e9es : r\u00e9essayez.";
             status.className = "studio-save-status error";
             status.hidden = false;
           }
+          toast(error.message || "Enregistrement impossible.");
+          return false;
+        } finally {
+          studioSavePending = false;
         }
-        return saved;
       }
 
       function readSlideElement(node) {
@@ -4314,7 +4288,7 @@
         if (!selected || !activityId) return;
         recordStudioHistory(activityId);
         selected.remove();
-        await saveStudio(activityId, false, null, true, "Objet supprimé et enregistré.");
+        stageStudioChanges(activityId);
       }
 
       async function deleteStudioElement(button, event) {
@@ -4324,7 +4298,7 @@
         if (!activityId) return;
         recordStudioHistory(activityId);
         button.closest(".slide-el")?.remove();
-        await saveStudio(activityId, false, null, true, "Objet supprimé et enregistré.");
+        stageStudioChanges(activityId);
       }
 
       async function saveEditor(event, type, id) {
