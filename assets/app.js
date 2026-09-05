@@ -4933,7 +4933,7 @@
           media.push(asset);
           paragraphs.push(docxPreviewPageParagraph(asset.relId, index > 0, index + 1));
         }
-        return makeLandscapeDocx(paragraphs, media);
+        return makeMixedOrientationDocx(media.map((asset) => ({ orientation: "landscape", bytes: asset.bytes })));
       }
 
       async function makeWordHandoutDocx(slides) {
@@ -4960,7 +4960,7 @@
       }
 
       async function composePortraitWordSheet(slides) {
-        const width = 1120, height = 1584, margin = 20, gap = 20;
+        const width = 1120, height = 1584, margin = 0, gap = 0;
         const slotHeight = (height - margin * 2 - gap) / 2;
         const canvas = document.createElement("canvas");
         canvas.width = width * 2;
@@ -4993,13 +4993,14 @@
 
       function docxSectionProperties(orientation, nextPage) {
         const landscape = orientation === "landscape";
-        return `<w:sectPr>${nextPage ? '<w:type w:val="nextPage"/>' : ""}<w:pgSz w:w="${landscape ? 16838 : 11906}" w:h="${landscape ? 11906 : 16838}"${landscape ? ' w:orient="landscape"' : ""}/><w:pgMar w:top="360" w:right="360" w:bottom="360" w:left="360"/></w:sectPr>`;
+        return `<w:sectPr>${nextPage ? '<w:type w:val="nextPage"/>' : ""}<w:pgSz w:w="${landscape ? 16838 : 11906}" w:h="${landscape ? 11906 : 16838}"${landscape ? ' w:orient="landscape"' : ""}/><w:pgMar w:top="0" w:right="0" w:bottom="0" w:left="0"/></w:sectPr>`;
       }
 
       function docxMixedPageParagraph(relId, orientation, pageNumber, sectionBreak) {
         const landscape = orientation === "landscape";
-        const cx = Math.round((landscape ? 10.75 : 7.4) * 914400);
-        const cy = Math.round(cx * (landscape ? slideSize.height / slideSize.width : 297 / 210));
+        // Fill the A4 width; reserve 2 pt vertically for Word's inline paragraph.
+        const cx = (landscape ? 16838 : 11906) * 635;
+        const cy = landscape ? Math.round(cx * slideSize.height / slideSize.width) : (16838 - 40) * 635;
         return `<w:p><w:pPr><w:jc w:val="center"/><w:spacing w:before="0" w:after="0"/>${sectionBreak ? docxSectionProperties(orientation, true) : ""}</w:pPr><w:r><w:drawing><wp:inline distT="0" distB="0" distL="0" distR="0"><wp:extent cx="${cx}" cy="${cy}"/><wp:docPr id="${pageNumber}" name="Page ${pageNumber}"/><a:graphic><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:pic><pic:nvPicPr><pic:cNvPr id="${pageNumber}" name="Page ${pageNumber}"/><pic:cNvPicPr/></pic:nvPicPr><pic:blipFill><a:blip r:embed="${relId}"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill><pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="${cx}" cy="${cy}"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr></pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing></w:r></w:p>`;
       }
 
