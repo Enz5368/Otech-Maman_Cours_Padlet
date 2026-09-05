@@ -4075,8 +4075,10 @@
       async function saveStudio(activityId, close = false, triggerButton = null, refreshStudio = true, successMessage = "Contenu enregistré sur le serveur.") {
         const selectedIndex = currentStudioSlideIndex;
         const pageScroll = { x: window.scrollX, y: window.scrollY };
-        const studioScroll = document.querySelector(".studio")?.scrollTop || 0;
-        const stripScroll = document.querySelector(".slide-thumbnails")?.scrollTop || 0;
+        const scrollPositions = ["#editorModal", ".studio", ".studio-workspace", ".slide-world", ".slide-thumbnails"].map((selector) => {
+          const node = document.querySelector(selector);
+          return { selector, top: node?.scrollTop || 0, left: node?.scrollLeft || 0 };
+        });
         const activity = findItem("activity", activityId);
         const previousSlides = activity.slides || [];
         activity.slides = Array.from(document.querySelectorAll(".slide-frame")).map((slide) => ({
@@ -4105,11 +4107,13 @@
           selectStudioSlide(currentStudioSlideIndex);
           requestAnimationFrame(() => {
             window.scrollTo(pageScroll.x, pageScroll.y);
-            const studio = document.querySelector(".studio");
-            const thumbnails = document.querySelector(".slide-thumbnails");
-            if (studio) studio.scrollTop = studioScroll;
-            if (thumbnails) thumbnails.scrollTop = stripScroll;
-            document.querySelector(`.slide-frame[data-slide-index="${currentStudioSlideIndex}"]`)?.scrollIntoView({ block: "nearest" });
+            scrollPositions.forEach(({ selector, top, left }) => {
+              const node = document.querySelector(selector);
+              if (node) {
+                node.scrollTop = top;
+                node.scrollLeft = left;
+              }
+            });
           });
           const status = document.querySelector("#studioSaveStatus");
           if (status) {

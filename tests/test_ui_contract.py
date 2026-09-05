@@ -547,7 +547,11 @@ def test_importe_une_sequence_ou_une_seance_complete() -> None:
 def test_enregistrement_du_studio_conserve_la_position() -> None:
     assert "const pageScroll = { x: window.scrollX, y: window.scrollY };" in APP_JS
     assert "window.scrollTo(pageScroll.x, pageScroll.y);" in APP_JS
-    assert "thumbnails.scrollTop = stripScroll;" in APP_JS
+    save_studio = APP_JS.split("async function saveStudio(", 1)[1].split("return saved;", 1)[0]
+    assert '".slide-world", ".slide-thumbnails"' in save_studio
+    assert "node.scrollTop = top;" in save_studio
+    assert "node.scrollLeft = left;" in save_studio
+    assert "scrollIntoView" not in save_studio
 
 
 def test_apercu_word_permet_demi_page_portrait_ou_page_paysage() -> None:
@@ -645,7 +649,7 @@ def test_serveur_accepte_les_formats_opendocument_du_selecteur() -> None:
         assert f'"{extension}": "{mime_type}"' in storage
         assert f'"{mime_type}"' in storage
     assert "extension in OPENDOCUMENT_MIME_BY_EXTENSION" in storage
-    assert "espace-prof-94" in INDEX
+    assert "espace-prof-95" in INDEX
     assert "Précédent" in APP_JS
     assert "Suivant" in APP_JS
     assert "setTimeout(startFreeExampleTutorial, 250);" in APP_JS
@@ -766,7 +770,7 @@ def test_plan_de_classe_style_cinema_et_emploi_du_temps_lycee() -> None:
     assert 'aria-label="Emploi du temps du lundi au vendredi"' in APP_JS
     assert ".timetable-course" in STYLES
     assert "assets/styles.css?v=espace-prof-55" in INDEX
-    assert "assets/app.js?v=espace-prof-94" in INDEX
+    assert "assets/app.js?v=espace-prof-95" in INDEX
     assert "assets/api-client.js?v=espace-prof-6" in INDEX
 
 
