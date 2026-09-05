@@ -4923,7 +4923,7 @@
         if (previewId === "lessonPrintPreview" || previewId === "sequencePrintPreview") {
           return makeWordHandoutDocx([...preview.querySelectorAll('.print-slide-page:not([data-word-export="false"])')]);
         }
-        const pages = [...preview.querySelectorAll(":scope > .print-lesson-head, :scope > .print-activity-head, .print-lesson-activity > .print-activity-head, .print-slide-page, .print-resources")];
+        const pages = [...preview.querySelectorAll('.print-slide-page:not([data-word-export="false"])')];
         if (!pages.length) throw new Error("aucune page à exporter");
         const media = [];
         const paragraphs = [];
@@ -4971,7 +4971,11 @@
         context.fillRect(0, 0, width, height);
         for (const [index, bytes] of slides.entries()) {
           const bitmap = await createImageBitmap(new Blob([bytes], { type: "image/png" }));
-          try { context.drawImage(bitmap, margin, margin + index * (slotHeight + gap), width - margin * 2, slotHeight); }
+          try {
+            const scale = Math.min((width - margin * 2) / bitmap.width, slotHeight / bitmap.height);
+            const drawWidth = bitmap.width * scale, drawHeight = bitmap.height * scale;
+            context.drawImage(bitmap, (width - drawWidth) / 2, margin + index * (slotHeight + gap), drawWidth, drawHeight);
+          }
           finally { bitmap.close(); }
         }
         const png = await new Promise((resolve, reject) => canvas.toBlob((blob) => blob ? resolve(blob) : reject(new Error("création de la feuille portrait impossible")), "image/png"));
@@ -4995,13 +4999,14 @@
       function docxMixedPageParagraph(relId, orientation, pageNumber, sectionBreak) {
         const landscape = orientation === "landscape";
         const cx = Math.round((landscape ? 10.75 : 7.4) * 914400);
-        const cy = Math.round(cx * (landscape ? 210 / 297 : 297 / 210));
+        const cy = Math.round(cx * (landscape ? slideSize.height / slideSize.width : 297 / 210));
         return `<w:p><w:pPr><w:jc w:val="center"/><w:spacing w:before="0" w:after="0"/>${sectionBreak ? docxSectionProperties(orientation, true) : ""}</w:pPr><w:r><w:drawing><wp:inline distT="0" distB="0" distL="0" distR="0"><wp:extent cx="${cx}" cy="${cy}"/><wp:docPr id="${pageNumber}" name="Page ${pageNumber}"/><a:graphic><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:pic><pic:nvPicPr><pic:cNvPr id="${pageNumber}" name="Page ${pageNumber}"/><pic:cNvPicPr/></pic:nvPicPr><pic:blipFill><a:blip r:embed="${relId}"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill><pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="${cx}" cy="${cy}"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr></pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing></w:r></w:p>`;
       }
 
       async function rasterizePreviewPage(page) {
+        page = page.querySelector(".print-slide-canvas") || page;
         const width = 1120;
-        const height = Math.round(width * 210 / 297);
+        const height = Math.round(width * slideSize.height / slideSize.width);
         const canvas = document.createElement("canvas");
         canvas.width = width * 2;
         canvas.height = height * 2;
@@ -5034,7 +5039,7 @@
           context.fillRect(x, y, rect.width, rect.height);
         }
         const borderWidth = parseFloat(style.borderTopWidth) || 0;
-        if (borderWidth && style.borderTopStyle !== "none") {
+        if (element !== page && borderWidth && style.borderTopStyle !== "none") {
           context.strokeStyle = style.borderTopColor;
           context.lineWidth = borderWidth;
           context.strokeRect(x + borderWidth / 2, y + borderWidth / 2, Math.max(0, rect.width - borderWidth), Math.max(0, rect.height - borderWidth));
@@ -5101,7 +5106,7 @@
       }
 
       function docxPreviewPageParagraph(relId, pageBreakBefore, pageNumber) {
-        const cx = Math.round(9.95 * 914400), cy = Math.round(cx * 210 / 297);
+        const cx = Math.round(9.95 * 914400), cy = Math.round(cx * slideSize.height / slideSize.width);
         return `<w:p><w:pPr>${pageBreakBefore ? '<w:pageBreakBefore/>' : ''}<w:jc w:val="center"/><w:spacing w:before="0" w:after="0"/></w:pPr><w:r><w:drawing><wp:inline distT="0" distB="0" distL="0" distR="0"><wp:extent cx="${cx}" cy="${cy}"/><wp:docPr id="${pageNumber}" name="Page ${pageNumber}"/><a:graphic><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:pic><pic:nvPicPr><pic:cNvPr id="${pageNumber}" name="Page ${pageNumber}"/><pic:cNvPicPr/></pic:nvPicPr><pic:blipFill><a:blip r:embed="${relId}"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill><pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="${cx}" cy="${cy}"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr></pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing></w:r></w:p>`;
       }
 
