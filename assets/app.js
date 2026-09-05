@@ -53,6 +53,7 @@
       let currentPage = { type: "classes" };
       let currentTableauPage = { type: "classes" };
       let currentStudioSlideIndex = 0;
+      let studioSavedSnapshot = null;
       let studioHistoryActivityId = "";
       let studioUndoStack = [];
       let studioRedoStack = [];
@@ -497,7 +498,8 @@
         };
       }
 
-      async function saveData(message, triggerButton) {
+      async function saveData(message, triggerButton, explicitStudioSave = false) {
+        if (studioSavedSnapshot && !explicitStudioSave) return true;
         if (!freeExampleOpen) {
           localStorage.setItem(currentCacheKey(), JSON.stringify({ ...state, cachedAt: new Date().toISOString() }));
         }
@@ -2938,7 +2940,24 @@
         document.querySelector("#editForm").addEventListener("submit", (event) => saveEditor(event, type, id));
       }
 
-      function closeEditor() {
+      function studioSnapshot() {
+        if (!studioSavedSnapshot) return "";
+        const activity = findItem("activity", studioSavedSnapshot.id);
+        if (!activity) return "";
+        const { updatedAt, ...content } = activity;
+        return JSON.stringify({ ...content, slides: captureStudioSlides(activity.id) });
+      }
+
+      function studioHasChanges() {
+        return Boolean(studioSavedSnapshot && studioSnapshot() !== studioSavedSnapshot.content);
+      }
+
+      async function closeEditor() {
+        if (studioHasChanges()) {
+          if (!confirm("Enregistrer les modifications avant de fermer ? Annuler pour continuer ? modifier.")) return;
+          if (!await saveStudio(studioSavedSnapshot.id, false, null, false, "Contenu enregistr? sur le serveur.", true)) return;
+        }
+        studioSavedSnapshot = null;
         document.querySelector("#editorModal").hidden = true;
       }
 
@@ -3111,7 +3130,7 @@
                   <button class="btn studio-tool-button studio-timer-button" onclick="addToolElement('${activity.id}','timer')">+ Chrono</button>
                 </div>
                 <button class="btn danger" data-tour="studio-delete-object" onclick="deleteSelectedElement()">Suppr. objet</button>
-                <button class="btn primary" data-tour="studio-save" onclick="saveStudio('${activity.id}',false,this)">Enregistrer</button>
+                <button class="btn primary" data-tour="studio-save" onclick="saveStudio('${activity.id}',false,this,false,undefined,true)">Enregistrer</button>
                 <button class="btn" data-tour="studio-present" onclick="showBoard('${activity.id}',0)">Présenter</button>
                 <button class="btn" data-tour="studio-word" onclick="previewStudioActivity('${activity.id}',this)">Imprimer / Word</button>
                 <button class="btn primary" data-tour="studio-close" onclick="closeEditor()">Fermer</button>
@@ -3133,6 +3152,10 @@
         initStudioCanvasInput();
         initStudioTextToolbarVisibility();
         hydrateDocumentPreviews();
+        if (!studioSavedSnapshot || studioSavedSnapshot.id !== id) {
+          studioSavedSnapshot = { id, content: "" };
+          studioSavedSnapshot.content = studioSnapshot();
+        }
       }
 
       function renderStudioSlide(slide, index) {
@@ -4095,7 +4118,9 @@
         });
         deduplicateSlideElements(activity.slides);
         activity.updatedAt = new Date().toISOString();
-        const saved = await saveData(successMessage, triggerButton);
+        if (!persist) return true;
+        const saved = await saveData(successMessage, triggerButton, true);
+        if (saved && studioSavedSnapshot) studioSavedSnapshot.content = studioSnapshot();
         if (saved && close) {
           closeEditor();
           render();
@@ -6007,7 +6032,7 @@
         hideButtonHelp();
       });
       window.addEventListener("beforeunload", (event) => {
-        if (activeSaveLocks === 0) return;
+        if (activeSaveLocks === 0 && !studioHasChanges()) return;
         event.preventDefault();
         event.returnValue = "";
       });

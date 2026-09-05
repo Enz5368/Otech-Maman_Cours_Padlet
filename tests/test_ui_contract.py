@@ -229,11 +229,11 @@ def test_les_niveaux_sont_ordonnables_dans_chaque_categorie() -> None:
 
 
 def test_enregistrement_bloque_interface_jusqu_a_confirmation() -> None:
-    assert "async function saveData(message, triggerButton)" in APP_JS
+    assert "async function saveData(message, triggerButton, explicitStudioSave = false)" in APP_JS
     assert "function beginSaveLock(triggerButton)" in APP_JS
     assert "Enregistrement sur le serveur…" in APP_JS
     assert 'button.setAttribute("aria-busy", "true")' in APP_JS
-    assert "if (activeSaveLocks === 0) return;" in APP_JS
+    assert "if (activeSaveLocks === 0 && !studioHasChanges()) return;" in APP_JS
 
 
 def test_editeur_ne_se_ferme_qu_apres_sauvegarde() -> None:
@@ -368,7 +368,7 @@ def test_export_pptx_embarque_les_medias_et_produit_un_zip_windows_valide() -> N
 
 
 def test_studio_confirme_visiblement_la_sauvegarde_et_recharge_les_medias() -> None:
-    assert "saveStudio('${activity.id}',false,this)" in APP_JS
+    assert "saveStudio('${activity.id}',false,this,false,undefined,true)" in APP_JS
     assert 'id="studioSaveStatus" role="status"' in APP_JS
     assert "Contenu enregistré sur le serveur." in APP_JS
     assert "const savedWorkspace = await operation;" in APP_JS
@@ -649,7 +649,7 @@ def test_serveur_accepte_les_formats_opendocument_du_selecteur() -> None:
         assert f'"{extension}": "{mime_type}"' in storage
         assert f'"{mime_type}"' in storage
     assert "extension in OPENDOCUMENT_MIME_BY_EXTENSION" in storage
-    assert "espace-prof-95" in INDEX
+    assert "espace-prof-96" in INDEX
     assert "Précédent" in APP_JS
     assert "Suivant" in APP_JS
     assert "setTimeout(startFreeExampleTutorial, 250);" in APP_JS
@@ -770,7 +770,7 @@ def test_plan_de_classe_style_cinema_et_emploi_du_temps_lycee() -> None:
     assert 'aria-label="Emploi du temps du lundi au vendredi"' in APP_JS
     assert ".timetable-course" in STYLES
     assert "assets/styles.css?v=espace-prof-55" in INDEX
-    assert "assets/app.js?v=espace-prof-95" in INDEX
+    assert "assets/app.js?v=espace-prof-96" in INDEX
     assert "assets/api-client.js?v=espace-prof-6" in INDEX
 
 
