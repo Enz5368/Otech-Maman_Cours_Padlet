@@ -415,6 +415,7 @@
       }
 
       function ensureActivitySlides(activity) {
+        if (activity.contentType === "word") { activity.slides = []; return activity; }
         if (Array.isArray(activity.slides) && activity.slides.length) {
           activity.slides.forEach(slide=>{ if(!slide.duration) slide.duration=activity.estimatedDuration||"5 min"; });
           deduplicateSlideElements(activity.slides);
@@ -1111,6 +1112,7 @@
       }
 
       function openBoardInNewTab(activityId, slideIndex = 0) {
+        if (findItem("activity", activityId)?.contentType === "word") return WordDocuments.open(activityId, { readOnly: true });
         if (freeExampleOpen) {
           showBoard(activityId, slideIndex);
           return;
@@ -2414,6 +2416,8 @@
                 <button class="btn" onclick="manageCategories()">Organiser les contenus</button>
                 <button class="btn" onclick="openEditor('lesson','${lesson.id}')">Modification</button>
                 <button class="btn primary" onclick="createActivityInLesson('${lesson.id}')">Ajouter un contenu</button>
+                <button class="btn" onclick="WordDocuments.create('${lesson.id}')">Créer un Word</button>
+                <label class="btn word-import-button">Importer un Word<input type="file" accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document" hidden onchange="WordDocuments.importFile('${lesson.id}',this.files[0]);this.value=''" /></label>
                 <button class="btn danger" onclick="removeItem('lesson','${lesson.id}')">Supprimer la séance</button>
               </div>`)}
             </div>
@@ -2469,6 +2473,7 @@
       }
 
       function activityCard(activity) {
+        if (activity.contentType === "word") return `<article class="card activity-card"><div class="activity-card-body"><div><p class="small word-document-label">Document Word · .docx</p><h3>${escapeHtml(activity.title)}</h3><p class="muted small">Texte, mise en page, tableaux et images modifiables.</p></div><div class="activity-actions">${editOnly(moveButtons("activity", activity.id))}<button class="btn" onclick="WordDocuments.open('${activity.id}',{readOnly:true})">Ouvrir / télécharger</button>${editOnly(`<button class="btn primary" onclick="WordDocuments.open('${activity.id}')">Modifier le Word</button><button class="btn danger" onclick="removeItem('activity','${activity.id}')">Supprimer</button>`)}</div></div></article>`;
         return `<article class="card activity-card">
           <div class="activity-card-body">
             <div>
@@ -2972,6 +2977,7 @@
       }
 
       async function closeEditor() {
+        if (window.WordDocuments?.isOpen()) return WordDocuments.requestClose();
         if (studioHasChanges()) {
           if (!confirm("Enregistrer les modifications avant de fermer ? Annuler pour continuer à modifier.")) return;
           if (!await saveStudio(studioSavedSnapshot.id)) return;
@@ -3111,6 +3117,7 @@
       }
 
       function openActivityStudio(id) {
+        if (findItem("activity", id)?.contentType === "word") return WordDocuments.open(id);
         if (!requireLogin()) return;
         const result = findActivity(id);
         if (!result) return;
@@ -4502,6 +4509,7 @@
       }
 
       function showBoard(id, slideIndex = 0) {
+        if (findItem("activity", id)?.contentType === "word") return WordDocuments.open(id, { readOnly: true });
         const result = findActivity(id);
         if (!result) return;
         document.querySelector("#editorModal").hidden = true;
@@ -4800,6 +4808,7 @@
       }
 
       function openActivityPrintPreview(activityId) {
+        if (findItem("activity", activityId)?.contentType === "word") return WordDocuments.open(activityId, { readOnly: true });
         const result = findActivity(activityId);
         if (!result) return;
         const { activity, lesson, sequence, classe } = result;
@@ -6147,7 +6156,7 @@
         hideButtonHelp();
       });
       window.addEventListener("beforeunload", (event) => {
-        if (activeSaveLocks === 0 && !studioHasChanges()) return;
+        if (activeSaveLocks === 0 && !studioHasChanges() && !window.WordDocuments?.hasChanges()) return;
         event.preventDefault();
         event.returnValue = "";
       });

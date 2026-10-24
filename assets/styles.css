@@ -2382,3 +2382,19 @@
         .print-slide-canvas { width: 100%; }
         .board-controls { display: none; }
       }
+
+/* Native Word document workspace */
+.word-document-shell { position:relative; width:calc(100vw - 32px); height:calc(100dvh - 32px); display:flex; flex-direction:column; overflow:hidden; background:#f4f1ec; border-radius:14px; box-shadow:0 20px 70px #0004; }
+.word-document-header { display:flex; justify-content:space-between; align-items:center; gap:20px; padding:14px 20px; background:#fffaf5; border-bottom:1px solid var(--line); flex-shrink:0; }
+.word-document-header > div:first-child { flex:1; min-width:0; }
+.word-document-header label { display:block; font-size:12px; font-weight:850; color:var(--wine-700); }
+.word-document-header input { display:block; width:min(100%,600px); padding:6px 0; border:0; background:transparent; font:700 21px Georgia,serif; color:var(--wine-900); }
+.word-document-header p { margin:2px 0 0; font-size:12px; color:#59504e; }
+.word-document-header p.error { color:#aa1234; }
+.word-document-editor { flex:1; min-height:0; overflow:hidden; background:#eee; }
+.word-document-editor > .docx-editor { height:100%; }
+.word-document-label { font-weight:850; color:var(--wine-700); }
+.word-import-button { cursor:pointer; }
+.word-close-prompt:not([hidden]) { position:absolute; inset:0; z-index:100; display:grid; place-items:center; background:#0006; padding:20px; }
+.word-close-prompt > div { background:white; padding:28px; border-radius:14px; max-width:650px; box-shadow:0 16px 50px #0004; }
+@media (max-width:760px) { .word-document-header { flex-wrap:wrap; padding:12px; gap:10px; } .word-document-shell { width:100vw; height:100dvh; border-radius:0; } }

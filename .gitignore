@@ -9,6 +9,7 @@ __pycache__/
 .ruff_cache/
 htmlcov/
 .coverage
+node_modules/
 var/
 tests/visual/current-*.png
 tests/visual/diff-*.png
