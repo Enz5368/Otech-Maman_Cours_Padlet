@@ -1174,7 +1174,7 @@
         window.WordDocuments?.openLinkedTool();
         document.querySelector("#boardPage").hidden = true;
         const titles = {
-          dashboard: ["Cours par niveau à projeter", "Naviguer jusqu'à le contenu à afficher."],
+          dashboard: ["Mes cours", "Retrouver et présenter vos cours."],
           classes: ["Cours par niveau modifiable", "Classe > Séquence > Séance > Contenus."],
           tree: ["Arbre", "Vue complète des classes et de toutes leurs branches."],
           studentClasses: ["Groupes Classes", "Groupes réels et listes d'élèves."],
@@ -1214,7 +1214,7 @@
         if (currentTableauPage.type === "lesson") return renderTableauLesson(currentTableauPage.classId, currentTableauPage.sequenceId, currentTableauPage.lessonId);
         document.querySelector("#content").innerHTML = `
           <section class="page-head">
-            <div class="breadcrumb">Cours par niveau à projeter / Classes</div>
+            <div class="breadcrumb">Mes cours / Classes</div>
             <h2 style="margin:0;color:var(--wine-900);font-size:34px">Choisir une classe</h2>
             <p class="muted">Cette vue sert uniquement à trouver et afficher un contenu.</p>
           </section>
@@ -1284,7 +1284,7 @@
         }
         document.querySelector("#content").innerHTML = `
           <section class="page-head">
-            <div class="breadcrumb"><button onclick="currentTableauPage={type:'classes'};render()">Cours par niveau à projeter</button> / ${escapeHtml(classe.title)}</div>
+            <div class="breadcrumb"><button onclick="currentTableauPage={type:'classes'};render()">Mes cours</button> / ${escapeHtml(classe.title)}</div>
             <h2 style="margin:0;color:var(--wine-900);font-size:34px">${escapeHtml(classe.title)}</h2>
             <p class="muted">Choisir une séquence.</p>
           </section>
@@ -1374,7 +1374,7 @@
         }
         document.querySelector("#content").innerHTML = `
           <section class="page-head">
-            <div class="breadcrumb"><button onclick="currentTableauPage={type:'classes'};render()">Cours par niveau à projeter</button> / <button onclick="openTableauClass('${classe.id}')">${escapeHtml(classe.title)}</button> / ${escapeHtml(sequence.title)}</div>
+            <div class="breadcrumb"><button onclick="currentTableauPage={type:'classes'};render()">Mes cours</button> / <button onclick="openTableauClass('${classe.id}')">${escapeHtml(classe.title)}</button> / ${escapeHtml(sequence.title)}</div>
             <h2 style="margin:0;color:var(--wine-900);font-size:34px">${escapeHtml(sequence.title)}</h2>
             <p class="muted">Choisir une séance.</p>
           </section>
@@ -1473,7 +1473,7 @@
         }
         document.querySelector("#content").innerHTML = `
           <section class="page-head">
-            <div class="breadcrumb"><button onclick="currentTableauPage={type:'classes'};render()">Cours par niveau à projeter</button> / <button onclick="openTableauClass('${classe.id}')">${escapeHtml(classe.title)}</button> / <button onclick="openTableauSequence('${classe.id}','${sequence.id}')">${escapeHtml(sequence.title)}</button> / ${escapeHtml(lesson.title)}</div>
+            <div class="breadcrumb"><button onclick="currentTableauPage={type:'classes'};render()">Mes cours</button> / <button onclick="openTableauClass('${classe.id}')">${escapeHtml(classe.title)}</button> / <button onclick="openTableauSequence('${classe.id}','${sequence.id}')">${escapeHtml(sequence.title)}</button> / ${escapeHtml(lesson.title)}</div>
             <h2 style="margin:0;color:var(--wine-900);font-size:34px">${escapeHtml(lesson.title)}</h2>
             <p class="muted">Choisir le contenu à afficher.</p>
             ${lessonSuitcase(lesson)}
@@ -2416,7 +2416,7 @@
 
                 <button class="btn" onclick="manageCategories()">Organiser les contenus</button>
                 <button class="btn" onclick="openEditor('lesson','${lesson.id}')">Modification</button>
-                <button class="btn primary" onclick="createActivityInLesson('${lesson.id}')">Cr?er diapo</button>
+                <button class="btn primary" onclick="createActivityInLesson('${lesson.id}')">Créer diapo</button>
                 <button class="btn primary" onclick="WordDocuments.create('${lesson.id}')">Créer un Word</button>
                 <label class="btn word-import-button">Importer un Word<input type="file" accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document" hidden onchange="WordDocuments.importFile('${lesson.id}',this.files[0]);this.value=''" /></label>
                 <button class="btn danger" onclick="removeItem('lesson','${lesson.id}')">Supprimer la séance</button>
@@ -2633,7 +2633,7 @@
                 <li>Dans la séquence, cliquez sur <b>Ajouter une séance</b>.</li>
                 <li>Ouvrez la séance et choisissez <b>Cr?er diapo</b>.</li>
                 <li>Dans l’éditeur, ajoutez vos textes, fichiers, images ou liens, puis créez d’autres diapos avec <b>+ Diapo (contenu)</b>.</li>
-                <li>Terminez avec <b>Enregistrer</b>. Le cours est ensuite disponible dans <b>Cours par niveau à projeter</b>.</li>
+                <li>Terminez avec <b>Enregistrer</b>. Le cours est ensuite disponible dans <b>Mes cours</b>.</li>
               </ol>
               <button class="btn primary tutorial-launch" onclick="startPracticalTutorial('course')">Lancer ce tutoriel</button>
             </details>
