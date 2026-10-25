@@ -4,7 +4,8 @@ import { readFile, mkdir } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import assert from 'node:assert/strict';
-import { unzipSync, strFromU8 } from 'fflate';
+import { testPageOrientation } from './orientation-smoke.mjs';
+import { unzipSync, zipSync, strFromU8, strToU8 } from 'fflate';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const harness = `<!doctype html><html lang="fr"><head><meta charset="utf-8"><link rel="stylesheet" href="/assets/styles.css"></head><body>
@@ -143,6 +144,39 @@ try {
   assert.equal(await page.getByRole('button',{name:'Modifier le Word',exact:true}).count(),1);
   assert.equal(workspace.classes[0].sequences[0].lessons[0].activities[0].contentType,'word');
   await page.screenshot({path:path.join(root,'tests/visual/current-word-lesson.png')});
+  assert.deepEqual(errors,[]);
+  // Three pages in ONE section: rotating the middle page must isolate it in
+  // native OOXML, survive reopen, and stay a manual, undoable edit.
+  await page.goto(`http://127.0.0.1:${server.address().port}/test-word`);
+  const orientationFiles = unzipSync(new Uint8Array(bytes));
+  orientationFiles['word/document.xml'] = strToU8(xml.replace(/<w:body>[\s\S]*<\/w:body>/,
+    '<w:body><w:p><w:r><w:t>Premiere page</w:t></w:r></w:p>' +
+    '<w:p><w:pPr><w:pageBreakBefore/></w:pPr><w:r><w:t>Deuxieme page</w:t></w:r></w:p>' +
+    '<w:p><w:pPr><w:pageBreakBefore/></w:pPr><w:r><w:t>Troisieme page</w:t></w:r></w:p>' +
+    '<w:sectPr><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="1440" w:right="1440" w:bottom="1440" w:left="1440"/></w:sectPr></w:body>'));
+  await page.evaluate(async data => WordDocuments.importFile('lesson', new File([new Uint8Array(data)], 'Orientations.docx')), Array.from(zipSync(orientationFiles)));
+  await page.waitForFunction(()=>!document.querySelector('[data-word-action]').disabled);
+  await page.getByText('Deuxieme page',{exact:true}).click();
+  await page.getByRole('button',{name:'Paysage',exact:true}).click();
+  assert.equal(await page.evaluate(()=>uploads),0, 'Orientation never saves automatically');
+  assert.equal(await page.evaluate(()=>WordDocuments.save()),true);
+  const mixed = await page.evaluate(()=>lastBytes);
+  const mixedXml = strFromU8(unzipSync(new Uint8Array(mixed))['word/document.xml']);
+  assert.equal((mixedXml.match(/w:orient="landscape"/g)||[]).length,1);
+  assert.equal((mixedXml.match(/<w:sectPr[ >]/g)||[]).length,3);
+  await page.evaluate(()=>WordDocuments.requestClose());
+  await page.evaluate(()=>WordDocuments.open(state.lesson.activities[0].id));
+  await page.waitForFunction(()=>!document.querySelector('[data-word-action]').disabled);
+  await page.getByText('Deuxieme page',{exact:true}).click();
+  assert.equal(await page.getByRole('button',{name:'Paysage',exact:true}).getAttribute('aria-pressed'),'true');
+  await page.getByText('Premiere page',{exact:true}).click();
+  assert.equal(await page.getByRole('button',{name:'Portrait',exact:true}).getAttribute('aria-pressed'),'true');
+  await page.locator('[contenteditable=true]').focus();
+  await page.keyboard.press('Control+End');
+  assert.equal(await page.getByRole('button',{name:'Portrait',exact:true}).getAttribute('aria-pressed'),'true');
+  await page.screenshot({path:path.join(root,'tests/visual/current-word-orientation.png')});
+  await page.evaluate(()=>WordDocuments.requestClose());
+  await testPageOrientation(page, bytes);
   assert.deepEqual(errors,[]);
   console.log('DOCX creation, typing, bold formatting, scroll preservation, save/reopen, failed save/retry, close choices, import, native download and real lesson integration with Ctrl+S passed.');
 } finally {await browser.close();server.close();}

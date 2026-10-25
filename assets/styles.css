@@ -2391,8 +2391,15 @@
 .word-document-header input { display:block; width:min(100%,600px); padding:6px 0; border:0; background:transparent; font:700 21px Georgia,serif; color:var(--wine-900); }
 .word-document-header p { margin:2px 0 0; font-size:12px; color:#59504e; }
 .word-document-header p.error { color:#aa1234; }
-.word-document-editor { flex:1; min-height:0; overflow:hidden; background:#eee; }
-.word-document-editor > .docx-editor { height:100%; }
+.word-document-editor { display:flex; flex-direction:column; flex:1; min-height:0; overflow:hidden; background:#eee; }
+.word-document-canvas { flex:1; min-height:0; overflow:hidden; }
+.word-document-canvas > .docx-editor { height:100%; }
+.word-page-orientation { display:flex; flex-wrap:wrap; align-items:center; gap:10px; padding:8px 18px; background:#fffaf4; border-bottom:1px solid #dfd3cc; }
+.word-page-orientation > span { font-weight:700; min-width:64px; }
+.word-page-orientation label { display:flex; align-items:center; gap:6px; white-space:nowrap; }
+.word-page-orientation select, .word-page-orientation button { padding:6px 10px; border:1px solid #d7c9c4; border-radius:6px; background:white; color:#551525; font:inherit; }
+.word-page-orientation button[aria-pressed="true"] { background:#761c32; color:white; }
+.word-page-orientation button:disabled { opacity:.5; cursor:wait; }
 .word-document-label { font-weight:850; color:var(--wine-700); }
 .word-import-button { cursor:pointer; }
 .word-close-prompt:not([hidden]) { position:absolute; inset:0; z-index:100; display:grid; place-items:center; background:#0006; padding:20px; }

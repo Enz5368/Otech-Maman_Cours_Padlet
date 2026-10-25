@@ -24,6 +24,7 @@ Le test démarre un serveur temporaire avec la CSP de production. Il vérifie cr
 ## Fonctionnement
 
 - Les modifications restent dans l'éditeur jusqu'à Enregistrer, Ctrl+S ou la confirmation de fermeture.
+- La barre Portrait / Paysage cible par défaut la page du curseur ; « Tout le document » change toutes les pages. Les limites de la page sont converties en sections OOXML dans une seule transaction annulable, sans sauvegarde ni rechargement. La pagination peut évoluer si le contenu ne tient plus dans la nouvelle hauteur. Une limite au milieu d'un tableau doit d'abord être séparée en dehors du tableau ; l'opération est refusée sans mutation plutôt que de couper les cellules.
 - L'enregistrement utilise l'API de fichiers privée existante puis la révision du workspace. Aucune reconstruction du composant après sauvegarde.
 - Un nouvel import/création n'est ajouté à la séance qu'après sauvegarde. Fermer sans enregistrer n'ajoute aucun contenu.
 - En cas d'échec, le document reste ouvert ; une nouvelle tentative réutilise le fichier déjà envoyé tant que son contenu n'a pas changé.

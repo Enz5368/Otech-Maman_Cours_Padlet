@@ -6,6 +6,7 @@ import fr from '@docx-editor.dev/i18n/fr';
 import { blankDocumentBytes } from '@docx-editor.dev/core/editor';
 import { unzipSync, zipSync, strFromU8, strToU8 } from 'fflate';
 import '@docx-editor.dev/core/styles/editor.css';
+import { mountOrientationToolbar } from './page-orientation.js';
 
 const fonts = packagedFonts();
 
@@ -18,9 +19,16 @@ function blankA4() {
 
 // The component mounts once per document. Save never replaces its document prop.
 export function mount(element, options) {
-  const root = createRoot(element);
+  element.classList.add('word-document-editor');
+  const canvas = document.createElement('div');
+  canvas.className = 'word-document-canvas';
+  element.append(canvas);
+  const root = createRoot(canvas);
   let editor = null;
   let destroyed = false;
+  const orientation = options.readOnly ? null : mountOrientationToolbar(canvas, () => editor, options.onError);
+  orientation?.update();
+  const subscriptions = [];
   root.render(<DocxEditor
     document={options.bytes ? new Uint8Array(options.bytes) : blankA4()}
     title={options.title} locale="fr-FR" i18n={fr} fonts={fonts} rulers
@@ -30,8 +38,11 @@ export function mount(element, options) {
     onReady={instance => {
       if (destroyed) return;
       editor = instance;
+      orientation?.update();
+      subscriptions.push(instance.on('selectionChange', () => orientation?.update()));
+      subscriptions.push(instance.on('change', () => orientation?.update()));
       instance.on('error', error => options.onError?.(error));
-      options.onReady?.();
+      options.onReady?.(instance);
     }}
     onChange={() => { if (editor && !destroyed) options.onChange?.(); }}
   />);
@@ -40,6 +51,6 @@ export function mount(element, options) {
       if (!editor || destroyed) throw new Error('Le document est encore en cours de chargement.');
       return editor.save();
     },
-    destroy() { destroyed = true; editor = null; root.unmount(); },
+    destroy() { destroyed = true; subscriptions.forEach(unsubscribe => unsubscribe()); orientation?.destroy(); editor = null; root.unmount(); canvas.remove(); },
   };
 }
