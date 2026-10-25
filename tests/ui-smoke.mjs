@@ -1,11 +1,29 @@
 import { chromium } from "../word-editor/node_modules/playwright/index.mjs";
+import { createServer } from "node:http";
+import { readFile } from "node:fs/promises";
+import { fileURLToPath } from "node:url";
+import path from "node:path";
 
+const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const server = createServer(async (request, response) => {
+  const pathname = decodeURIComponent(new URL(request.url, "http://localhost").pathname);
+  const file = path.resolve(root, `.${pathname}`);
+  if (!file.startsWith(root + path.sep)) return response.writeHead(403).end();
+  try {
+    const contentTypes = { ".html": "text/html; charset=utf-8", ".js": "text/javascript", ".css": "text/css", ".json": "application/json" };
+    response.setHeader("Content-Type", contentTypes[path.extname(file)] || "application/octet-stream");
+    response.end(await readFile(file));
+  } catch {
+    response.writeHead(404).end();
+  }
+});
+await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
 const browser = await chromium.launch({ headless: true });
 const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
 const errors = [];
 page.on("pageerror", (error) => errors.push(error.message));
 try {
-  await page.goto("http://127.0.0.1:8765/index.html");
+  await page.goto(`http://127.0.0.1:${server.address().port}/index.html`);
   await page.getByRole("button", { name: "Voir l'exemple gratuit" }).click();
   await page.waitForFunction(() => document.querySelector("#appPage").hidden === false);
   const labels = await page.locator('.sidebar .nav-button[data-view]').allTextContents();
@@ -23,4 +41,5 @@ try {
   console.log("UI accueil et parcours Mes cours OK");
 } finally {
   await browser.close();
+  server.close();
 }
