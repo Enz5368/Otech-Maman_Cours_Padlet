@@ -1158,6 +1158,16 @@
         render();
       }
 
+      function presentFirstCourse() {
+        const classe = state.classes.find((item) => item.isVisible !== false);
+        const sequence = classe?.sequences?.find((item) => item.isVisible !== false);
+        const lesson = sequence?.lessons?.find((item) => item.isVisible !== false);
+        const activity = lesson?.activities?.find((item) => item.isVisible !== false);
+        if (activity) return openBoardInNewTab(activity.id);
+        if (classe) return openClassPage(classe.id);
+        toast("Créez d’abord un cours pour pouvoir le présenter.");
+      }
+
       function render() {
         document.querySelectorAll('button[onclick*="createActivityInLesson"]').forEach(button => { button.textContent = "Créer diapo"; });
         document.querySelectorAll('button[onclick*="WordDocuments.create"]').forEach(button => { button.textContent = "Créer un Word"; button.classList.add("create-word-button"); });
@@ -1208,7 +1218,7 @@
 
       function renderDashboard() {
         const firstClass = state.classes.find(classe => classe.isVisible !== false);
-        const welcome = `<section class="welcome-hero"><p class="eyebrow">Votre cartable numérique</p><h2>Que voulez-vous faire ?</h2><p>Retrouvez votre cours ou préparez une séance en quelques clics.</p><div class="welcome-actions"><button class="btn primary" onclick="setView('classes')">Ouvrir mes cours</button>${editOnly(`<button class="btn primary" onclick="openEditor('class')">Créer un cours</button>`)}${firstClass ? `<button class="btn" onclick="openClassPage('${firstClass.id}')">Reprendre mon dernier cours</button>` : ''}</div></section>`;
+        const welcome = `<section class="welcome-hero"><p class="eyebrow">Votre cartable numérique</p><h2>Que voulez-vous faire ?</h2><p>Retrouvez votre cours ou préparez une séance en quelques clics.</p><div class="welcome-actions"><button class="btn primary" onclick="setView('classes')">Ouvrir mes cours</button>${editOnly(`<button class="btn primary" onclick="openEditor('class')">Créer un cours</button>`)}<button class="btn" onclick="presentFirstCourse()">Présenter un cours</button>${firstClass ? `<button class="btn" onclick="openClassPage('${firstClass.id}')">Reprendre mon dernier cours</button>` : `<span class="welcome-empty-note">Aucun cours à reprendre pour le moment.</span>`}</div></section>`;
         if (currentTableauPage.type === "class") return renderTableauClass(currentTableauPage.classId);
         if (currentTableauPage.type === "sequence") return renderTableauSequence(currentTableauPage.classId, currentTableauPage.sequenceId);
         if (currentTableauPage.type === "lesson") return renderTableauLesson(currentTableauPage.classId, currentTableauPage.sequenceId, currentTableauPage.lessonId);
@@ -1242,7 +1252,7 @@
             ${classe.isVisible ? "" : "<span class='pill'>Masque</span>"}
           </div>
           <div class="class-grid-card-actions">
-            <button class="btn" onclick="openEditableSubtree('${classe.id}')">Arbre / Export Word</button>
+            <button class="btn" onclick="openEditableSubtree('${classe.id}')">Voir l’organisation</button>
             ${editOnly(moveButtons("class", classe.id))}
             <button class="btn primary" onclick="openClassPage('${classe.id}')">Ouvrir</button>
             ${editOnly(`<button class="btn danger" onclick="removeItem('class','${classe.id}')">Supprimer</button>`)}
@@ -1270,7 +1280,7 @@
             <p class="muted small">${classe.sequences.length} séquence(s)</p>
           </div>
           <div class="row wrap">
-            <button class="btn" onclick="openTableauSubtree('class','${classe.id}')">Arbre / Export Word</button>
+            <button class="btn" onclick="openTableauSubtree('class','${classe.id}')">Voir l’organisation</button>
             <button class="btn primary" onclick="openTableauClass('${classe.id}')">Ouvrir</button>
           </div>
         </article>`;
@@ -1301,7 +1311,7 @@
           </div>
           <div class="row wrap">
             ${sequenceHookDocumentControl(sequence)}
-            <button class="btn" onclick="openTableauSubtree('sequence','${classe.id}','${sequence.id}')">Arbre / Export Word</button>
+            <button class="btn" onclick="openTableauSubtree('sequence','${classe.id}','${sequence.id}')">Voir l’organisation</button>
             <button class="btn primary" onclick="openTableauSequence('${classe.id}','${sequence.id}')">Ouvrir</button>
           </div>
         </article>`;
@@ -1390,7 +1400,7 @@
             <p class="muted small">${lesson.activities.length} contenu(s)</p>
           </div>
           <div class="row wrap">
-            <button class="btn" onclick="openTableauSubtree('lesson','${classe.id}','${sequence.id}','${lesson.id}')">Arbre / Export Word</button>
+            <button class="btn" onclick="openTableauSubtree('lesson','${classe.id}','${sequence.id}','${lesson.id}')">Voir l’organisation</button>
             <button class="btn primary" onclick="openTableauLesson('${classe.id}','${sequence.id}','${lesson.id}')">Ouvrir</button>
           </div>
         </article>`;
@@ -1401,7 +1411,7 @@
         const sequence = sequenceId ? findItem("sequence", sequenceId) : null;
         const lesson = lessonId ? findItem("lesson", lessonId) : null;
         let branch = "";
-        let title = "Arbre";
+        let title = "Organisation des cours";
         if (type === "class" && classe) {
           branch = projectTreeClassNode(classe);
           title = classe.title;
@@ -1419,7 +1429,7 @@
         modal.hidden = false;
         modal.innerHTML = `<section class="subtree-dialog">
           <header class="subtree-head">
-            <div><p class="small">Arbre à partir de l'élément</p><h2>${escapeHtml(title)}</h2></div>
+            <div><p class="small">Organisation à partir de l’élément</p><h2>${escapeHtml(title)}</h2></div>
             <button class="btn icon" onclick="closeEditor()">X</button>
           </header>
           <div class="subtree-body course-tree-scroll" aria-label="Branche de ${escapeAttr(title)}">
@@ -1527,7 +1537,7 @@
                 <p class="muted">Clique sur Modifier pour entrer dans une classe et gérer ses séquences sur une page dédiée.</p>
               </div>
               <div class="row wrap">
-                <button class="btn" onclick="setView('tree')">Arbre / Export Word</button>
+                <button class="btn" onclick="setView('tree')">Voir l’organisation</button>
                 ${editOnly(`<button class="btn" onclick="manageCategories()">Organiser les catégories</button><button class="btn primary" onclick="openEditor('class')">Ajouter une classe</button>`)}
               </div>
             </div>
@@ -1542,11 +1552,11 @@
       function renderTree() {
         document.querySelector("#content").innerHTML = `
           <section class="page-head">
-            <div class="breadcrumb">Arbre / Tous les cours</div>
-            <h2 style="margin:0;color:var(--wine-900);font-size:34px">Arbre des cours</h2>
+            <div class="breadcrumb">Tous mes cours</div>
+            <h2 style="margin:0;color:var(--wine-900);font-size:34px">Organisation de mes cours</h2>
             <p class="muted">Classes → séquences → séances → contenus → ressources. Cliquez sur un intitulé pour ouvrir l'élément.</p>
           </section>
-          <section class="course-tree-scroll" aria-label="Arbre hiérarchique des cours">
+          <section class="course-tree-scroll" aria-label="Organisation hiérarchique des cours">
             ${state.classes.length ? `<div class="course-tree">
               <div class="tree-node tree-heading"><span>Tout en haut</span><strong>Classes</strong></div>
               <ul class="tree-level tree-classes">${state.classes.map(treeClassNode).join("")}</ul>
@@ -1635,10 +1645,10 @@
         modal.hidden = false;
         modal.innerHTML = `<section class="subtree-dialog">
           <header class="subtree-head">
-            <div><p class="small">Arbre des cours modifiables</p><h2>${escapeHtml(sequence?.title || classe.title)}</h2></div>
+            <div><p class="small">Organisation des cours</p><h2>${escapeHtml(sequence?.title || classe.title)}</h2></div>
             <button class="btn icon" onclick="closeEditor()">X</button>
           </header>
-          <div class="subtree-body course-tree-scroll" aria-label="Cours modifiables de ${escapeAttr(classe.title)}">
+          <div class="subtree-body course-tree-scroll" aria-label="Cours de ${escapeAttr(classe.title)}">
             <div class="course-tree subtree-course-tree"><ul class="tree-level tree-classes">${sequence ? treeSequenceNode(classe, sequence) : treeClassNode(classe)}</ul></div>
           </div>
         </section>`;
@@ -1983,9 +1993,9 @@
           <section class="page-head">
             <div class="row wrap">
               <div>
-                <div class="breadcrumb">Groupes Classes</div>
-                <h2 style="margin:0;color:var(--wine-900);font-size:34px">Groupes Classes</h2>
-                <p class="muted">Ici, on gère les groupes avec les noms des élèves. C'est séparé des cours par niveau.</p>
+                <div class="breadcrumb">Mes classes</div>
+                <h2 style="margin:0;color:var(--wine-900);font-size:34px">Mes classes</h2>
+                <p class="muted">Ici, on gère les classes et les noms des élèves. Cela reste séparé de vos supports.</p>
               </div>
               ${editOnly(`<button class="btn primary" onclick="openEditor('studentClass')">Ajouter un groupe</button>`)}
             </div>
@@ -2033,7 +2043,7 @@
             </div>
           </section>
           <div class="tools-grid">
-            ${selectedClass ? renderWheelTool(selectedClass, history) : empty("Ajoutez d'abord un groupe dans Groupes Classes.")}
+            ${selectedClass ? renderWheelTool(selectedClass, history) : empty("Ajoutez d'abord une classe dans Mes classes.")}
             ${renderTimerTool()}
           </div>
           ${renderTeacherToolLinks()}
@@ -2307,7 +2317,7 @@
         }
         document.querySelector("#content").innerHTML = `
           <section class="page-head">
-            <div class="breadcrumb"><button onclick="currentPage={type:'classes'};render()">Cours modifiables</button> / <button onclick="openClassPage('${classe.id}')">${escapeHtml(classe.title)}</button></div>
+            <div class="breadcrumb"><button onclick="currentPage={type:'classes'};render()">Mes cours</button> / <button onclick="openClassPage('${classe.id}')">${escapeHtml(classe.title)}</button></div>
             <div class="row wrap">
               <div>
                 <h2 style="margin:0;color:var(--wine-900);font-size:34px">${escapeHtml(classe.title)}</h2>
@@ -2337,7 +2347,7 @@
           </div>
           <div class="row wrap">
             ${sequenceHookDocumentControl(sequence)}
-            <button class="btn" onclick="openEditableSubtree('${classe.id}','${sequence.id}')">Arbre / Export Word</button>
+            <button class="btn" onclick="openEditableSubtree('${classe.id}','${sequence.id}')">Voir l’organisation</button>
             <span class="pill">${sequence.lessons.length} séance(s)</span>
             <span class="pill">Tâche finale${sequence.finalTask ? ` : ${escapeHtml(sequence.finalTask)}` : ""}</span>
             <span class="pill">${activityCount} contenu(s)</span>
@@ -2358,7 +2368,7 @@
         }
         document.querySelector("#content").innerHTML = `
           <section class="page-head">
-            <div class="breadcrumb"><button onclick="currentPage={type:'classes'};render()">Cours modifiables</button> / <button onclick="openClassPage('${classe.id}')">${escapeHtml(classe.title)}</button> / <button onclick="openSequencePage('${classe.id}','${sequence.id}')">${escapeHtml(sequence.title)}</button></div>
+            <div class="breadcrumb"><button onclick="currentPage={type:'classes'};render()">Mes cours</button> / <button onclick="openClassPage('${classe.id}')">${escapeHtml(classe.title)}</button> / <button onclick="openSequencePage('${classe.id}','${sequence.id}')">${escapeHtml(sequence.title)}</button></div>
             <div class="row wrap">
               <div>
                 <p class="small" style="margin:0 0 4px;font-weight:850;color:var(--wine-700)">Séquence n° ${sequenceNumber(classe, sequence)}</p>
@@ -2406,7 +2416,7 @@
         }
         document.querySelector("#content").innerHTML = `
           <section class="page-head lesson-pptx-drop" ondragover="prepareLessonPptxDrop(event)" ondragleave="this.classList.remove('drop-target')" ondrop="importPptxIntoLesson('${lesson.id}',event)">
-            <div class="breadcrumb"><button onclick="currentPage={type:'classes'};render()">Cours modifiables</button> / <button onclick="openClassPage('${classe.id}')">${escapeHtml(classe.title)}</button> / <button onclick="openSequencePage('${classe.id}','${sequence.id}')">${escapeHtml(sequence.title)}</button> / <button onclick="openLessonPage('${classe.id}','${sequence.id}','${lesson.id}')">${escapeHtml(lesson.title)}</button></div>
+            <div class="breadcrumb"><button onclick="currentPage={type:'classes'};render()">Mes cours</button> / <button onclick="openClassPage('${classe.id}')">${escapeHtml(classe.title)}</button> / <button onclick="openSequencePage('${classe.id}','${sequence.id}')">${escapeHtml(sequence.title)}</button> / <button onclick="openLessonPage('${classe.id}','${sequence.id}','${lesson.id}')">${escapeHtml(lesson.title)}</button></div>
             <div class="row wrap">
               <div>
                 <h2 style="margin:0;color:var(--wine-900);font-size:34px">${escapeHtml(lesson.title)}</h2>
@@ -2465,7 +2475,7 @@
             <strong>${escapeHtml(lesson.title)} ${lesson.isVisible ? "" : "<span class='pill'>Masque</span>"}</strong>
             ${editOnly(`<div class="row">
               ${moveButtons("lesson", lesson.id)}
-              <button class="btn" onclick="createActivityInLesson('${lesson.id}')">+ Contenu</button>
+              <button class="btn" onclick="createActivityInLesson('${lesson.id}')">Créer diapo</button>
               <button class="btn" onclick="openEditor('lesson','${lesson.id}')">Modifier</button>
               <button class="btn danger" onclick="removeItem('lesson','${lesson.id}')">Supprimer</button>
             </div>`)}
@@ -2475,7 +2485,7 @@
       }
 
       function activityCard(activity) {
-        if (activity.contentType === "word") return `<article class="card activity-card"><div class="activity-card-body"><div><p class="small word-document-label">Document Word · .docx</p><h3>${escapeHtml(activity.title)}</h3><p class="muted small">Texte, mise en page, tableaux et images modifiables.</p></div><div class="activity-actions">${editOnly(moveButtons("activity", activity.id))}<button class="btn" onclick="WordDocuments.open('${activity.id}',{readOnly:true})">Ouvrir / télécharger</button>${editOnly(`<button class="btn primary" onclick="WordDocuments.open('${activity.id}')">Modifier le Word</button><button class="btn danger" onclick="removeItem('activity','${activity.id}')">Supprimer</button>`)}</div></div></article>`;
+        if (activity.contentType === "word") return `<article class="card activity-card"><div class="activity-card-body"><div><p class="small word-document-label">Document Word · .docx</p><h3>${escapeHtml(activity.title)}</h3><p class="muted small">Texte, mise en page, tableaux et images modifiables.</p></div><div class="activity-actions">${editOnly(moveButtons("activity", activity.id))}<button class="btn primary" onclick="WordDocuments.present('${activity.id}')">Présenter</button><button class="btn" onclick="WordDocuments.download('${activity.id}')">Télécharger</button>${editOnly(`<button class="btn" onclick="WordDocuments.open('${activity.id}')">Modifier</button><button class="btn danger" onclick="removeItem('activity','${activity.id}')">Supprimer</button>`)}</div></div></article>`;
         return `<article class="card activity-card">
           <div class="activity-card-body">
             <div>
@@ -2596,22 +2606,22 @@
       }
 
       const tutorialSteps = [
-        { view: "dashboard", selector: "[data-view='dashboard']", title: "Cours à projeter", text: "Cette partie sert à retrouver rapidement une classe, une séquence, une séance puis le contenu à présenter devant les élèves. Elle ne modifie pas le contenu." },
+        { view: "dashboard", selector: "[data-view='dashboard']", title: "Accueil", text: "Cette page vous permet d’ouvrir un cours, d’en créer un ou de reprendre directement votre dernier cours." },
         { view: "dashboard", selector: ".upcoming-courses-card", title: "Trois prochains cours", text: "Cette carte affiche les trois prochains cours prévus aujourd’hui. Cliquez sur un cours pour ouvrir directement le cours associé dans votre espace." },
         { view: "dashboard", selector: "[data-shortcut-title='Cahier de texte']", title: "Cahier de texte externe", text: "Ce raccourci quitte MON ESPACE PROF et ouvre le site Pronote professeur dans un nouvel onglet. Vos données Pronote ne sont pas stockées ici." },
         { view: "dashboard", selector: "[data-shortcut-title='Messagerie']", title: "Messagerie externe", text: "Ce raccourci ouvre la messagerie de l’académie de Grenoble sur un autre site, dans un nouvel onglet." },
-        { view: "classes", selector: "[data-view='classes']", title: "Cours modifiables", text: "C’est ici que vous préparez la structure complète : classes, séquences, séances, contenus et ressources. Les modifications sont enregistrées dans votre espace." },
+        { view: "classes", selector: "[data-view='classes']", title: "Mes cours", text: "C’est ici que vous préparez la structure complète : classes, séquences, séances et supports. Les modifications sont enregistrées dans votre espace." },
         { view: "classes", selector: "#content", title: "Créer et organiser", text: "Ouvrez chaque niveau successivement. Vous pouvez ajouter, renommer, réordonner ou supprimer les éléments, puis organiser les contenus d’une séance." },
         { view: "classes", selector: "#content", title: "Éditeur des contenus", text: "Dans un contenu, ajoutez des diapos, du texte, des URL, PDF, ODT, images, vidéos ou MP3. Les formats AVI, MOV, MKV, WMV, FLV, MPEG, M4V, 3GP et TS sont convertis automatiquement en MP4 compatible. Les objets et les diapos se déplacent par glisser-déposer ; Annuler permet de récupérer une suppression accidentelle." },
         { view: "classes", selector: "#content", title: "Impression et export", text: "L’aperçu montre exactement les feuilles A4 du document Word : deux diapos par page portrait ou une diapo sur une page paysage. PowerPoint crée une diapo plein écran par contenu. Avant le cours, enregistrez aussi une copie PDF sur l’ordinateur : elle restera disponible si le réseau Isère bloque le site." },
-        { view: "tree", selector: "[data-view='tree']", title: "Arbre", text: "L’arbre présente toute la hiérarchie du cours sur une seule page et fournit un accès direct à chaque classe, séquence, séance ou contenu." },
-        { view: "studentClasses", selector: "[data-view='studentClasses']", title: "Groupes Classes", text: "Créez vos groupes et renseignez les élèves. Ces listes alimentent le plan de classe, la roue de la fortune et le suivi des absences." },
+        { view: "tree", selector: "[data-view='tree']", title: "Tous mes cours", text: "Cette vue présente toute l’organisation du cours sur une seule page et fournit un accès direct à chaque classe, séquence ou séance." },
+        { view: "studentClasses", selector: "[data-view='studentClasses']", title: "Mes classes", text: "Créez vos classes et renseignez les élèves. Ces listes alimentent le plan de classe, la roue de la fortune et le suivi des absences." },
         { view: "studentClasses", selector: "#content", title: "Plan de classe", text: "Choisissez jusqu’à 40 bureaux, nommez-les, supprimez ceux qui sont inutiles et déplacez librement les sièges dans ou hors de la grille." },
         { view: "tools", selector: "[data-view='tools']", title: "Outils de classe", text: "Utilisez la roue de la fortune, la liste des absents, les compteurs, l’historique et le chronomètre avec le groupe sélectionné." },
         { view: "schedule", selector: "[data-view='schedule']", title: "Emploi du temps", text: "Cliquez dans le calendrier pour ajouter un cours. Seuls les horaires sont obligatoires ; le groupe, la description et le cours associé restent facultatifs." },
         { view: "schedule", selector: "#content", title: "Déplacer un cours", text: "Faites glisser un cours vers une autre case pour modifier son jour ou son heure. Cliquez dessus pour le modifier, le supprimer ou ouvrir son cours associé." },
         { view: "search", selector: "[data-view='search']", title: "Recherche", text: "Saisissez un mot du titre, de la consigne, du niveau ou d’une ressource pour retrouver rapidement un contenu dans tout votre espace." },
-        { view: "settings", selector: "[data-view='settings']", title: "Réglages et sauvegardes", text: "Vérifiez le stockage et exportez une sauvegarde ZIP complète. Le ZIP sert à restaurer vos données ; pour présenter sans Internet, préparez aussi un PDF et ouvrez-le une fois avant le cours." },
+        { view: "settings", selector: "[data-view='settings']", title: "Paramètres et sauvegardes", text: "Vérifiez le stockage et exportez une sauvegarde ZIP complète. Le ZIP sert à restaurer vos données ; pour présenter sans Internet, préparez aussi un PDF et ouvrez-le une fois avant le cours." },
         { view: "dashboard", selector: "#openBoardBtn", title: "Mode tableau", text: "Le mode tableau présente le contenu en plein écran. Utilisez les commandes pour passer d’une diapo à l’autre pendant le cours." },
         { view: "dashboard", selector: "#pronoteExternalLink", title: "Lien vers Pronote", text: "Le bouton « Cahier de texte » mène à un autre site : Pronote s’ouvre dans un nouvel onglet afin de ne pas fermer MON ESPACE PROF." },
         { view: "dashboard", selector: "#messagingExternalLink", title: "Lien vers la messagerie", text: "Le bouton « Messagerie » mène lui aussi à un autre site et s’ouvre dans un nouvel onglet." },
@@ -2621,74 +2631,49 @@
       function renderTutorial() {
         document.querySelector("#content").innerHTML = `
           <section class="page-head">
-            <div class="breadcrumb">Tutoriel</div>
-            <h2 style="margin:0;color:var(--wine-900);font-size:34px">Tutoriels pratiques</h2>
+            <div class="breadcrumb">Aide</div>
+            <h2 style="margin:0;color:var(--wine-900);font-size:34px">Aide pratique</h2>
             <p class="muted">Choisissez une fiche pour apprendre une action précise, ou lancez la visite guidée complète.</p>
           </section>
-          <section class="tutorial-guide-grid" aria-label="Tutoriels pratiques">
+          <section class="tutorial-guide-grid" aria-label="Aide pratique">
             <details class="tutorial-guide-card" open>
               <summary><span class="tutorial-guide-icon">1</span><span><strong>Créer un cours</strong><small>De la classe jusqu’aux diapos</small></span></summary>
               <ol>
-                <li>Ouvrez <b>Cours par niveau modifiable</b>, puis cliquez sur <b>Ajouter une classe</b>.</li>
+                <li>Ouvrez <b>Mes cours</b>, puis cliquez sur <b>Ajouter une classe</b>.</li>
                 <li>Ouvrez la classe créée et cliquez sur <b>Ajouter une séquence</b>.</li>
                 <li>Dans la séquence, cliquez sur <b>Ajouter une séance</b>.</li>
-                <li>Ouvrez la séance et choisissez <b>Cr?er diapo</b>.</li>
+                <li>Ouvrez la séance et choisissez <b>Créer diapo</b> ou <b>Créer un Word</b>.</li>
                 <li>Dans l’éditeur, ajoutez vos textes, fichiers, images ou liens, puis créez d’autres diapos avec <b>+ Diapo (contenu)</b>.</li>
                 <li>Terminez avec <b>Enregistrer</b>. Le cours est ensuite disponible dans <b>Mes cours</b>.</li>
               </ol>
               <button class="btn primary tutorial-launch" onclick="startPracticalTutorial('course')">Lancer ce tutoriel</button>
             </details>
             <details class="tutorial-guide-card">
-              <summary><span class="tutorial-guide-icon">2</span><span><strong>Changer son emploi du temps</strong><small>Ajouter, déplacer ou modifier un cours</small></span></summary>
+              <summary><span class="tutorial-guide-icon">2</span><span><strong>Créer une séance</strong><small>Organiser votre classe et votre séquence</small></span></summary>
               <ol>
-                <li>Ouvrez <b>Emploi du temps</b> dans le menu de gauche.</li>
-                <li>Cliquez sur une case vide pour ajouter un cours à ce jour et à cette heure.</li>
-                <li>Choisissez les horaires. Vous pouvez aussi associer une classe, un groupe et une description.</li>
-                <li>Pour déplacer un cours, faites-le glisser vers une autre case.</li>
-                <li>Pour changer ses informations, double-cliquez sur le cours, modifiez les champs puis cliquez sur <b>Enregistrer</b>.</li>
+                <li>Dans une classe, cliquez sur <b>Ajouter une séquence</b>.</li>
+                <li>Dans la séquence, cliquez sur <b>Ajouter une séance</b>.</li>
+                <li>Ouvrez la séance pour y préparer vos supports.</li>
               </ol>
-              <button class="btn primary tutorial-launch" onclick="startPracticalTutorial('schedule')">Lancer ce tutoriel</button>
+              <button class="btn primary tutorial-launch" onclick="startPracticalTutorial('course')">Lancer ce tutoriel</button>
             </details>
             <details class="tutorial-guide-card">
-              <summary><span class="tutorial-guide-icon">3</span><span><strong>Exporter en Word, PowerPoint et PDF</strong><small>Préparer les diapos pour imprimer ou présenter</small></span></summary>
+              <summary><span class="tutorial-guide-icon">3</span><span><strong>Créer une diapo ou un Word</strong><small>Préparer le support du cours</small></span></summary>
               <ol>
-                <li>Depuis une séquence ou une séance, cliquez sur <b>Arbre / Export Word</b>.</li>
-                <li>Vérifiez l’aperçu : les diapos sont placées par défaut deux par feuille A4 portrait.</li>
-                <li>Pour chaque diapo, choisissez si elle reste sur une demi-page ou prend une page entière en paysage.</li>
-                <li>Utilisez <b>Retirer de l’export</b> pour ne pas imprimer une diapo, et <b>Remettre dans l’export</b> pour la rétablir.</li>
-                <li>Cliquez sur <b>Exporter Word (.docx)</b> pour imprimer, ou sur <b>Exporter PowerPoint (.pptx)</b> pour obtenir une diapo plein écran par contenu.</li>
-                <li>Dans Word, utilisez <b>Fichier → Enregistrer sous → PDF</b>. Enregistrez ce PDF sur l’ordinateur ou une clé USB et ouvrez-le une fois avant le cours.</li>
+                <li>Dans la séance, cliquez sur <b>Créer diapo</b> pour un support à projeter.</li>
+                <li>Ou cliquez sur <b>Créer un Word</b> pour un document multipage.</li>
+                <li>Pour un Word existant, choisissez <b>Importer un Word</b>, puis cliquez sur <b>Modifier</b> ou <b>Présenter</b>.</li>
               </ol>
-              <p class="tutorial-guide-note tutorial-guide-warning"><b>Avant le cours :</b> le réseau Isère peut bloquer le site. Gardez toujours le PDF hors connexion pour pouvoir présenter même sans accès au site.</p>
               <button class="btn primary tutorial-launch" onclick="startPracticalTutorial('word')">Lancer ce tutoriel</button>
             </details>
             <details class="tutorial-guide-card">
-              <summary><span class="tutorial-guide-icon">4</span><span><strong>Exporter le ZIP</strong><small>Créer une sauvegarde complète</small></span></summary>
+              <summary><span class="tutorial-guide-icon">4</span><span><strong>Présenter</strong><small>Afficher le support devant la classe</small></span></summary>
               <ol>
-                <li>Ouvrez <b>Réglages</b> dans le menu de gauche.</li>
-                <li>Dans la partie <b>Données</b>, cliquez sur <b>Exporter ZIP</b>.</li>
-                <li>Attendez la préparation du fichier, puis enregistrez le ZIP téléchargé dans un endroit sûr.</li>
-                <li>Le ZIP range les cours par dossiers de classes et contient les exports Word des séquences ainsi que les données nécessaires à une restauration.</li>
-                <li>Pour récupérer cette sauvegarde plus tard, revenez dans <b>Réglages</b> et utilisez <b>Importer ZIP ou JSON</b>.</li>
+                <li>Sur la carte d’une diapo ou d’un Word, cliquez sur <b>Présenter</b>.</li>
+                <li>Le document s’ouvre en grand avec les boutons <b>Précédent</b>, <b>Suivant</b> et <b>Quitter</b>.</li>
+                <li>Les flèches du clavier permettent aussi de changer de page.</li>
               </ol>
-              <p class="tutorial-guide-note"><b>Attention :</b> le ZIP est une sauvegarde à restaurer. Pour le cours, conservez aussi un PDF directement ouvrable.</p>
-              <button class="btn primary tutorial-launch" onclick="startPracticalTutorial('zip')">Lancer ce tutoriel</button>
-            </details>
-            <details class="tutorial-guide-card tutorial-editor-guide">
-              <summary><span class="tutorial-guide-icon">5</span><span><strong>Comprendre tous les boutons de l’éditeur</strong><small>Diapos, objets, texte, outils et enregistrement</small></span></summary>
-              <p class="tutorial-guide-description">Cette visite ouvre votre premier contenu sans le modifier et explique toutes les commandes de l’éditeur. Vous pouvez aussi rester environ une seconde sur n’importe quel bouton pour afficher son rôle et son fonctionnement.</p>
-              <button class="btn primary tutorial-launch" onclick="startPracticalTutorial('editor')">Lancer le tutoriel de l’éditeur</button>
-            </details>
-            <details class="tutorial-guide-card tutorial-offline-guide">
-              <summary><span class="tutorial-guide-icon">6</span><span><strong>Préparer le cours hors connexion</strong><small>Garder un PDF si le réseau Isère bloque le site</small></span></summary>
-              <ol>
-                <li>Ouvrez le contenu dans l’éditeur puis cliquez sur <b>Imprimer / Word</b>.</li>
-                <li>Contrôlez chaque feuille dans l’aperçu A4 exact et exportez le document Word.</li>
-                <li>Dans Word, choisissez <b>Fichier → Enregistrer sous → PDF</b>.</li>
-                <li>Enregistrez le PDF sur l’ordinateur ou une clé USB, puis ouvrez-le avant de partir en cours.</li>
-              </ol>
-              <p class="tutorial-guide-note tutorial-guide-warning"><b>Conseil :</b> gardez le PDF ouvert ou facilement accessible. Il ne dépend pas du réseau de l’établissement.</p>
-              <button class="btn primary tutorial-launch" onclick="startPracticalTutorial('offline')">Voir où préparer le PDF</button>
+              <button class="btn primary tutorial-launch" onclick="startPracticalTutorial('editor')">Lancer ce tutoriel</button>
             </details>
           </section>
           <section class="card">
@@ -2711,11 +2696,11 @@
         const items = firstTutorialCourseItems();
         const definitions = {
           course: [
-            { view:"classes", selector:"[data-view='classes']", title:"Cours modifiables", text:"Commencez toujours ici pour créer ou modifier la structure d’un cours." },
+            { view:"classes", selector:"[data-view='classes']", title:"Mes cours", text:"Commencez toujours ici pour créer ou modifier la structure d’un cours." },
             { view:"classes", selector:"button[onclick=\"openEditor('class')\"]", title:"Ajouter une classe", text:"Créez d’abord la classe ou le niveau qui contiendra vos séquences." },
             { view:"classes", selector:`button[onclick*="openEditor('sequence'"]`, title:"Ajouter une séquence", text:"Dans une classe, ce bouton crée une nouvelle séquence.", enter:()=>items.classe&&openClassPage(items.classe.id) },
             { view:"classes", selector:`button[onclick*="openEditor('lesson'"]`, title:"Ajouter une séance", text:"Dans la séquence choisie, ajoutez ensuite une ou plusieurs séances.", enter:()=>items.classe&&items.sequence&&openSequencePage(items.classe.id,items.sequence.id) },
-            { view:"classes", selector:"button[onclick*='createActivityInLesson']", title:"Cr?er diapo", text:"Dans une séance, créez le contenu qui recevra vos diapos.", enter:()=>items.classe&&items.sequence&&items.lesson&&openLessonPage(items.classe.id,items.sequence.id,items.lesson.id) },
+            { view:"classes", selector:"button[onclick*='createActivityInLesson']", title:"Créer diapo", text:"Dans une séance, créez une nouvelle diapo.", enter:()=>items.classe&&items.sequence&&items.lesson&&openLessonPage(items.classe.id,items.sequence.id,items.lesson.id) },
             { view:"classes", selector:"button[onclick*='openActivityStudio']", title:"Modifier le contenu", text:"Ouvrez enfin l’éditeur pour préparer les diapos, textes et documents du cours." }
           ],
           schedule: [
@@ -2724,12 +2709,12 @@
             { view:"schedule", selector:".timetable", title:"Déplacer ou modifier", text:"Faites glisser un cours pour le déplacer. Double-cliquez dessus pour modifier ses horaires, sa classe, son groupe ou sa description." }
           ],
           word: [
-            { view:"classes", selector:"button[onclick*='openEditableSubtree']", title:"Arbre / Export Word", text:"Depuis une classe ou une séquence, ouvrez l’aperçu avec ce bouton.", enter:()=>items.classe&&openClassPage(items.classe.id) },
+            { view:"classes", selector:"button[onclick*='openEditableSubtree']", title:"Voir l’organisation", text:"Depuis une classe ou une séquence, ouvrez l’organisation du cours avec ce bouton.", enter:()=>items.classe&&openClassPage(items.classe.id) },
             { view:"classes", selector:".print-preview-shell", title:"Préparer les pages à imprimer", text:"Dans l’aperçu, choisissez la mise en page de chaque diapo et retirez celles que vous ne voulez pas imprimer.", enter:()=>items.sequence&&openSequenceWordPreview(items.sequence.id) },
             { view:"classes", selector:"button[onclick*='exportSequenceWord']", title:"Exporter Word et créer le PDF", text:"Téléchargez le document Word. Dans Word, utilisez Fichier → Enregistrer sous → PDF, puis gardez cette copie sur l’ordinateur pour le cours." }
           ],
           zip: [
-            { view:"settings", selector:"[data-view='settings']", title:"Réglages", text:"La sauvegarde complète se trouve dans les Réglages." },
+            { view:"settings", selector:"[data-view='settings']", title:"Paramètres", text:"La sauvegarde complète se trouve dans les Paramètres." },
             { view:"settings", selector:"button[onclick='exportZip(this)']", title:"Exporter ZIP", text:"Ce bouton télécharge une sauvegarde complète, classée par dossiers de classes." },
             { view:"settings", selector:"#importDataBtn", title:"Importer ZIP ou JSON", text:"Utilisez ce bouton pour restaurer ultérieurement une sauvegarde exportée." }
           ],
@@ -2794,18 +2779,18 @@
         const firstActivity = firstLesson?.activities?.[0];
         activeTutorialSteps = [
           { view: "dashboard", selector: "#content", title: "Démo gratuite complète", text: "La démo reprend les fonctions du véritable espace avec un cours sur Leonardo da Vinci. Vos essais restent uniquement en mémoire pendant cette visite." },
-          { view: "classes", selector: "#content", title: "Cours modifiables", text: "Créez, modifiez, déplacez et supprimez les classes, séquences, séances, contenus et ressources comme dans le véritable espace." },
-          { view: "tree", selector: "#content", title: "Arbre", text: "Explorez toute l’organisation du cours depuis une vue unique." },
-          { view: "studentClasses", selector: "#content", title: "Groupes Classes", text: "Ajoutez des groupes et des élèves pour tester les outils de classe." },
+          { view: "classes", selector: "#content", title: "Mes cours", text: "Créez, modifiez, déplacez et supprimez les classes, séquences, séances et supports comme dans le véritable espace." },
+          { view: "tree", selector: "#content", title: "Tous mes cours", text: "Explorez toute l’organisation du cours depuis une vue unique." },
+          { view: "studentClasses", selector: "#content", title: "Mes classes", text: "Ajoutez des classes et des élèves pour tester les outils de classe." },
           { view: "studentClasses", selector: "#content", title: "Plan de classe", text: "Choisissez directement de 1 à 40 bureaux, puis ajoutez, supprimez et déplacez-les librement dans toute la salle." },
           { view: "tools", selector: "#content", title: "Outils", text: "Testez la roue, les absences, les compteurs et le chronomètre exactement comme dans le véritable espace." },
           { view: "schedule", selector: "#content", title: "Emploi du temps", text: "Cliquez sur une case : seules les heures sont obligatoires. Le cours, la description et le groupe choisi dans la liste déroulante restent facultatifs." },
           { view: "search", selector: "#content", title: "Recherche", text: "Retrouvez rapidement un contenu ou une ressource dans toutes les données de démonstration." },
-          { view: "tutorial", selector: "#content", title: "Tutoriels et aide sur les boutons", text: "Relancez une visite à tout moment. Dans tout le site, laissez la souris environ une seconde sur un bouton, ou sélectionnez-le au clavier, pour lire son rôle et son fonctionnement." },
+          { view: "tutorial", selector: "#content", title: "Aide sur les boutons", text: "Relancez une visite à tout moment. Dans tout le site, laissez la souris environ une seconde sur un bouton, ou sélectionnez-le au clavier, pour lire son rôle et son fonctionnement." },
           { view: "dashboard", selector: "[data-shortcut-title='Cahier de texte']", title: "Cahier de texte externe", text: "Ce raccourci mène à Pronote, un autre site, qui s’ouvre dans un nouvel onglet." },
           { view: "dashboard", selector: "[data-shortcut-title='Messagerie']", title: "Messagerie externe", text: "Ce raccourci mène à la messagerie académique, sur un autre site ouvert dans un nouvel onglet." },
           { view: "tutorial", selector: "#exampleAd", title: "OrellanaTech et contact", text: "Le nom « OrellanaTech » mène au site externe d’OrellanaTech dans un nouvel onglet. Le téléphone et l’adresse e-mail se copient au clic." },
-          { view: "settings", selector: "#content", title: "Réglages et secours hors connexion", text: "Le ZIP sauvegarde toutes les données pour les restaurer. Avant un cours, exportez aussi la présentation en PDF et ouvrez-la une fois sur l’ordinateur : elle restera utilisable si le réseau Isère bloque le site." },
+          { view: "settings", selector: "#content", title: "Paramètres et secours hors connexion", text: "Le ZIP sauvegarde toutes les données pour les restaurer. Avant un cours, exportez aussi la présentation en PDF et ouvrez-la une fois sur l’ordinateur : elle restera utilisable si le réseau Isère bloque le site." },
           { view: "dashboard", selector: "#content", title: "Classe 5eme", text: "On commence par la classe 5eme.", enter: () => firstClass && openTableauClass(firstClass.id) },
           { view: "dashboard", selector: "#content", title: "Séquence", text: "Le tutoriel ouvre la première séquence de l'exemple.", enter: () => firstClass && firstSequence && openTableauSequence(firstClass.id, firstSequence.id) },
           { view: "dashboard", selector: "#content", title: "Séance", text: "Puis la visite ouvre la première séance pour trouver ses contenus.", enter: () => firstClass && firstSequence && firstLesson && openTableauLesson(firstClass.id, firstSequence.id, firstLesson.id) },
@@ -3874,7 +3859,7 @@
         toolId = toolId === "wheel" ? "wheel" : "timer";
         const classId = document.querySelector("#studioToolClass")?.value || "";
         if (toolId === "wheel" && !classId) {
-          toast("Ajoutez d'abord un groupe dans Groupes Classes pour utiliser la roue.");
+          toast("Ajoutez d'abord une classe dans Mes classes pour utiliser la roue.");
           return;
         }
         const slide = selectedSlide();
@@ -4507,7 +4492,7 @@
       }
 
       function labelType(type) {
-        return { class: "Classe", studentClass: "Groupes Classes", sequence: "Séquence", lesson: "Séance", activity: "Contenus", resource: "Ressource" }[type] || type;
+        return { class: "Classe", studentClass: "Mes classes", sequence: "Séquence", lesson: "Séance", activity: "Support", resource: "Ressource" }[type] || type;
       }
 
       function showBoard(id, slideIndex = 0) {

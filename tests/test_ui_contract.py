@@ -28,9 +28,13 @@ def test_ordre_des_menus_est_inchange() -> None:
 def test_libelles_visibles_sont_conserves() -> None:
     source = INDEX + APP_JS
     for text in CONTRACT["required_texts"]:
-        if text.startswith("Cours par niveau"):
-            continue
         assert text in source
+
+
+def test_anciens_libelles_de_navigation_ont_disparu() -> None:
+    source = INDEX + APP_JS
+    for text in ("Cours par niveau à projeter", "Cours par niveau modifiable", "Groupes Classes", "Arbre / Export Word"):
+        assert text not in source
 
 
 def test_dimensions_du_studio_sont_conservees() -> None:
@@ -622,12 +626,10 @@ def test_aide_explique_les_boutons_au_survol_et_au_clavier() -> None:
 
 def test_tutoriels_pratiques_expliquent_les_actions_principales() -> None:
     assert "Créer un cours" in APP_JS
-    assert "Changer son emploi du temps" in APP_JS
-    assert "Exporter en Word, PowerPoint et PDF" in APP_JS
-    assert "Exporter le ZIP" in APP_JS
-    assert "Préparer le cours hors connexion" in APP_JS
+    assert "Créer une séance" in APP_JS
+    assert "Créer une diapo ou un Word" in APP_JS
+    assert "Présenter" in APP_JS
     assert "le réseau Isère peut bloquer le site" in APP_JS
-    assert "startPracticalTutorial('offline')" in APP_JS
     assert "studio-offline-warning" in APP_JS
     assert ".school-network-warning" in STYLES
     assert ".tutorial-guide-warning" in STYLES
@@ -636,7 +638,6 @@ def test_tutoriels_pratiques_expliquent_les_actions_principales() -> None:
     assert ".tutorial-guide-card" in STYLES
     assert "function startPracticalTutorial(" in APP_JS
     assert "function editorTutorialSteps(" in APP_JS
-    assert "Lancer le tutoriel de l’éditeur" in APP_JS
     assert APP_JS.count('data-tour="studio-') >= 15
     assert "Mise en forme du texte" in APP_JS
 
@@ -652,7 +653,7 @@ def test_export_impression_et_documents_libreoffice() -> None:
     assert 'value="portrait">Portrait' in APP_JS
     assert 'value="landscape">Paysage' in APP_JS
     assert "composePortraitWordSheet" in APP_JS
-    assert "espace-prof-60" in INDEX
+    assert "espace-prof-61" in INDEX
 
 
 def test_diapos_affichent_classe_sequence_et_seance() -> None:
@@ -675,7 +676,7 @@ def test_serveur_accepte_les_formats_opendocument_du_selecteur() -> None:
         assert f'"{extension}": "{mime_type}"' in storage
         assert f'"{mime_type}"' in storage
     assert "extension in OPENDOCUMENT_MIME_BY_EXTENSION" in storage
-    assert "espace-prof-109" in INDEX
+    assert "espace-prof-110" in INDEX
     assert "Précédent" in APP_JS
     assert "Suivant" in APP_JS
     assert "setTimeout(startFreeExampleTutorial, 250);" in APP_JS
@@ -795,8 +796,8 @@ def test_plan_de_classe_style_cinema_et_emploi_du_temps_lycee() -> None:
     assert '["lundi", "mardi", "mercredi", "jeudi", "vendredi"]' in APP_JS
     assert 'aria-label="Emploi du temps du lundi au vendredi"' in APP_JS
     assert ".timetable-course" in STYLES
-    assert "assets/styles.css?v=espace-prof-60" in INDEX
-    assert "assets/app.js?v=espace-prof-109" in INDEX
+    assert "assets/styles.css?v=espace-prof-61" in INDEX
+    assert "assets/app.js?v=espace-prof-110" in INDEX
     assert "assets/api-client.js?v=espace-prof-6" in INDEX
 
 

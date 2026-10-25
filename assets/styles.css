@@ -66,6 +66,7 @@
       .welcome-hero h2 { margin:0; color:var(--wine-900); font-size:36px; }
       .welcome-hero p:not(.eyebrow) { margin:8px 0 18px; color:var(--muted); font-size:17px; }
       .welcome-actions { display:flex; flex-wrap:wrap; gap:10px; }
+      .welcome-empty-note { align-self:center; color:var(--muted); font-size:14px; }
       body {
         position: relative;
         margin: 0;
@@ -2395,7 +2396,6 @@
 #editorModal:has(.word-document-shell) { padding:0; }
 .word-document-shell { position:relative; width:100vw; height:100dvh; display:flex; flex-direction:column; overflow:hidden; background:#f4f1ec; border-radius:0; }
 .create-word-button { background:#b01832 !important; border-color:#8f1027 !important; color:#fff !important; }
-[data-view="dashboard"] { display:none !important; }
 .word-document-header { display:flex; justify-content:space-between; align-items:center; gap:20px; padding:14px 20px; background:#fffaf5; border-bottom:1px solid var(--line); flex-shrink:0; }
 .word-document-header > div:first-child { flex:1; min-width:0; }
 .word-document-header label { display:block; font-size:12px; font-weight:850; color:var(--wine-700); }

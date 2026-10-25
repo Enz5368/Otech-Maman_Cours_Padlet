@@ -136,13 +136,13 @@ try {
   await page.waitForFunction(()=>document.querySelector('#wordDocumentStatus').textContent==='Document enregistré.');
   assert.equal(revision,1);
   await page.getByRole('button',{name:'Fermer',exact:true}).click();
-  await page.getByRole('button',{name:'Modifier le Word',exact:true}).click();
+  await page.getByRole('button',{name:'Modifier',exact:true}).click();
   await page.waitForFunction(()=>!document.querySelector('[data-word-action]').disabled);
   await page.getByRole('button',{name:'Fermer',exact:true}).click();
   await page.reload();
   await page.waitForFunction(()=>document.querySelector('#appPage').hidden===false);
   await page.evaluate(()=>openLessonPage('class','seq','lesson'));
-  assert.equal(await page.getByRole('button',{name:'Modifier le Word',exact:true}).count(),1);
+  assert.equal(await page.getByRole('button',{name:'Modifier',exact:true}).count(),1);
   assert.equal(workspace.classes[0].sequences[0].lessons[0].activities[0].contentType,'word');
   await page.screenshot({path:path.join(root,'tests/visual/current-word-lesson.png')});
   assert.deepEqual(errors,[]);
