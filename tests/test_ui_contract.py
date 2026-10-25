@@ -679,7 +679,7 @@ def test_serveur_accepte_les_formats_opendocument_du_selecteur() -> None:
         assert f'"{extension}": "{mime_type}"' in storage
         assert f'"{mime_type}"' in storage
     assert "extension in OPENDOCUMENT_MIME_BY_EXTENSION" in storage
-    assert "espace-prof-110" in INDEX
+    assert "espace-prof-111" in INDEX
     assert "Précédent" in APP_JS
     assert "Suivant" in APP_JS
     assert "setTimeout(startFreeExampleTutorial, 250);" in APP_JS
