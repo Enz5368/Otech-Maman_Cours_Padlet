@@ -101,17 +101,20 @@ def test_les_classes_utilisateur_ne_sont_pas_recreees_depuis_la_demo() -> None:
     assert "hasDefaultStudentClass" not in source
 
 
-def test_un_nouvel_onglet_attend_la_sauvegarde_serveur() -> None:
+def test_la_navigation_reste_dans_l_onglet_courant() -> None:
     assert "let pendingWorkspaceSave = Promise.resolve(true);" in APP_JS
     assert "window.ServerAPI.saveWorkspace(snapshot, true)" in APP_JS
-    assert "function openUrlInNewTabAfterSave(url)" in APP_JS
+    assert "function navigateAfterSave(url)" in APP_JS
     assert "Promise.resolve(pendingWorkspaceSave).then" in APP_JS
+    assert "window.location.assign(url);" in APP_JS
+    assert "window.open(" not in APP_JS
 
 
-def test_les_entrees_de_gauche_reutilisent_leur_onglet_existant() -> None:
-    assert 'openUrlInNewTabAfterSave(appUrl({ view }), `in-viaggio-view-${slugify(view)}`)' in APP_JS
-    assert 'const target = window.open("", targetName);' in APP_JS
-    assert "target.focus();" in APP_JS
+def test_les_entrees_de_gauche_ne_creent_pas_de_nouvel_onglet() -> None:
+    assert "function navigateView(view)" in APP_JS
+    assert "navigateView(button.dataset.view)" in APP_JS
+    assert "openViewInNewTab" not in APP_JS
+    assert "openBoardInNewTab" not in APP_JS
 
 
 def test_les_contenus_ont_un_apercu_impression_et_un_export_word() -> None:
@@ -194,9 +197,9 @@ def test_le_studio_accepte_collage_double_clic_et_texte_auto_ajuste() -> None:
     assert "slideSize.height - 40" in APP_JS
 
 
-def test_les_liens_en_nouvel_onglet_reutilisent_trois_emplacements() -> None:
-    assert 'event.target.closest("a[target=\'_blank\']")' in APP_JS
-    assert 'Number(localStorage.getItem(key) || 0) % 3' in APP_JS
+def test_les_liens_ne_forcent_pas_un_nouvel_onglet() -> None:
+    assert 'target="_blank"' not in INDEX
+    assert 'target="_blank"' not in APP_JS
 
 
 def test_la_connexion_serveur_laisse_le_serveur_normaliser_l_identifiant() -> None:
@@ -797,7 +800,7 @@ def test_plan_de_classe_style_cinema_et_emploi_du_temps_lycee() -> None:
     assert 'aria-label="Emploi du temps du lundi au vendredi"' in APP_JS
     assert ".timetable-course" in STYLES
     assert "assets/styles.css?v=espace-prof-61" in INDEX
-    assert "assets/app.js?v=espace-prof-110" in INDEX
+    assert "assets/app.js?v=espace-prof-111" in INDEX
     assert "assets/api-client.js?v=espace-prof-6" in INDEX
 
 

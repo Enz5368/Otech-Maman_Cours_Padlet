@@ -1067,57 +1067,23 @@
         return url.toString();
       }
 
-      function openUrlInNewTabAfterSave(url) {
-        const requestedTargetName = arguments[1] || "_blank";
-        const targetName = requestedTargetName.startsWith("in-viaggio-") ? nextManagedTabName() : requestedTargetName;
-        const target = window.open("", targetName);
-        if (!target) {
-          toast("Autorisez les fenêtres contextuelles pour ouvrir cette vue.");
-          return;
-        }
-        let openedFresh = false;
-        try {
-          openedFresh = target.location.href === "about:blank";
-          target.document.documentElement.style.visibility = "hidden";
-        } catch {
-          // Un onglet nommé peut avoir navigué hors du site : il reste réutilisable.
-        }
+      function navigateAfterSave(url) {
         Promise.resolve(pendingWorkspaceSave).then((saved) => {
           if (saved || !isLoggedIn()) {
-            target.location.replace(url);
-            target.focus();
+            window.location.assign(url);
             return;
-          }
-          if (openedFresh) target.close();
-          else {
-            try { target.document.documentElement.style.visibility = ""; } catch {}
           }
           toast("La vue n'a pas été ouverte car l'enregistrement serveur a échoué.");
         });
       }
 
-      function nextManagedTabName() {
-        const key = "mep-managed-tab-slot-v1";
-        const nextSlot = Number(localStorage.getItem(key) || 0) % 3;
-        localStorage.setItem(key, String((nextSlot + 1) % 3));
-        return `in-viaggio-slot-${nextSlot + 1}`;
+      function navigateView(view) {
+        setView(view);
       }
 
-      function openViewInNewTab(view) {
-        if (freeExampleOpen) {
-          setView(view);
-          return;
-        }
-        openUrlInNewTabAfterSave(appUrl({ view }), `in-viaggio-view-${slugify(view)}`);
-      }
-
-      function openBoardInNewTab(activityId, slideIndex = 0) {
+      function presentActivity(activityId, slideIndex = 0) {
         if (findItem("activity", activityId)?.contentType === "word") return WordDocuments.present(activityId);
-        if (freeExampleOpen) {
-          showBoard(activityId, slideIndex);
-          return;
-        }
-        openUrlInNewTabAfterSave(appUrl({ board: activityId, slide: slideIndex }), `in-viaggio-board-${slugify(activityId)}`);
+        showBoard(activityId, slideIndex);
       }
 
       function applyInitialRoute() {
@@ -1163,7 +1129,7 @@
         const sequence = classe?.sequences?.find((item) => item.isVisible !== false);
         const lesson = sequence?.lessons?.find((item) => item.isVisible !== false);
         const activity = lesson?.activities?.find((item) => item.isVisible !== false);
-        if (activity) return openBoardInNewTab(activity.id);
+        if (activity) return presentActivity(activity.id);
         if (classe) return openClassPage(classe.id);
         toast("Créez d’abord un cours pour pouvoir le présenter.");
       }
@@ -1229,7 +1195,7 @@
             <p class="muted">Cette vue sert uniquement à trouver et afficher un contenu.</p>
           </section>
           <nav class="dashboard-shortcuts" aria-label="Accès rapides">
-            ${workspaceShortcuts.map((shortcut) => `<a class="shortcut-card" data-shortcut-title="${escapeAttr(shortcut.title)}" href="${escapeAttr(shortcut.url)}" target="_blank" rel="noopener noreferrer"><span>Accès rapide</span><strong>${escapeHtml(shortcut.title)}</strong><small>${escapeHtml(shortcut.description)}</small></a>`).join("")}
+            ${workspaceShortcuts.map((shortcut) => `<a class="shortcut-card" data-shortcut-title="${escapeAttr(shortcut.title)}" href="${escapeAttr(shortcut.url)}"><span>Accès rapide</span><strong>${escapeHtml(shortcut.title)}</strong><small>${escapeHtml(shortcut.description)}</small></a>`).join("")}
             ${renderUpcomingCoursesShortcut()}
           </nav>
           <section class="page-grid">${state.classes.filter((classe) => classe.isVisible !== false).map(tableauClassCard).join("")}</section>
@@ -1320,7 +1286,7 @@
       function openManagedLink(url, event) {
         event?.preventDefault();
         event?.stopPropagation();
-        openUrlInNewTabAfterSave(url, "in-viaggio-link");
+        navigateAfterSave(url);
         return false;
       }
 
@@ -1329,7 +1295,7 @@
         const addVideoButton = canEdit() ? `<button type="button" class="btn sequence-hook-video" onclick="setSequenceHookVideoLink('${escapeAttr(sequence.id)}')">${document?.kind === "video-link" ? "Modifier la vidéo" : "+ Lien vidéo"}</button>` : "";
         if (document?.url) {
           return `<span class="sequence-hook-control">
-            <a class="btn sequence-hook-document" href="${escapeAttr(document.url)}" target="_blank" rel="noopener noreferrer" onclick="return openManagedLink(this.href,event)" title="Ouvrir ${escapeAttr(document.name || "le document d’accroche")}">${document.kind === "video-link" ? "▶ Vidéo d’accroche" : "📎 Document d’accroche"}</a>
+            <a class="btn sequence-hook-document" href="${escapeAttr(document.url)}" onclick="return openManagedLink(this.href,event)" title="Ouvrir ${escapeAttr(document.name || "le document d’accroche")}">${document.kind === "video-link" ? "▶ Vidéo d’accroche" : "📎 Document d’accroche"}</a>
             ${canEdit() ? `<label class="sequence-hook-replace" title="Remplacer le document d’accroche" aria-label="Remplacer le document d’accroche">↻<input type="file" hidden onchange="setSequenceHookDocument('${escapeAttr(sequence.id)}',this.files[0],this);this.value=''" /></label>` : ""}
             ${addVideoButton}
           </span>`;
@@ -1464,7 +1430,7 @@
 
       function projectTreeActivityNode(activity) {
         return `<li>
-          <button class="tree-node tree-activity" onclick="closeEditor();openBoardInNewTab('${activity.id}',0)"><span>Contenus</span><strong>${escapeHtml(activity.title)}</strong></button>
+          <button class="tree-node tree-activity" onclick="closeEditor();presentActivity('${activity.id}',0)"><span>Contenus</span><strong>${escapeHtml(activity.title)}</strong></button>
           ${treeChildren((activity.resources || []).filter((resource) => resource.isVisible !== false).map(projectTreeResourceNode))}
         </li>`;
       }
@@ -1501,7 +1467,7 @@
           </div>
           <div class="row wrap">
             <button class="btn" onclick="openActivityPrintPreview('${activity.id}')">Aperçu / imprimer</button>
-            <button class="btn primary" onclick="openBoardInNewTab('${activity.id}',0)">Présenter</button>
+            <button class="btn primary" onclick="presentActivity('${activity.id}',0)">Présenter</button>
           </div>
         </article>`;
       }
@@ -1515,7 +1481,7 @@
               <p class="muted small">${escapeHtml(activity.objective || activity.description || "Contenu")}</p>
             </div>
             <div class="activity-actions">
-              <button class="btn primary" onclick="openBoardInNewTab('${activity.id}',0)">Présenter</button>
+              <button class="btn primary" onclick="presentActivity('${activity.id}',0)">Présenter</button>
               <button class="btn" onclick="openActivityPrintPreview('${activity.id}')">Aperçu / imprimer</button>
               <button class="btn" onclick="setView('classes')">Retrouver dans les classes</button>
             </div>
@@ -2094,7 +2060,7 @@
             <div><p class="small">Boîte à outils du professeur</p><h2 id="toolDirectoryTitle">Liens utiles</h2></div>
             <p class="muted small">Chaque service s'ouvre dans un nouvel onglet.</p>
           </div>
-          ${groups.map((group) => `<section class="tool-link-group"><h3>${escapeHtml(group)}</h3><div class="tool-link-grid">${teacherToolLinks.filter((link) => link.group === group).map((link) => `<a class="tool-link-card" href="${escapeAttr(link.url)}" target="_blank" rel="noopener noreferrer"><strong>${escapeHtml(link.title)}</strong><span>${escapeHtml(link.description)}</span><small>Ouvrir l'outil ↗</small></a>`).join("")}</div></section>`).join("")}
+          ${groups.map((group) => `<section class="tool-link-group"><h3>${escapeHtml(group)}</h3><div class="tool-link-grid">${teacherToolLinks.filter((link) => link.group === group).map((link) => `<a class="tool-link-card" href="${escapeAttr(link.url)}"><strong>${escapeHtml(link.title)}</strong><span>${escapeHtml(link.description)}</span><small>Ouvrir l’outil</small></a>`).join("")}</div></section>`).join("")}
         </section>`;
       }
 
@@ -2495,7 +2461,7 @@
             </div>
             <div class="activity-actions">
               ${editOnly(moveButtons("activity", activity.id))}
-              <button class="btn primary" onclick="openBoardInNewTab('${activity.id}')">Présenter</button>
+              <button class="btn primary" onclick="presentActivity('${activity.id}')">Présenter</button>
               <button class="btn" onclick="openActivityPrintPreview('${activity.id}')">Aperçu / imprimer</button>
               ${editOnly(`<button class="btn" onclick="openActivityStudio('${activity.id}')">Modifier</button>
               <button class="btn danger" onclick="removeItem('activity','${activity.id}')">Supprimer</button>`)}
@@ -2520,7 +2486,7 @@
               <p class="muted small">${escapeHtml(resource.description)}</p>
             </div>
             <div class="row">
-              ${resource.url ? `<a class="btn" href="${resource.url}" target="_blank">Ouvrir</a>` : ""}
+              ${resource.url ? `<a class="btn" href="${resource.url}">Ouvrir</a>` : ""}
               ${editOnly(`<button class="btn" onclick="openEditor('resource','${resource.id}')">Modifier</button>
               <button class="btn danger" onclick="removeItem('resource','${resource.id}')">Supprimer</button>`)}
             </div>
@@ -2578,7 +2544,7 @@
               add("Séance",lesson.title,lessonPath,lesson,`openTableauLesson('${classe.id}','${sequence.id}','${lesson.id}')`,lesson.description);
               (lesson.activities || []).forEach((activity) => {
                 const activityPath = `${lessonPath} › ${activity.title}`;
-                add("Contenu",activity.title,activityPath,activity,`openBoardInNewTab('${activity.id}',0)`,activity.objective || activity.instruction || activity.description);
+                add("Contenu",activity.title,activityPath,activity,`presentActivity('${activity.id}',0)`,activity.objective || activity.instruction || activity.description);
                 (activity.resources || []).forEach((resource) => add("Ressource",resource.title,`${activityPath} › ${resource.title}`,resource,`openSearchResource('${resource.id}','${activity.id}',event)`,resource.description || resource.category || resource.type));
               });
             });
@@ -3310,7 +3276,7 @@
         if (element.kind === "audio") return `<audio controls preload="metadata" src="${escapeAttr(element.value)}" onerror="reportMediaError(this)"></audio>`;
         if (element.kind === "video") return `<video controls preload="metadata" src="${escapeAttr(element.value)}" onerror="reportMediaError(this)"></video>`;
         if (element.kind === "document" || (element.kind === "embed" && isStoredDocumentUrl(element.value))) {
-          return `<div class="slide-document-card" data-document-preview="${escapeAttr(element.value)}"><span class="document-preview-status">Chargement du document…</span><div class="document-preview-content"></div><div class="document-preview-fallback" hidden><strong>Document joint</strong><span>L’aperçu de ce format n’est pas disponible.</span><a class="btn primary" href="${escapeAttr(element.value)}" target="_blank" rel="noreferrer" onclick="return openManagedLink(this.href,event)">Ouvrir le document</a></div></div>`;
+          return `<div class="slide-document-card" data-document-preview="${escapeAttr(element.value)}"><span class="document-preview-status">Chargement du document…</span><div class="document-preview-content"></div><div class="document-preview-fallback" hidden><strong>Document joint</strong><span>L’aperçu de ce format n’est pas disponible.</span><a class="btn primary" href="${escapeAttr(element.value)}" onclick="return openManagedLink(this.href,event)">Ouvrir le document</a></div></div>`;
         }
         if (element.kind === "pdf") return `<iframe src="${toEmbedUrl(element.value)}" title="Document PDF"></iframe>`;
         return `<iframe src="${toEmbedUrl(element.value)}"></iframe>`;
@@ -6099,13 +6065,6 @@
       });
       document.addEventListener("mousedown", hideButtonHelp);
       document.addEventListener("scroll", hideButtonHelp, true);
-      document.addEventListener("click", (event) => {
-        if (event.defaultPrevented || event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
-        const link = event.target.closest("a[target='_blank']");
-        if (!link || link.hasAttribute("download")) return;
-        openManagedLink(link.href, event);
-      });
-
       document.querySelector("#loginForm").addEventListener("submit", async (event) => {
         event.preventDefault();
         const form = new FormData(event.currentTarget);
@@ -6117,7 +6076,7 @@
         }
       });
 
-      document.querySelectorAll(".nav-button[data-view]").forEach((button) => button.addEventListener("click", () => openViewInNewTab(button.dataset.view)));
+      document.querySelectorAll(".nav-button[data-view]").forEach((button) => button.addEventListener("click", () => navigateView(button.dataset.view)));
       document.querySelector("#loginNavBtn").addEventListener("click", showLogin);
       document.querySelector("#logoutBtn").addEventListener("click", async () => {
         if (!isLocalFileMode()) await window.ServerAPI.logout().catch(() => {});
@@ -6136,7 +6095,7 @@
       });
       document.querySelector("#openBoardBtn").addEventListener("click", () => {
         const first = flatten().activities[0];
-        if (first) openBoardInNewTab(first.id);
+        if (first) presentActivity(first.id);
       });
       window.addEventListener("resize", () => {
         fitBoardSlide();
