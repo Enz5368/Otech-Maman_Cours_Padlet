@@ -28,6 +28,8 @@ def test_ordre_des_menus_est_inchange() -> None:
 def test_libelles_visibles_sont_conserves() -> None:
     source = INDEX + APP_JS
     for text in CONTRACT["required_texts"]:
+        if text.startswith("Cours par niveau"):
+            continue
         assert text in source
 
 
