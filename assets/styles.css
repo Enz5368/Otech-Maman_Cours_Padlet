@@ -2386,6 +2386,8 @@
 /* Native Word document workspace */
 #editorModal:has(.word-document-shell) { padding:0; }
 .word-document-shell { position:relative; width:100vw; height:100dvh; display:flex; flex-direction:column; overflow:hidden; background:#f4f1ec; border-radius:0; }
+.create-word-button { background:#b01832 !important; border-color:#8f1027 !important; color:#fff !important; }
+[data-view="dashboard"] { display:none !important; }
 .word-document-header { display:flex; justify-content:space-between; align-items:center; gap:20px; padding:14px 20px; background:#fffaf5; border-bottom:1px solid var(--line); flex-shrink:0; }
 .word-document-header > div:first-child { flex:1; min-width:0; }
 .word-document-header label { display:block; font-size:12px; font-weight:850; color:var(--wine-700); }

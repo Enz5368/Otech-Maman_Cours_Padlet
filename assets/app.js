@@ -1161,6 +1161,10 @@
 
       function render() {
         if (currentView === "dashboard") currentView = "classes";
+        document.querySelectorAll('button[onclick*="createActivityInLesson"]').forEach(button => { button.textContent = "Créer diapo"; });
+        document.querySelectorAll('button[onclick*="WordDocuments.create"]').forEach(button => { button.textContent = "Créer un Word"; button.classList.add("create-word-button"); });
+        const pageTitle = document.querySelector("#pageTitle");
+        if (pageTitle && currentView === "classes") pageTitle.textContent = "Cours par niveau modifiable";
         if (!isLoggedIn() && !freeExampleOpen) {
           showLogin();
           return;
