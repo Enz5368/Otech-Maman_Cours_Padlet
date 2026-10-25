@@ -294,7 +294,7 @@ def test_changement_de_mot_de_passe_a_une_interface_de_securite_complete() -> No
 def test_vue_arbre_affiche_toute_la_hierarchie_des_cours() -> None:
     styles = (ROOT / "assets" / "styles.css").read_text(encoding="utf-8")
     assert 'data-view="tree"' in INDEX
-    assert 'tree: ["Arbre"' in APP_JS
+    assert 'tree: ["Tous mes cours"' in APP_JS
     assert 'if (currentView === "tree") renderTree();' in APP_JS
     assert "state.classes.map(treeClassNode)" in APP_JS
     assert "treeSequenceNode" in APP_JS
@@ -675,7 +675,7 @@ def test_serveur_accepte_les_formats_opendocument_du_selecteur() -> None:
         assert f'"{extension}": "{mime_type}"' in storage
         assert f'"{mime_type}"' in storage
     assert "extension in OPENDOCUMENT_MIME_BY_EXTENSION" in storage
-    assert "espace-prof-108" in INDEX
+    assert "espace-prof-109" in INDEX
     assert "Précédent" in APP_JS
     assert "Suivant" in APP_JS
     assert "setTimeout(startFreeExampleTutorial, 250);" in APP_JS
@@ -796,7 +796,7 @@ def test_plan_de_classe_style_cinema_et_emploi_du_temps_lycee() -> None:
     assert 'aria-label="Emploi du temps du lundi au vendredi"' in APP_JS
     assert ".timetable-course" in STYLES
     assert "assets/styles.css?v=espace-prof-60" in INDEX
-    assert "assets/app.js?v=espace-prof-108" in INDEX
+    assert "assets/app.js?v=espace-prof-109" in INDEX
     assert "assets/api-client.js?v=espace-prof-6" in INDEX
 
 

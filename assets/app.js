@@ -49,7 +49,7 @@
       let adminUsersError = "";
       let state = ensureDemoData(seedData());
       let lastConfirmedState = JSON.parse(JSON.stringify(state));
-      let currentView = "classes";
+      let currentView = "dashboard";
       let currentPage = { type: "classes" };
       let currentTableauPage = { type: "classes" };
       let currentStudioSlideIndex = 0;
@@ -97,7 +97,7 @@
           state = ensureDemoData(loadData());
           storageInfo = null;
           markStateConfirmed();
-          currentView = "classes";
+          currentView = "dashboard";
           currentPage = { type: "classes" };
           currentTableauPage = { type: "classes" };
           return true;
@@ -117,7 +117,7 @@
         state = Object.keys(effectiveWorkspace.content || {}).length ? ensureDemoData(effectiveWorkspace.content) : ensureDemoData(seedData());
         storageInfo = await window.ServerAPI.storage().catch(() => null);
         markStateConfirmed();
-        currentView = "classes";
+        currentView = "dashboard";
         currentPage = { type: "classes" };
         currentTableauPage = { type: "classes" };
         return true;
@@ -193,7 +193,7 @@
           toast("Le fichier d’exemple n’a pas pu être chargé. L’exemple de secours est utilisé.");
         }
         markStateConfirmed();
-        currentView = "classes";
+        currentView = "dashboard";
         currentPage = { type: "classes" };
         currentTableauPage = { type: "classes" };
         render();
@@ -1050,9 +1050,8 @@
       }
 
       function setView(view) {
-        if (view === "dashboard") view = "classes";
         if (tourRunning) endTutorial();
-        currentView = view === "dashboard" ? "classes" : view;
+        currentView = view;
         if (view === "classes") currentPage = { type: "classes" };
         if (view === "dashboard") currentTableauPage = { type: "classes" };
         document.querySelectorAll(".nav-button[data-view]").forEach((button) => button.classList.toggle("active", button.dataset.view === view));
@@ -1125,7 +1124,7 @@
         const params = new URLSearchParams(window.location.search);
         const view = params.get("view");
         if (view && ["dashboard", "classes", "tree", "studentClasses", "tools", "schedule", "search", "tutorial", "settings"].includes(view)) {
-          currentView = view === "dashboard" ? "classes" : view;
+          currentView = view;
         }
       }
 
@@ -1160,11 +1159,10 @@
       }
 
       function render() {
-        if (currentView === "dashboard") currentView = "classes";
         document.querySelectorAll('button[onclick*="createActivityInLesson"]').forEach(button => { button.textContent = "Créer diapo"; });
         document.querySelectorAll('button[onclick*="WordDocuments.create"]').forEach(button => { button.textContent = "Créer un Word"; button.classList.add("create-word-button"); });
         const pageTitle = document.querySelector("#pageTitle");
-        if (pageTitle && currentView === "classes") pageTitle.textContent = "Cours par niveau modifiable";
+        if (pageTitle && currentView === "classes") pageTitle.textContent = "Mes cours";
         if (!isLoggedIn() && !freeExampleOpen) {
           showLogin();
           return;
@@ -1175,14 +1173,14 @@
         document.querySelector("#boardPage").hidden = true;
         const titles = {
           dashboard: ["Mes cours", "Retrouver et présenter vos cours."],
-          classes: ["Cours par niveau modifiable", "Classe > Séquence > Séance > Contenus."],
-          tree: ["Arbre", "Vue complète des classes et de toutes leurs branches."],
-          studentClasses: ["Groupes Classes", "Groupes réels et listes d'élèves."],
-          tools: ["Roue de la fortune et chrono", "Tirages et minuteur de classe."],
-          schedule: ["Emploi du temps", "Retrouver le cours prévu selon votre agenda."],
+          classes: ["Mes cours", "Classes > séquences > séances."],
+          tree: ["Tous mes cours", "Retrouver l’ensemble de votre arborescence."],
+          studentClasses: ["Mes classes", "Gérer les groupes et les élèves."],
+          tools: ["Outils de classe", "Chronomètre et roue des élèves."],
+          schedule: ["Mon emploi du temps", "Retrouver le cours prévu dans votre agenda."],
           search: ["Recherche ressource ou contenu", "Retrouver rapidement un contenu ou une ressource."],
-          tutorial: ["Tutoriel", "Découvrir toutes les fonctions du site à son rythme."],
-          settings: ["Réglages", "Configuration locale du site HTML."]
+          tutorial: ["Aide", "Découvrir les fonctions essentielles du site."],
+          settings: ["Paramètres", "Gérer les préférences du site."]
         };
         const selectedNavButton = document.querySelector(`.nav-button[data-view="${currentView}"]`);
         document.querySelectorAll(".nav-button[data-view]").forEach((button) => {
@@ -1209,10 +1207,12 @@
       }
 
       function renderDashboard() {
+        const firstClass = state.classes.find(classe => classe.isVisible !== false);
+        const welcome = `<section class="welcome-hero"><p class="eyebrow">Votre cartable numérique</p><h2>Que voulez-vous faire ?</h2><p>Retrouvez votre cours ou préparez une séance en quelques clics.</p><div class="welcome-actions"><button class="btn primary" onclick="setView('classes')">Ouvrir mes cours</button>${editOnly(`<button class="btn primary" onclick="openEditor('class')">Créer un cours</button>`)}${firstClass ? `<button class="btn" onclick="openClassPage('${firstClass.id}')">Reprendre mon dernier cours</button>` : ''}</div></section>`;
         if (currentTableauPage.type === "class") return renderTableauClass(currentTableauPage.classId);
         if (currentTableauPage.type === "sequence") return renderTableauSequence(currentTableauPage.classId, currentTableauPage.sequenceId);
         if (currentTableauPage.type === "lesson") return renderTableauLesson(currentTableauPage.classId, currentTableauPage.sequenceId, currentTableauPage.lessonId);
-        document.querySelector("#content").innerHTML = `
+        document.querySelector("#content").innerHTML = `${welcome}
           <section class="page-head">
             <div class="breadcrumb">Mes cours / Classes</div>
             <h2 style="margin:0;color:var(--wine-900);font-size:34px">Choisir une classe</h2>
@@ -1522,7 +1522,7 @@
           <section class="page-head">
             <div class="row wrap">
               <div>
-                <div class="breadcrumb">Accueil / Cours par niveau modifiable</div>
+                <div class="breadcrumb">Accueil / Mes cours</div>
                 <h2 style="margin:0;color:var(--wine-900);font-size:34px">Toutes les classes</h2>
                 <p class="muted">Clique sur Modifier pour entrer dans une classe et gérer ses séquences sur une page dédiée.</p>
               </div>
