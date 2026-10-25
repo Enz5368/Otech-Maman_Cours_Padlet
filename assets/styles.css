@@ -58,6 +58,9 @@
       .search-result-card p { margin:5px 0 0; color:var(--ink); }
       .search-empty { display:grid; place-items:center; gap:6px; min-height:180px; border:1px dashed var(--line); border-radius:12px; background:rgba(255,255,255,.55); color:var(--muted); text-align:center; }
       .search-empty strong { color:var(--wine-900); font-size:20px; }
+      .welcome-strip { display:flex; flex-wrap:wrap; align-items:center; gap:10px 18px; margin:0 0 20px; padding:14px 18px; border:1px solid rgba(201,154,61,.45); border-radius:12px; background:#fff8e8; color:var(--wine-800); }
+      .welcome-strip strong { margin-right:4px; color:var(--wine-900); }
+      .welcome-strip span { font-size:14px; }
       body {
         position: relative;
         margin: 0;

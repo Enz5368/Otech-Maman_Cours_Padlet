@@ -1514,10 +1514,11 @@
       }
 
       function renderClasses() {
+        const quickStart = `<section class="welcome-strip" aria-label="Démarrage rapide"><strong>Pour commencer</strong><span>1. Choisissez une classe</span><span>2. Ouvrez une séance</span><span>3. Cliquez sur Présenter</span></section>`;
         if (currentPage.type === "class") return renderClassPage(currentPage.classId);
         if (currentPage.type === "sequence") return renderSequencePage(currentPage.classId, currentPage.sequenceId);
         if (currentPage.type === "lesson") return renderLessonPage(currentPage.classId, currentPage.sequenceId, currentPage.lessonId);
-        document.querySelector("#content").innerHTML = `
+        document.querySelector("#content").innerHTML = `${quickStart}
           <section class="page-head">
             <div class="row wrap">
               <div>
