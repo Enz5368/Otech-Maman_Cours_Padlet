@@ -7,6 +7,9 @@ import { blankDocumentBytes } from '@docx-editor.dev/core/editor';
 import { unzipSync, zipSync, strFromU8, strToU8 } from 'fflate';
 import '@docx-editor.dev/core/styles/editor.css';
 import { mountOrientationToolbar } from './page-orientation.js';
+import { chooseWordTool } from './word-tools.js';
+import { presentWord } from './presentation.js';
+export { decodeTool, showLiveTool } from './word-tools.js';
 
 const fonts = packagedFonts();
 
@@ -29,6 +32,8 @@ export function mount(element, options) {
   const orientation = options.readOnly ? null : mountOrientationToolbar(canvas, () => editor, options.onError);
   orientation?.update();
   const subscriptions = [];
+  const runtime = new Map();
+  let presentation = null;
   root.render(<DocxEditor
     document={options.bytes ? new Uint8Array(options.bytes) : blankA4()}
     title={options.title} locale="fr-FR" i18n={fr} fonts={fonts} rulers
@@ -47,10 +52,15 @@ export function mount(element, options) {
     onChange={() => { if (editor && !destroyed) options.onChange?.(); }}
   />);
   return {
+    tools() { if (editor && !destroyed) chooseWordTool(editor, options.groups || (() => []), runtime, element.closest('.word-document-shell') || element); },
+    present() {
+      if (!editor || destroyed || presentation) return;
+      presentation = presentWord(editor, element, options.groups || (() => []), runtime, () => { presentation = null; });
+    },
     async save() {
       if (!editor || destroyed) throw new Error('Le document est encore en cours de chargement.');
       return editor.save();
     },
-    destroy() { destroyed = true; subscriptions.forEach(unsubscribe => unsubscribe()); orientation?.destroy(); editor = null; root.unmount(); canvas.remove(); },
+    destroy() { destroyed = true; presentation?.close(); subscriptions.forEach(unsubscribe => unsubscribe()); orientation?.destroy(); editor = null; root.unmount(); canvas.remove(); },
   };
 }

@@ -3,6 +3,24 @@ window.WordDocuments = (() => {
   const mime = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
   let session = null;
   let editorModule = null;
+  let linkedToolShown = false;
+
+  function groups() {
+    return (state.studentClasses || []).map(group => ({ ...group,
+      absences: state.tools?.wheelAbsences?.[group.id] || [],
+      limit: state.tools?.wheelLimits?.[group.id] || 2,
+    }));
+  }
+
+  async function openLinkedTool() {
+    if (linkedToolShown || !new URLSearchParams(location.search).has('mepTool')) return;
+    linkedToolShown = true;
+    try {
+      const module = await loadModule();
+      const config = module.decodeTool(location.href);
+      if (config) module.showLiveTool(config, groups, new Map());
+    } catch { toast('Impossible d’ouvrir cet outil. Réessayez.'); }
+  }
 
   function setStatus(text, error = false) {
     const node = document.querySelector('#wordDocumentStatus');
@@ -52,6 +70,8 @@ window.WordDocuments = (() => {
         <p id="wordDocumentStatus" role="status">Chargement du document…</p></div>
         <div class="row wrap">
           ${current.readOnly ? '' : '<button class="btn primary" data-word-action onclick="WordDocuments.save()" disabled>Enregistrer</button>'}
+          ${current.readOnly ? '' : '<button class="btn" data-word-action onclick="WordDocuments.tools()" disabled>Outils</button>'}
+          <button class="btn primary" data-word-action onclick="WordDocuments.present()" disabled>Présenter</button>
           <button class="btn" data-word-action onclick="WordDocuments.download()" disabled>Télécharger .docx</button>
           <button class="btn" id="wordDocumentClose" onclick="closeEditor()">Fermer</button>
         </div>
@@ -92,12 +112,13 @@ window.WordDocuments = (() => {
       }
       if (session !== current) return;
       current.editor = module.mount(document.querySelector('#wordDocumentEditor'), {
-        bytes, title: current.title, readOnly: current.readOnly,
+        bytes, title: current.title, readOnly: current.readOnly, groups,
         onReady() {
           if (session !== current) return;
           current.ready = true;
           setStatus(current.dirty ? 'Document non enregistré. Cliquez sur Enregistrer pour le garder dans la séance.' : 'Document ouvert.');
           updateButtons();
+          if (options.present) requestAnimationFrame(() => { if (session === current) current.editor?.present(); });
         },
         onChange() {
           if (session !== current || current.readOnly) return;
@@ -219,6 +240,9 @@ window.WordDocuments = (() => {
 
   return {
     create: lessonId => open(null, { lessonId }), importFile, open, save, download, requestClose,
+    tools: () => { if (session?.ready && !session.busy && !session.readOnly && !session.closing) session.editor.tools(); },
+    present: activityId => activityId ? open(activityId, { readOnly: true, present: true }) : (session?.ready && !session.busy && !session.closing ? session.editor.present() : undefined),
+    openLinkedTool,
     isOpen: () => Boolean(session), hasChanges: () => Boolean(session?.dirty || session?.busy),
   };
 })();

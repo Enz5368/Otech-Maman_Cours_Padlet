@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import assert from 'node:assert/strict';
 import { testPageOrientation } from './orientation-smoke.mjs';
+import { testWordPresentation } from './presentation-smoke.mjs';
 import { unzipSync, zipSync, strFromU8, strToU8 } from 'fflate';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -177,6 +178,7 @@ try {
   await page.screenshot({path:path.join(root,'tests/visual/current-word-orientation.png')});
   await page.evaluate(()=>WordDocuments.requestClose());
   await testPageOrientation(page, bytes);
+  await testWordPresentation(page, root);
   assert.deepEqual(errors,[]);
   console.log('DOCX creation, typing, bold formatting, scroll preservation, save/reopen, failed save/retry, close choices, import, native download and real lesson integration with Ctrl+S passed.');
 } finally {await browser.close();server.close();}

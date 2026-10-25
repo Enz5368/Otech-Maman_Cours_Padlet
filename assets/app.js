@@ -49,7 +49,7 @@
       let adminUsersError = "";
       let state = ensureDemoData(seedData());
       let lastConfirmedState = JSON.parse(JSON.stringify(state));
-      let currentView = "dashboard";
+      let currentView = "classes";
       let currentPage = { type: "classes" };
       let currentTableauPage = { type: "classes" };
       let currentStudioSlideIndex = 0;
@@ -97,7 +97,7 @@
           state = ensureDemoData(loadData());
           storageInfo = null;
           markStateConfirmed();
-          currentView = "dashboard";
+          currentView = "classes";
           currentPage = { type: "classes" };
           currentTableauPage = { type: "classes" };
           return true;
@@ -117,7 +117,7 @@
         state = Object.keys(effectiveWorkspace.content || {}).length ? ensureDemoData(effectiveWorkspace.content) : ensureDemoData(seedData());
         storageInfo = await window.ServerAPI.storage().catch(() => null);
         markStateConfirmed();
-        currentView = "dashboard";
+        currentView = "classes";
         currentPage = { type: "classes" };
         currentTableauPage = { type: "classes" };
         return true;
@@ -193,7 +193,7 @@
           toast("Le fichier d’exemple n’a pas pu être chargé. L’exemple de secours est utilisé.");
         }
         markStateConfirmed();
-        currentView = "dashboard";
+        currentView = "classes";
         currentPage = { type: "classes" };
         currentTableauPage = { type: "classes" };
         render();
@@ -1050,8 +1050,9 @@
       }
 
       function setView(view) {
+        if (view === "dashboard") view = "classes";
         if (tourRunning) endTutorial();
-        currentView = view;
+        currentView = view === "dashboard" ? "classes" : view;
         if (view === "classes") currentPage = { type: "classes" };
         if (view === "dashboard") currentTableauPage = { type: "classes" };
         document.querySelectorAll(".nav-button[data-view]").forEach((button) => button.classList.toggle("active", button.dataset.view === view));
@@ -1112,7 +1113,7 @@
       }
 
       function openBoardInNewTab(activityId, slideIndex = 0) {
-        if (findItem("activity", activityId)?.contentType === "word") return WordDocuments.open(activityId, { readOnly: true });
+        if (findItem("activity", activityId)?.contentType === "word") return WordDocuments.present(activityId);
         if (freeExampleOpen) {
           showBoard(activityId, slideIndex);
           return;
@@ -1124,26 +1125,20 @@
         const params = new URLSearchParams(window.location.search);
         const view = params.get("view");
         if (view && ["dashboard", "classes", "tree", "studentClasses", "tools", "schedule", "search", "tutorial", "settings"].includes(view)) {
-          currentView = view;
+          currentView = view === "dashboard" ? "classes" : view;
         }
       }
 
       function openTableauClass(id) {
-        currentView = "dashboard";
-        currentTableauPage = { type: "class", classId: id };
-        render();
+        openClassPage(id);
       }
 
       function openTableauSequence(classId, sequenceId) {
-        currentView = "dashboard";
-        currentTableauPage = { type: "sequence", classId, sequenceId };
-        render();
+        openSequencePage(classId, sequenceId);
       }
 
       function openTableauLesson(classId, sequenceId, lessonId) {
-        currentView = "dashboard";
-        currentTableauPage = { type: "lesson", classId, sequenceId, lessonId };
-        render();
+        openLessonPage(classId, sequenceId, lessonId);
       }
 
       function openClassPage(id) {
@@ -1165,12 +1160,14 @@
       }
 
       function render() {
+        if (currentView === "dashboard") currentView = "classes";
         if (!isLoggedIn() && !freeExampleOpen) {
           showLogin();
           return;
         }
         document.querySelector("#loginPage").hidden = true;
         document.querySelector("#appPage").hidden = false;
+        window.WordDocuments?.openLinkedTool();
         document.querySelector("#boardPage").hidden = true;
         const titles = {
           dashboard: ["Cours par niveau à projeter", "Naviguer jusqu'à le contenu à afficher."],
@@ -2415,8 +2412,8 @@
 
                 <button class="btn" onclick="manageCategories()">Organiser les contenus</button>
                 <button class="btn" onclick="openEditor('lesson','${lesson.id}')">Modification</button>
-                <button class="btn primary" onclick="createActivityInLesson('${lesson.id}')">Ajouter un contenu</button>
-                <button class="btn" onclick="WordDocuments.create('${lesson.id}')">Créer un Word</button>
+                <button class="btn primary" onclick="createActivityInLesson('${lesson.id}')">Cr?er diapo</button>
+                <button class="btn primary" onclick="WordDocuments.create('${lesson.id}')">Créer un Word</button>
                 <label class="btn word-import-button">Importer un Word<input type="file" accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document" hidden onchange="WordDocuments.importFile('${lesson.id}',this.files[0]);this.value=''" /></label>
                 <button class="btn danger" onclick="removeItem('lesson','${lesson.id}')">Supprimer la séance</button>
               </div>`)}
@@ -2630,7 +2627,7 @@
                 <li>Ouvrez <b>Cours par niveau modifiable</b>, puis cliquez sur <b>Ajouter une classe</b>.</li>
                 <li>Ouvrez la classe créée et cliquez sur <b>Ajouter une séquence</b>.</li>
                 <li>Dans la séquence, cliquez sur <b>Ajouter une séance</b>.</li>
-                <li>Ouvrez la séance et choisissez <b>Ajouter un contenu</b>.</li>
+                <li>Ouvrez la séance et choisissez <b>Cr?er diapo</b>.</li>
                 <li>Dans l’éditeur, ajoutez vos textes, fichiers, images ou liens, puis créez d’autres diapos avec <b>+ Diapo (contenu)</b>.</li>
                 <li>Terminez avec <b>Enregistrer</b>. Le cours est ensuite disponible dans <b>Cours par niveau à projeter</b>.</li>
               </ol>
@@ -2713,7 +2710,7 @@
             { view:"classes", selector:"button[onclick=\"openEditor('class')\"]", title:"Ajouter une classe", text:"Créez d’abord la classe ou le niveau qui contiendra vos séquences." },
             { view:"classes", selector:`button[onclick*="openEditor('sequence'"]`, title:"Ajouter une séquence", text:"Dans une classe, ce bouton crée une nouvelle séquence.", enter:()=>items.classe&&openClassPage(items.classe.id) },
             { view:"classes", selector:`button[onclick*="openEditor('lesson'"]`, title:"Ajouter une séance", text:"Dans la séquence choisie, ajoutez ensuite une ou plusieurs séances.", enter:()=>items.classe&&items.sequence&&openSequencePage(items.classe.id,items.sequence.id) },
-            { view:"classes", selector:"button[onclick*='createActivityInLesson']", title:"Ajouter un contenu", text:"Dans une séance, créez le contenu qui recevra vos diapos.", enter:()=>items.classe&&items.sequence&&items.lesson&&openLessonPage(items.classe.id,items.sequence.id,items.lesson.id) },
+            { view:"classes", selector:"button[onclick*='createActivityInLesson']", title:"Cr?er diapo", text:"Dans une séance, créez le contenu qui recevra vos diapos.", enter:()=>items.classe&&items.sequence&&items.lesson&&openLessonPage(items.classe.id,items.sequence.id,items.lesson.id) },
             { view:"classes", selector:"button[onclick*='openActivityStudio']", title:"Modifier le contenu", text:"Ouvrez enfin l’éditeur pour préparer les diapos, textes et documents du cours." }
           ],
           schedule: [
@@ -4509,7 +4506,7 @@
       }
 
       function showBoard(id, slideIndex = 0) {
-        if (findItem("activity", id)?.contentType === "word") return WordDocuments.open(id, { readOnly: true });
+        if (findItem("activity", id)?.contentType === "word") return WordDocuments.present(id);
         const result = findActivity(id);
         if (!result) return;
         document.querySelector("#editorModal").hidden = true;
@@ -6142,7 +6139,7 @@
         adminUsersError = "";
         state = ensureDemoData(seedData());
         markStateConfirmed();
-        currentView = "dashboard";
+        currentView = "classes";
         currentPage = { type: "classes" };
         currentTableauPage = { type: "classes" };
         render();

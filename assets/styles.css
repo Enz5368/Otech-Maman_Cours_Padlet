@@ -2384,7 +2384,8 @@
       }
 
 /* Native Word document workspace */
-.word-document-shell { position:relative; width:calc(100vw - 32px); height:calc(100dvh - 32px); display:flex; flex-direction:column; overflow:hidden; background:#f4f1ec; border-radius:14px; box-shadow:0 20px 70px #0004; }
+#editorModal:has(.word-document-shell) { padding:0; }
+.word-document-shell { position:relative; width:100vw; height:100dvh; display:flex; flex-direction:column; overflow:hidden; background:#f4f1ec; border-radius:0; }
 .word-document-header { display:flex; justify-content:space-between; align-items:center; gap:20px; padding:14px 20px; background:#fffaf5; border-bottom:1px solid var(--line); flex-shrink:0; }
 .word-document-header > div:first-child { flex:1; min-width:0; }
 .word-document-header label { display:block; font-size:12px; font-weight:850; color:var(--wine-700); }
@@ -2400,6 +2401,27 @@
 .word-page-orientation select, .word-page-orientation button { padding:6px 10px; border:1px solid #d7c9c4; border-radius:6px; background:white; color:#551525; font:inherit; }
 .word-page-orientation button[aria-pressed="true"] { background:#761c32; color:white; }
 .word-page-orientation button:disabled { opacity:.5; cursor:wait; }
+.word-tool-dialog { width:min(540px, 94vw); max-height:90dvh; overflow:auto; padding:24px; border:1px solid #d7c9c4; border-radius:14px; background:#fffaf4; color:#551525; box-shadow:0 16px 60px #0005; }
+.word-tool-dialog::backdrop { background:#0008; }
+.word-tool-dialog label { display:grid; gap:6px; margin:14px 0; }
+.word-tool-dialog label[hidden] { display:none; }
+.word-tool-dialog select,.word-tool-dialog input { padding:8px; border:1px solid #d7c9c4; border-radius:6px; font:inherit; }
+.word-tool-dialog [role=alert] { color:#b70020; }
+.word-live-tool { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px; padding:12px; width:100%; height:100%; box-sizing:border-box; background:#fff6e5; color:#711a30; border:2px solid #8b243c; border-radius:8px; overflow:auto; font:16px Arial,sans-serif; }
+.word-live-tool output { display:block; font-size:clamp(24px, 3vw, 44px); font-weight:700; line-height:1.1; text-align:center; overflow-wrap:anywhere; }
+.word-live-tool .row { justify-content:center; gap:6px; }
+.word-live-tool .btn { padding:6px 9px; font:600 13px Arial,sans-serif; }
+.word-presentation { position:fixed; inset:0; z-index:10000; background:#242424; display:flex; flex-direction:column; color:white; outline:none; }
+.word-presentation-stage { flex:1; min-height:0; position:relative; display:flex; align-items:center; justify-content:center; overflow:hidden; }
+.word-presentation-page { flex:none; transform-origin:center; position:relative; }
+.word-presentation-page > [data-page-index] { background:white; box-shadow:0 4px 25px #0007; }
+.word-presentation nav { display:flex; align-items:center; justify-content:center; flex-wrap:wrap; gap:10px; padding:8px; flex:none; background:#171717; }
+.word-presentation nav .btn { color:#fff; background:#383838; border-color:#666; }
+.word-presentation [data-count] { min-width:64px; text-align:center; }
+.word-presentation-error { position:absolute; top:15px; left:15px; color:#fff; background:#901f36; }
+.word-presentation-error:empty { display:none; }
+.word-presentation-tool { position:absolute; inset:0; z-index:2; pointer-events:auto; }
+.word-presentation .docx-caret,.word-presentation .docx-selection { display:none; }
 .word-document-label { font-weight:850; color:var(--wine-700); }
 .word-import-button { cursor:pointer; }
 .word-close-prompt:not([hidden]) { position:absolute; inset:0; z-index:100; display:grid; place-items:center; background:#0006; padding:20px; }
