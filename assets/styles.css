@@ -1727,18 +1727,18 @@
         color: var(--ink);
         font: inherit;
       }
-      .print-preview-scroll { overflow: auto; padding: 28px; }
+      .print-preview-scroll { overflow: auto; padding: 12px; }
       .printable-activity {
         width: min(100%, 1040px);
         margin: 0 auto;
         background: white;
-        padding: 42px;
+        padding: 8px;
         box-shadow: 0 16px 45px rgba(43, 32, 32, .14);
       }
       .printable-lesson { width:100%; margin:0 auto; background:transparent; padding:0; box-shadow:none; }
       .printable-lesson > .print-lesson-head,
       .printable-lesson .print-activity-head,
-      .printable-lesson .print-slide-page { box-sizing:border-box; width:min(100%,1120px); min-height:auto; aspect-ratio:297 / 210; margin:0 auto 32px; padding:46px; overflow:hidden; background:white; box-shadow:0 16px 45px rgba(43,32,32,.2); }
+      .printable-lesson .print-slide-page { box-sizing:border-box; width:min(100%,1120px); min-height:auto; aspect-ratio:297 / 210; margin:0 auto 32px; padding:8px; overflow:hidden; background:white; box-shadow:0 16px 45px rgba(43,32,32,.2); }
       .print-lesson-head { display:grid; align-content:center; border-bottom:5px solid var(--wine-700); }
       .print-lesson-head h1 { margin: 5px 0 12px; color: var(--wine-900); font-size: 46px; }
       .print-lesson-activity { margin:0; }
@@ -2372,7 +2372,7 @@
       }
 
       @media print {
-        @page { size: A4 landscape; margin: 10mm; }
+        @page { size: A4 landscape; margin: 3mm; }
         body::before, body::after { display: none !important; }
         body > :not(#editorModal) { display: none !important; }
         #editorModal { position: static; display: block !important; background: white; }
