@@ -522,7 +522,7 @@ def test_export_word_reproduit_apercu_sans_outils_interactifs() -> None:
     assert "<foreignObject" not in APP_JS
     assert "function docxPreviewPageParagraph(" in APP_JS
     assert "function setWordSlideLayout(" in APP_JS
-    assert "print-slide-path" in APP_JS
+    assert "print-slide-path" not in APP_JS
     assert "word-slide-layout-control" in STYLES
     assert "toggleWordSlideIncluded" in APP_JS
     assert "setAllWordSlidesIncluded" in APP_JS
@@ -574,8 +574,8 @@ def test_apercu_word_permet_demi_page_portrait_ou_page_paysage() -> None:
     assert ".print-slide-element img { width: 100%; height: 100%; object-fit: fill; }" in STYLES
     assert 'if (objectFit === "fill")' in APP_JS
     assert "context.drawImage(bitmap, x, y, width, height);" in APP_JS
-    assert "margin: 3mm" in APP_JS
-    assert 'w:pgMar w:top="284" w:right="284" w:bottom="284" w:left="284"' in APP_JS
+    assert "@page { size: A4 ${orientation}; margin: 0; }" in APP_JS
+    assert 'w:pgMar w:top="0" w:right="0" w:bottom="0" w:left="0"' in APP_JS
 
 
 def test_url_youtube_se_lit_directement_dans_la_diapositive() -> None:
@@ -658,7 +658,7 @@ def test_export_impression_et_documents_libreoffice() -> None:
     assert 'value="portrait">Portrait' in APP_JS
     assert 'value="landscape">Paysage' in APP_JS
     assert "composePortraitWordSheet" in APP_JS
-    assert "espace-prof-62" in INDEX
+    assert "espace-prof-63" in INDEX
 
 
 def test_diapos_affichent_classe_sequence_et_seance() -> None:
@@ -681,7 +681,7 @@ def test_serveur_accepte_les_formats_opendocument_du_selecteur() -> None:
         assert f'"{extension}": "{mime_type}"' in storage
         assert f'"{mime_type}"' in storage
     assert "extension in OPENDOCUMENT_MIME_BY_EXTENSION" in storage
-    assert "espace-prof-112" in INDEX
+    assert "espace-prof-113" in INDEX
     assert "Précédent" in APP_JS
     assert "Suivant" in APP_JS
     assert "setTimeout(startFreeExampleTutorial, 250);" in APP_JS
@@ -801,8 +801,8 @@ def test_plan_de_classe_style_cinema_et_emploi_du_temps_lycee() -> None:
     assert '["lundi", "mardi", "mercredi", "jeudi", "vendredi"]' in APP_JS
     assert 'aria-label="Emploi du temps du lundi au vendredi"' in APP_JS
     assert ".timetable-course" in STYLES
-    assert "assets/styles.css?v=espace-prof-62" in INDEX
-    assert "assets/app.js?v=espace-prof-112" in INDEX
+    assert "assets/styles.css?v=espace-prof-63" in INDEX
+    assert "assets/app.js?v=espace-prof-113" in INDEX
     assert "assets/api-client.js?v=espace-prof-6" in INDEX
 
 
