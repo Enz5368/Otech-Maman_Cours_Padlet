@@ -66,7 +66,7 @@ try {
   assert.ok(xml.includes('Consigne en gras'));
   assert.ok(xml.includes('<w:b'));
   assert.ok(xml.includes('11906') && xml.includes('16838'), 'New documents use A4');
-  assert.ok(xml.includes('w:top="0"') && xml.includes('w:right="0"') && xml.includes('w:bottom="0"') && xml.includes('w:left="0"'), 'New documents use zero margins');
+  assert.ok(xml.includes('w:top="57"') && xml.includes('w:right="57"') && xml.includes('w:bottom="57"') && xml.includes('w:left="57"'), 'New documents use 1 mm margins');
   assert.deepEqual(await page.evaluate(positions),before, 'Saving must not reset the viewport');
   assert.equal(await page.evaluate(()=>saves),1);
   assert.equal(await page.evaluate(()=>WordDocuments.hasChanges()),false);

@@ -17,8 +17,8 @@ function blankA4() {
   const files = unzipSync(blankDocumentBytes());
   files['word/document.xml'] = strToU8(strFromU8(files['word/document.xml'])
     .replace(/<w:pgSz\b[^>]*\/>/, '<w:pgSz w:w="11906" w:h="16838"/>')
-    // Zero twip margins: let the document use the full A4 sheet.
-    .replace(/<w:pgMar\b[^>]*\/>/, '<w:pgMar w:top="0" w:right="0" w:bottom="0" w:left="0" w:header="0" w:footer="0" w:gutter="0"/>'));
+    // 57 twips ≈ 1 mm: very small, but accepted reliably by Word engines.
+    .replace(/<w:pgMar\b[^>]*\/>/, '<w:pgMar w:top="57" w:right="57" w:bottom="57" w:left="57" w:header="0" w:footer="0" w:gutter="0"/>'));
   return zipSync(files);
 }
 

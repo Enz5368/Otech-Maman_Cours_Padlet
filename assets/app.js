@@ -4921,7 +4921,7 @@
           style.id = "dynamicPrintPageStyle";
           document.head.appendChild(style);
         }
-        style.textContent = `@media print { @page { size: A4 ${orientation}; margin: 0; } }`;
+        style.textContent = `@media print { @page { size: A4 ${orientation}; margin: 1mm; } }`;
         document.body.dataset.printOrientation = orientation;
       }
 
@@ -5082,7 +5082,7 @@
 
       function docxSectionProperties(orientation, nextPage) {
         const landscape = orientation === "landscape";
-        return `<w:sectPr>${nextPage ? '<w:type w:val="nextPage"/>' : ""}<w:pgSz w:w="${landscape ? 16838 : 11906}" w:h="${landscape ? 11906 : 16838}"${landscape ? ' w:orient="landscape"' : ""}/><w:pgMar w:top="0" w:right="0" w:bottom="0" w:left="0" w:header="0" w:footer="0" w:gutter="0"/></w:sectPr>`;
+        return `<w:sectPr>${nextPage ? '<w:type w:val="nextPage"/>' : ""}<w:pgSz w:w="${landscape ? 16838 : 11906}" w:h="${landscape ? 11906 : 16838}"${landscape ? ' w:orient="landscape"' : ""}/><w:pgMar w:top="57" w:right="57" w:bottom="57" w:left="57" w:header="0" w:footer="0" w:gutter="0"/></w:sectPr>`;
       }
 
       function docxMixedPageParagraph(relId, orientation, pageNumber, sectionBreak) {

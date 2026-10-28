@@ -42,7 +42,7 @@ window.WordDocuments = (() => {
       style.href = 'assets/word-editor/editor.css?v=1';
       document.head.appendChild(style);
     }
-    editorModule ||= import('./word-editor/editor.js?v=4').catch(error => { editorModule = null; throw error; });
+    editorModule ||= import('./word-editor/editor.js?v=5').catch(error => { editorModule = null; throw error; });
     return editorModule;
   }
 
