@@ -53,6 +53,8 @@ def main() -> None:
         with response:
             if response.status != expected:
                 raise RuntimeError(f'Vérification Padlet : statut inattendu {response.status}')
+            if response.status == 204:
+                return None
             raw = response.read()
             return json.loads(raw) if 'application/json' in response.headers.get('Content-Type', '') else raw
 
