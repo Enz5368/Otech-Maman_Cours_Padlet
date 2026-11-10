@@ -34,7 +34,8 @@ def main() -> None:
         db.commit()
 
     def call(agent, route, method='GET', payload=None, expected=200, content_type=None):
-        headers = {'Origin': origin}
+        # Cloudflare rejects Python's default automation agent before the app.
+        headers = {'Origin': origin, 'User-Agent': 'MonEspaceProf-Deployment-Check/1.0'}
         data = None
         if payload is not None:
             headers['Content-Type'] = content_type or 'application/json'
