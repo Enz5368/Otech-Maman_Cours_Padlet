@@ -26,6 +26,9 @@ try {
   await page.goto(`http://127.0.0.1:${server.address().port}/index.html`);
   await page.getByRole("button", { name: "Voir l'exemple gratuit" }).click();
   await page.waitForFunction(() => document.querySelector("#appPage").hidden === false);
+  // The demo starts its guided tour after rendering the welcome screen.
+  // Finish that transition before testing manual navigation.
+  await page.getByRole("button", { name: "Passer le tutoriel", exact: true }).click();
   const labels = await page.locator('.sidebar .nav-button[data-view]').allTextContents();
   if (!labels.includes("Accueil") || !labels.includes("Mes cours") || labels.includes("Cours par niveau à projeter")) {
     throw new Error(`Navigation UX invalide: ${labels.join(" | ")}`);
