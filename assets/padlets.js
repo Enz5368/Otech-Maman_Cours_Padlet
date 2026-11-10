@@ -2,6 +2,7 @@
 window.Padlets = (() => {
   'use strict';
   let board = null, publicSlug = null, drawVersion = 0, dragId = null;
+  let pdfRendererPromise = null;
   const names = { text: 'Texte', image: 'Image', video: 'Vidéo', docx: 'Word', pdf: 'PDF', link: 'Lien', file: 'Fichier' };
   const api = (path, method = 'GET', body) => ServerAPI.request(path, {
     method, ...(body === undefined ? {} : { body: body instanceof FormData ? body : JSON.stringify(body) }),
@@ -206,20 +207,35 @@ window.Padlets = (() => {
     if (!cards.children.length) cards.append(node('p', publicView ? 'Les ressources arrivent bientôt.' : 'Ajoutez votre première ressource avec les boutons ci-dessus.', 'padlet-state'));
     wall.append(cards); return wall;
   }
+  function resourceKind(post) {
+    if (post.type !== 'file') return post.type;
+    const mime = (post.mime_type || '').toLowerCase().split(';')[0];
+    const extension = (post.file_name || '').split('.').pop().toLowerCase();
+    if (['image/png', 'image/jpeg', 'image/gif', 'image/webp'].includes(mime)) return 'image';
+    if (mime.startsWith('video/')) return 'video';
+    if (mime.startsWith('audio/')) return 'audio';
+    if (mime === 'application/pdf' || extension === 'pdf') return 'pdf';
+    if (mime === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' || extension === 'docx') return 'docx';
+    if (['pptx', 'odt', 'ods', 'odp'].includes(extension)) return 'office';
+    if (mime.startsWith('text/') || mime === 'application/json') return 'plain';
+    if (mime === 'application/zip' || extension === 'zip') return 'archive';
+    return 'file';
+  }
   function postCard(post, publicView) {
     const card = node('article', null, 'padlet-post'); card.dataset.postId = post.id;
+    const kind = resourceKind(post);
     if (!publicView && !post.is_visible) card.classList.add('padlet-hidden');
-    card.append(node('span', `${names[post.type]}${!publicView && !post.is_visible ? ' · Masqué' : ''}`, 'padlet-kind'), node('h2', post.title));
+    card.append(node('span', `${names[kind] || (kind === 'audio' ? 'Audio' : 'Fichier')}${!publicView && !post.is_visible ? ' · Masqué' : ''}`, 'padlet-kind'), node('h2', post.title));
     if (post.instruction) card.append(node('p', post.instruction, 'padlet-instruction'));
     if (post.description) card.append(node('p', post.description));
     if (post.body) card.append(node('div', post.body, 'padlet-text'));
     const source = safeUrl(post.content_url, true);
-    if (post.type === 'image' && source) {
+    if (kind === 'image' && source) {
       const image = node('img'); image.src = source; image.alt = post.description || post.title; image.loading = 'lazy';
       image.addEventListener('error', () => { image.replaceWith(node('p', 'Image indisponible. Rechargez la page.', 'padlet-error')); });
       card.append(image);
-    } else if (post.type === 'video' && source) {
-      const video = node('video'); video.controls = true; video.preload = 'metadata'; video.src = source;
+    } else if (['video', 'audio'].includes(kind) && source) {
+      const video = node(kind); video.controls = true; video.preload = 'metadata'; video.src = source;
       video.setAttribute('aria-label', post.title); video.playsInline = true;
       video.append(node('p', 'Votre navigateur ne peut pas lire cette vidéo. Utilisez Télécharger.'));
       video.addEventListener('error', () => card.append(node('p', 'Cette vidéo ne peut pas être lue dans ce navigateur. Téléchargez-la pour la consulter.', 'padlet-error')));
@@ -236,9 +252,11 @@ window.Padlets = (() => {
     } else if (post.type === 'link') {
       const url = safeUrl(post.external_url);
       if (url) { const a = node('a', 'Ouvrir le lien', 'btn'); a.href = url; a.rel = 'noreferrer'; card.append(a); }
-    } else if (source && ['docx', 'pdf'].includes(post.type)) {
-      card.append(button(`Ouvrir le ${names[post.type]}`, () => post.type === 'docx' ? word(post, publicView) : previewPdf(post)));
-      if (!publicView && post.type === 'docx') card.append(button('Modifier le Word', () => word(post)));
+    } else if (source && ['docx', 'pdf'].includes(kind)) {
+      card.append(button(`Ouvrir le ${names[kind]}`, () => kind === 'docx' ? word(post, publicView) : previewPdf(post), 'btn primary'));
+      if (!publicView && kind === 'docx') card.append(button('Modifier le Word', () => word(post)));
+    } else if (source) {
+      card.append(button('Voir le fichier', () => previewFile(post, kind), 'btn primary'));
     }
     if (source) {
       const download = node('a', 'Télécharger', 'btn'); download.href = `${source}${source.includes('?') ? '&' : '?'}download=true`;
@@ -330,10 +348,98 @@ window.Padlets = (() => {
       onClose: () => publicView ? undefined : edit(id, savedPosition),
     });
   }
-  function previewPdf(post) {
+  function previewHeading(ui) {
+    const head = node('header', null, 'padlet-preview-heading');
+    head.append(ui.dialog.querySelector('h2'), button('Fermer', () => ui.dialog.close()));
+    ui.dialog.prepend(head);
+  }
+  async function previewPdf(post) {
     const ui = dialog(post.title); ui.dialog.classList.add('padlet-pdf-dialog');
-    const frame = node('iframe'); frame.title = post.title; frame.src = safeUrl(post.content_url, true);
-    ui.form.append(frame, button('Fermer', () => ui.dialog.close()));
+    previewHeading(ui);
+    ui.form.addEventListener('submit', event => event.preventDefault());
+    const status = node('p', 'Ouverture du PDF…'); status.setAttribute('role', 'status');
+    const content = node('section', null, 'padlet-file-content padlet-pdf-page');
+    const canvas = node('canvas'); canvas.setAttribute('role', 'img');
+    const accessible = node('details'); accessible.append(node('summary', 'Lire le texte de cette page'));
+    const text = node('p'); accessible.append(text);
+    let documentPdf, loading, painting, index = 1, zoom = 1;
+    const previous = button('Précédente', () => render(index - 1));
+    const next = button('Suivante', () => render(index + 1));
+    const smaller = button('−', () => render(index, Math.max(.5, zoom - .25))); smaller.setAttribute('aria-label', 'Réduire le PDF');
+    const larger = button('+', () => render(index, Math.min(3, zoom + .25))); larger.setAttribute('aria-label', 'Agrandir le PDF');
+    const controls = [previous, next, smaller, larger]; controls.forEach(el => { el.disabled = true; });
+    const toolbar = row(previous, next, smaller, larger); toolbar.classList.add('padlet-preview-controls');
+    content.append(canvas); ui.form.append(toolbar, status, content, accessible);
+    ui.dialog.addEventListener('close', () => { painting?.cancel(); loading?.destroy().catch(() => {}); }, { once: true });
+    async function render(pageNumber, magnification = zoom) {
+      controls.forEach(el => { el.disabled = true; });
+      try {
+        index = pageNumber; zoom = magnification; canvas.removeAttribute('data-rendered');
+        const page = await documentPdf.getPage(index), natural = page.getViewport({ scale: 1 });
+        const scale = Math.min((content.clientWidth - 42) / natural.width, 2) * zoom;
+        const viewport = page.getViewport({ scale: Math.max(.1, scale) });
+        const ratio = Math.min(devicePixelRatio || 1, 2, 4096 / Math.max(viewport.width, viewport.height));
+        canvas.width = Math.floor(viewport.width * ratio); canvas.height = Math.floor(viewport.height * ratio);
+        canvas.style.width = `${zoom * 100}%`; canvas.style.maxWidth = zoom <= 1 ? '100%' : 'none';
+        canvas.setAttribute('aria-label', `Page ${index} sur ${documentPdf.numPages} — ${post.title}`);
+        painting = page.render({ canvasContext: canvas.getContext('2d'), viewport, transform: [ratio, 0, 0, ratio, 0, 0] });
+        await painting.promise;
+        if (!ui.dialog.isConnected) return;
+        canvas.dataset.rendered = 'true';
+        text.textContent = (await page.getTextContent()).items.map(item => item.str || '').join(' ');
+        status.textContent = `Page ${index} sur ${documentPdf.numPages}`;
+        content.scrollTo(0, 0);
+      } catch (error) {
+        if (ui.dialog.isConnected) status.textContent = 'Impossible d’afficher cette page du PDF. Rechargez le Padlet et réessayez.';
+      } finally {
+        previous.disabled = index <= 1; next.disabled = index >= documentPdf.numPages;
+        smaller.disabled = zoom <= .5; larger.disabled = zoom >= 3;
+      }
+    }
+    try {
+      pdfRendererPromise ||= import(new URL('assets/pdf-viewer/pdf.js?v=1', document.baseURI).href).catch(error => { pdfRendererPromise = null; throw error; });
+      const pdf = await pdfRendererPromise;
+      if (!ui.dialog.isConnected) return;
+      const resources = new URL('assets/pdf-viewer/', document.baseURI);
+      pdf.GlobalWorkerOptions.workerSrc = new URL('pdf.worker.js?v=1', resources).href;
+      loading = pdf.getDocument({ url: safeUrl(post.content_url, true), withCredentials: true,
+        cMapUrl: new URL('cmaps/', resources).href, cMapPacked: true,
+        standardFontDataUrl: new URL('standard_fonts/', resources).href, wasmUrl: new URL('wasm/', resources).href,
+        isEvalSupported: false, enableXfa: false });
+      documentPdf = await loading.promise;
+      if (ui.dialog.isConnected) await render(1);
+    } catch (error) {
+      if (ui.dialog.isConnected) status.textContent = 'Impossible d’ouvrir ce PDF. Vérifiez qu’il est valide et sans mot de passe, puis réessayez.';
+    }
+  }
+  async function previewFile(post, kind) {
+    const ui = dialog(post.title); ui.dialog.classList.add('padlet-file-dialog');
+    previewHeading(ui);
+    ui.form.addEventListener('submit', event => event.preventDefault());
+    const content = node('section', null, 'padlet-file-content'); content.setAttribute('aria-label', 'Contenu du fichier');
+    const status = node('p', 'Ouverture du fichier…'); status.setAttribute('role', 'status');
+    content.append(status); ui.form.append(content);
+    try {
+      if (!['office', 'plain', 'archive'].includes(kind)) throw new Error('Ce format ne dispose pas encore de lecteur intégré. Ajoutez une version PDF pour le consulter directement.');
+      if (post.size_bytes > (kind === 'plain' ? 5 : 30) * 1024 * 1024) throw new Error('Ce fichier est trop volumineux pour le lecteur intégré. Ajoutez une version PDF plus légère.');
+      const response = await fetch(safeUrl(post.content_url, true), { credentials: 'include', cache: 'no-store' });
+      if (!response.ok) throw new Error('Le fichier est indisponible ou votre accès a expiré. Rechargez le Padlet.');
+      const bytes = await response.arrayBuffer();
+      if (!ui.dialog.isConnected) return;
+      if (kind === 'plain') {
+        content.replaceChildren(node('pre', new TextDecoder().decode(bytes), 'padlet-file-text'));
+      } else if (kind === 'archive') {
+        const files = listZipEntryNames(bytes);
+        const list = node('ul'); for (const name of files.slice(0, 1000)) list.append(node('li', name));
+        content.replaceChildren(node('p', `${files.length} élément(s) dans cette archive`), list);
+      } else {
+        // Existing Office renderer escapes document text and only embeds raster images.
+        const html = await officeDocumentToHtml(bytes);
+        if (ui.dialog.isConnected) content.innerHTML = html;
+      }
+    } catch (error) {
+      if (ui.dialog.isConnected) content.replaceChildren(node('p', message(error), 'padlet-error'));
+    }
   }
   async function openPublic() {
     document.querySelector('#appPage').hidden = true; document.querySelector('#loginPage').hidden = true;

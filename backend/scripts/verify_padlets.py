@@ -78,8 +78,8 @@ def main() -> None:
             uploaded = call(owner, f'/api/v1/padlets/{board["id"]}/files', 'POST', multipart, 201,
                             f'multipart/form-data; boundary={boundary}')
             posted = call(owner, f'/api/v1/padlets/{board["id"]}/posts', 'POST',
-                          {'type': 'image', 'title': 'Image de vérification', 'file_id': uploaded['id']}, 201)
-            post_id = next(post['id'] for post in posted['posts'] if post['type'] == 'image')
+                          {'type': 'file', 'title': 'Image de vérification', 'file_id': uploaded['id']}, 201)
+            post_id = next(post['id'] for post in posted['posts'] if post.get('file_id') == uploaded['id'])
             public = f'/api/v1/public/padlets/{slug}'
             file_url = f'{public}/posts/{post_id}/content'
             if protected:
@@ -93,7 +93,7 @@ def main() -> None:
             if call(visitor, file_url) != image:
                 raise RuntimeError('Le fichier public servi ne correspond pas au fichier publié.')
             html = call(visitor, f'/padlet/{slug}')
-            if b'assets/padlets.js?v=1' not in html:
+            if b'assets/padlets.js?v=2' not in html:
                 raise RuntimeError('La page publique ne sert pas la nouvelle version du frontend.')
             if protected:
                 call(visitor, public + '/lock', 'POST', expected=204)
@@ -101,6 +101,12 @@ def main() -> None:
             print(f'Padlet HTTPS vérifié : {origin}/padlet/{slug} (données de test supprimées à la fin)')
         # Verify that direct private file links are still denied to anonymous readers.
         call(visitor, '/api/v1/files', expected=401)
+        for path, marker in (('/assets/padlets.js?v=2', b'previewFile'),
+                             ('/assets/pdf-viewer/pdf.js?v=1', b'getDocument'),
+                             ('/assets/pdf-viewer/pdf.worker.js?v=1', b'WorkerMessageHandler')):
+            if marker not in call(visitor, path):
+                raise RuntimeError('Le lecteur de fichiers déployé est incomplet.')
+        print('Lecteur de fichiers et moteur PDF : fichiers HTTPS vérifiés.')
         print('Padlets publics et protégés : vérification HTTPS réussie.')
     finally:
         with SessionLocal() as db:

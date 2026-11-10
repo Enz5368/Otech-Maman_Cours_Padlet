@@ -11,6 +11,10 @@ Les professeurs retrouvent leurs murs dans **Padlets**, depuis l’accueil, ou a
 
 Les quatre fonds reprennent les couleurs du cartable : papier, bordeaux, lagon et sauge. Les vidéos importées sont lues par le navigateur ; un téléchargement reste possible si son codec n’est pas pris en charge. Les vidéos YouTube et Vimeo s’ouvrent dans un lecteur intégré après un clic. Aucun contenu distant n’est téléchargé par le serveur pour fabriquer des aperçus.
 
+Les ressources importées avec **Ajouter un fichier**, y compris les anciennes, utilisent le lecteur adapté : image, vidéo, audio, Word ou PDF. **Voir le fichier** ouvre les textes, CSV, Markdown et JSON, un aperçu des PowerPoint et documents LibreOffice, ou la liste des éléments d’une archive ZIP. Le téléchargement reste facultatif. Les aperçus Office ne reproduisent pas toute la mise en page d’origine ; un PDF conserve le rendu exact. Limites du lecteur : 5 Mo pour le texte et 30 Mo pour Office/ZIP. Les formats sans lecteur affichent une explication sans lancer de téléchargement.
+
+Le lecteur PDF est hébergé avec le site, avec navigation par page, zoom et texte accessible. Il ne dépend pas du lecteur PDF du navigateur et conserve les contrôles d’accès du Padlet. Le navigateur ne lance aucun téléchargement lors de l’ouverture d’un aperçu. Les PDF chiffrés doivent être fournis sans mot de passe de fichier (le Padlet lui-même peut rester protégé).
+
 ## Données et droits
 
 - `padlets` : propriétaire (`user_id`), titre, slug global unique, description, présentation, fond, publication, archivage, séance historique facultative, révision et version d’accès.

@@ -32,3 +32,18 @@ for (const [dir, info] of Object.entries(lock.packages)) {
   }
 }
 await writeFile(path.join(output, 'THIRD-PARTY-LICENSES.txt'), notices);
+
+// Host PDF rendering locally: viewing must not depend on a browser PDF plugin.
+const pdfOutput = path.resolve(root, '../assets/pdf-viewer');
+await mkdir(pdfOutput, { recursive: true });
+for (const name of ['pdf', 'pdf.worker']) {
+  await build({
+    entryPoints: [path.join(root, `node_modules/pdfjs-dist/build/${name}.mjs`)],
+    outfile: path.join(pdfOutput, `${name}.js`), format: 'esm', minify: true,
+    target: 'es2022', legalComments: 'eof', sourcemap: false,
+  });
+}
+for (const name of ['cmaps', 'standard_fonts', 'wasm']) {
+  await cp(path.join(root, 'node_modules/pdfjs-dist', name), path.join(pdfOutput, name), { recursive: true });
+}
+await cp(path.join(root, 'node_modules/pdfjs-dist/LICENSE'), path.join(pdfOutput, 'LICENSE'));

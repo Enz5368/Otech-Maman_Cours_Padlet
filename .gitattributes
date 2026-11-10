@@ -1,0 +1,2 @@
+# Preserve upstream license texts, including their original spacing.
+assets/pdf-viewer/**/LICENSE* -whitespace
