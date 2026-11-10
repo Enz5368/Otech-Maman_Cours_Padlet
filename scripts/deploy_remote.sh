@@ -90,4 +90,3 @@ for attempt in $(seq 1 30); do
 done
 echo "La vérification de santé a expiré" >&2
 exit 1
-
