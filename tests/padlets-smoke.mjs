@@ -128,7 +128,9 @@ try {
   await page.getByRole('heading', { name: 'Italien — ressources de la semaine' }).waitFor();
   assert.equal(await page.locator('.padlet-post').count(), 6);
   assert.equal(await page.locator('.padlet-text script').count(), 0);
-  assert.equal(await page.locator('.padlet-post img').evaluate(img => img.complete && img.naturalWidth > 0), true);
+  await page.waitForFunction(() => {
+    const image = document.querySelector('.padlet-post img'); return image?.complete && image.naturalWidth > 0;
+  });
   assert.equal(await page.getByRole('button', { name: 'Modifier', exact: true }).count(), 0);
   await page.waitForFunction(() => document.querySelector('.padlet-post video').readyState >= 1);
   assert.equal(await page.getByRole('link', { name: 'Ouvrir le lien', exact: true }).getAttribute('href'), 'https://www.wordreference.com/itfr/ciao');
@@ -158,6 +160,10 @@ try {
   await page.getByRole('button', { name: 'Quitter', exact: true }).click();
   await page.getByRole('button', { name: 'Se connecter', exact: true }).waitFor();
   assert.equal((await context.request.get(imageUrl)).status(), 401);
+  await page.getByRole('button', { name: 'Ouvrir un Padlet', exact: true }).click();
+  await page.getByLabel('Lien ou nom du Padlet', { exact: true }).fill(shared);
+  await page.getByRole('button', { name: 'Ouvrir le Padlet', exact: true }).click();
+  await page.getByRole('heading', { name: 'Votre Padlet est protégé' }).waitFor();
   assert.equal(context.pages().length, 1);
   assert.deepEqual(errors, []);
   console.log('Padlet real API/browser: lesson creation, password, image, native Word save/reopen/download/present, publish, anonymous access, XSS, grant persistence/revocation and mobile passed.');

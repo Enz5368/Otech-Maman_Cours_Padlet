@@ -38,6 +38,7 @@ window.Padlets = (() => {
     const box = node('section', null, 'padlet-state'); box.setAttribute('role', 'alert');
     box.append(node('h2', 'Impossible de charger le Padlet'), node('p', message(error)));
     if (retry) box.append(button('Réessayer', retry));
+    if (parent.id === 'padletPublic') box.append(button('Quitter', () => location.assign('/')));
     parent.replaceChildren(box);
   }
   async function home() {
