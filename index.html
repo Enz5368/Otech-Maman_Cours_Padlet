@@ -11,7 +11,14 @@
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://monespaceprof.com/" />
     <title>MON ESPACE PROF · Cartable numérique</title>
-    <link rel="stylesheet" href="assets/styles.css?v=espace-prof-64" />
+    <script>
+      if (location.pathname.startsWith('/padlet/')) {
+        const publicBase = document.createElement('base');
+        publicBase.href = '/'; document.head.append(publicBase);
+      }
+    </script>
+    <link rel="stylesheet" href="assets/styles.css?v=espace-prof-65" />
+    <link rel="stylesheet" href="assets/padlets.css?v=1" />
   </head>
   <body>
     <section id="loginPage" class="login" hidden>
@@ -39,6 +46,7 @@
             <p id="loginError" class="small" style="color:#a11" hidden>Mot de passe incorrect pour cet identifiant.</p>
             <button class="btn primary" type="submit">Se connecter</button>
             <button class="btn" type="button" onclick="openFreeExample()">Voir l'exemple gratuit</button>
+            <button class="btn" type="button" onclick="Padlets.openLinkDialog()">Ouvrir un Padlet</button>
           </div>
         </form>
         <div class="contact-card">
@@ -63,6 +71,7 @@
         </div>
         <button class="nav-button active" data-view="dashboard">Accueil</button>
         <button class="nav-button" data-view="classes">Mes cours</button>
+        <button class="nav-button" data-view="padlets">Padlets</button>
         <button class="nav-button" data-view="tree">Tous mes cours</button>
         <button class="nav-button" data-view="studentClasses">Mes classes</button>
         <button class="nav-button" data-view="tools">Outils de classe</button>
@@ -119,7 +128,8 @@
     <p id="notice" class="notice" hidden></p>
 
     <script src="assets/api-client.js?v=espace-prof-6"></script>
-    <script src="assets/word-documents.js?v=5"></script>
-    <script src="assets/app.js?v=espace-prof-114"></script>
+    <script src="assets/word-documents.js?v=6"></script>
+    <script src="assets/padlets.js?v=1"></script>
+    <script src="assets/app.js?v=espace-prof-115"></script>
   </body>
 </html>

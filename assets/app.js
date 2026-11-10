@@ -1051,6 +1051,12 @@
 
       function setView(view) {
         if (tourRunning) endTutorial();
+        const route = new URL(location.href);
+        if (route.searchParams.has("padlet")) {
+          route.searchParams.delete("padlet");
+          route.searchParams.set("view", view);
+          history.replaceState(null, "", route);
+        }
         currentView = view;
         if (view === "classes") currentPage = { type: "classes" };
         if (view === "dashboard") currentTableauPage = { type: "classes" };
@@ -1089,7 +1095,7 @@
       function applyInitialRoute() {
         const params = new URLSearchParams(window.location.search);
         const view = params.get("view");
-        if (view && ["dashboard", "classes", "tree", "studentClasses", "tools", "schedule", "search", "tutorial", "settings"].includes(view)) {
+        if (view && ["dashboard", "classes", "tree", "studentClasses", "tools", "schedule", "search", "tutorial", "settings", "padlets"].includes(view)) {
           currentView = view;
         }
       }
@@ -1156,7 +1162,8 @@
           schedule: ["Mon emploi du temps", "Retrouver le cours prévu dans votre agenda."],
           search: ["Recherche ressource ou contenu", "Retrouver rapidement un contenu ou une ressource."],
           tutorial: ["Aide", "Découvrir les fonctions essentielles du site."],
-          settings: ["Paramètres", "Gérer les préférences du site."]
+          settings: ["Paramètres", "Gérer les préférences du site."],
+          padlets: ["Padlets", "Partager des ressources avec vos élèves, à tout moment."]
         };
         const selectedNavButton = document.querySelector(`.nav-button[data-view="${currentView}"]`);
         document.querySelectorAll(".nav-button[data-view]").forEach((button) => {
@@ -1165,13 +1172,14 @@
         document.title = `${selectedNavButton?.textContent.trim() || titles[currentView][0]} · MON ESPACE PROF`;
         document.querySelector("#pageTitle").textContent = titles[currentView][0];
         document.querySelector("#pageSubtitle").textContent = titles[currentView][1];
-        document.querySelector("#openBoardBtn").hidden = currentView === "dashboard";
+        document.querySelector("#openBoardBtn").hidden = ["dashboard", "padlets"].includes(currentView);
         document.querySelector("#logoutBtn").hidden = !isLoggedIn();
         document.querySelector("#loginNavBtn").hidden = isLoggedIn();
         document.querySelector("#loginNavBtn").textContent = freeExampleOpen ? "Quitter la démo" : "Connexion";
         document.querySelector("#exampleAd").hidden = !freeExampleOpen || isLoggedIn();
         document.querySelector(".sidebar-mail").hidden = freeExampleOpen && !isLoggedIn();
         if (currentView === "dashboard") renderDashboard();
+        if (currentView === "dashboard") Padlets.dashboardShortcut();
         if (currentView === "classes") renderClasses();
         if (currentView === "tree") renderTree();
         if (currentView === "studentClasses") renderStudentClasses();
@@ -1180,6 +1188,7 @@
         if (currentView === "search") renderSearch();
         if (currentView === "tutorial") renderTutorial();
         if (currentView === "settings") renderSettings();
+        if (currentView === "padlets") Padlets.home();
       }
 
       function renderDashboard() {
@@ -2395,6 +2404,7 @@
                 <button class="btn" onclick="openEditor('lesson','${lesson.id}')">Modification</button>
                 <button class="btn primary" onclick="createActivityInLesson('${lesson.id}')">Créer diapo</button>
                 <button class="btn primary" onclick="WordDocuments.create('${lesson.id}')">Créer un Word</button>
+                <button class="btn" onclick="Padlets.createFromLesson('${lesson.id}')">Créer un Padlet</button>
                 <label class="btn word-import-button">Importer un Word<input type="file" accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document" hidden onchange="WordDocuments.importFile('${lesson.id}',this.files[0]);this.value=''" /></label>
                 <button class="btn danger" onclick="removeItem('lesson','${lesson.id}')">Supprimer la séance</button>
               </div>`)}
@@ -6098,12 +6108,16 @@
         hideButtonHelp();
       });
       window.addEventListener("beforeunload", (event) => {
-        if (activeSaveLocks === 0 && !studioHasChanges() && !window.WordDocuments?.hasChanges()) return;
+        if (activeSaveLocks === 0 && !studioHasChanges() && !window.WordDocuments?.hasChanges() && !window.Padlets?.hasChanges()) return;
         event.preventDefault();
         event.returnValue = "";
       });
 
       async function bootstrapApplication() {
+        if (location.pathname.startsWith('/padlet/')) {
+          await Padlets.openPublic();
+          return;
+        }
         applyInitialRoute();
         if (isLocalFileMode()) {
           const localUsername = sessionStorage.getItem(localSessionKey) || "";

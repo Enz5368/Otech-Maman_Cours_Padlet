@@ -323,6 +323,52 @@ class PasswordResetToken(UUIDTimestampMixin, Base):
     used_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
 
+class Padlet(OwnedMixin, Base):
+    __tablename__ = "padlets"
+    title: Mapped[str] = mapped_column(String(200))
+    slug: Mapped[str] = mapped_column(String(100), unique=True, index=True)
+    description: Mapped[str] = mapped_column(Text, default="")
+    layout: Mapped[str] = mapped_column(String(20), default="vertical")
+    visibility: Mapped[str] = mapped_column(String(20), default="public")
+    password_hash: Mapped[str | None] = mapped_column(Text, nullable=True)
+    background: Mapped[str] = mapped_column(String(30), default="paper")
+    is_published: Mapped[bool] = mapped_column(Boolean, default=False)
+    is_archived: Mapped[bool] = mapped_column(Boolean, default=False)
+    lesson_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    revision: Mapped[int] = mapped_column(Integer, default=1)
+    access_version: Mapped[int] = mapped_column(Integer, default=1)
+
+
+class PadletPost(UUIDTimestampMixin, Base):
+    __tablename__ = "padlet_posts"
+    padlet_id: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("padlets.id", ondelete="CASCADE"), index=True)
+    type: Mapped[str] = mapped_column(String(20))
+    title: Mapped[str] = mapped_column(String(200))
+    description: Mapped[str] = mapped_column(Text, default="")
+    instruction: Mapped[str] = mapped_column(Text, default="")
+    body: Mapped[str] = mapped_column(Text, default="")
+    external_url: Mapped[str] = mapped_column(String(2000), default="")
+    file_id: Mapped[uuid.UUID | None] = mapped_column(Uuid, ForeignKey("files.id", ondelete="SET NULL"), nullable=True)
+    sort_order: Mapped[int] = mapped_column(Integer, default=0)
+    is_visible: Mapped[bool] = mapped_column(Boolean, default=True)
+    is_deleted: Mapped[bool] = mapped_column(Boolean, default=False)
+
+
+class PadletGrant(UUIDTimestampMixin, Base):
+    __tablename__ = "padlet_grants"
+    padlet_id: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("padlets.id", ondelete="CASCADE"), index=True)
+    token_hash: Mapped[str] = mapped_column(String(64), unique=True)
+    access_version: Mapped[int] = mapped_column(Integer)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
+
+
+class PadletAttempt(Base):
+    __tablename__ = "padlet_attempts"
+    key: Mapped[str] = mapped_column(String(64), primary_key=True)
+    count: Mapped[int] = mapped_column(Integer, default=0)
+    started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+
+
 Index("ix_levels_user_position", Level.user_id, Level.position)
 Index("ix_sequences_user_level", CourseSequence.user_id, CourseSequence.level_id)
 Index("ix_lessons_user_sequence", Lesson.user_id, Lesson.sequence_id)

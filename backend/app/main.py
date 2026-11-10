@@ -14,7 +14,7 @@ from sqlalchemy import select, text
 from .config import get_settings
 from .database import Base, SessionLocal, engine
 from .models import User
-from .routers import admin, auth, entities, files, search, transfers, users, workspace
+from .routers import admin, auth, entities, files, padlets, search, transfers, users, workspace
 from .security import normalize_username
 from .services.accounts import create_user, ensure_user_directories
 
@@ -82,6 +82,9 @@ async def request_context(request: Request, call_next):
         response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
     if request.url.path.startswith("/api/v1/"):
         response.headers.setdefault("Cache-Control", "no-store")
+    if request.url.path.startswith("/api/v1/public/padlets/"):
+        response.headers["X-Robots-Tag"] = "noindex, nofollow, noarchive"
+        response.headers["Cache-Control"] = "private, no-store"
     response.headers["Content-Security-Policy"] = (
         "default-src 'self'; img-src 'self' data: blob: https:; media-src 'self' data: blob: https:; "
         "style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval'; font-src 'self' data: blob:; "
@@ -131,5 +134,6 @@ app.include_router(files.router, prefix=API_PREFIX)
 app.include_router(search.router, prefix=API_PREFIX)
 app.include_router(transfers.router, prefix=API_PREFIX)
 app.include_router(admin.router, prefix=API_PREFIX)
+app.include_router(padlets.router, prefix=API_PREFIX)
 # Le routeur générique est volontairement enregistré en dernier.
 app.include_router(entities.router, prefix=API_PREFIX)

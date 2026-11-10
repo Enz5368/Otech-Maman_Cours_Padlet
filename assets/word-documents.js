@@ -39,7 +39,7 @@ window.WordDocuments = (() => {
     if (!document.querySelector('#wordEditorStyles')) {
       const style = document.createElement('link');
       style.id = 'wordEditorStyles'; style.rel = 'stylesheet';
-      style.href = 'assets/word-editor/editor.css?v=1';
+      style.href = new URL('assets/word-editor/editor.css?v=1', document.baseURI).href;
       document.head.appendChild(style);
     }
     editorModule ||= import('./word-editor/editor.js?v=5').catch(error => { editorModule = null; throw error; });
@@ -58,9 +58,10 @@ window.WordDocuments = (() => {
     if (activityId && !activity) return;
     const current = {
       id: activityId || uid('act'), lessonId: options.lessonId || activity?.lessonId,
-      title: activity?.title || options.file?.name.replace(/\.docx$/i, '') || 'Nouveau document Word',
-      isNew: !activity, dirty: !activity, generation: 0, busy: false, ready: false,
+      title: options.title || activity?.title || options.file?.name.replace(/\.docx$/i, '') || 'Nouveau document Word',
+      isNew: !activity, dirty: !options.readOnly && !activity && !options.url, generation: 0, busy: false, ready: false,
       readOnly: Boolean(options.readOnly), editor: null, pendingUpload: null,
+      external: options.external || null, onClose: options.onClose,
     };
     session = current;
     modal.hidden = false;
@@ -97,8 +98,8 @@ window.WordDocuments = (() => {
       const module = await loadModule();
       let bytes;
       if (options.file) bytes = await options.file.arrayBuffer();
-      else if (activity?.document?.url) {
-        const url = new URL(activity.document.url, location.href);
+      else if (options.url || activity?.document?.url) {
+        const url = new URL(options.url || activity.document.url, location.href);
         if (url.origin !== location.origin && url.protocol !== 'data:') throw new Error('Adresse de document non autorisée.');
         if (url.protocol === 'data:') {
           const encoded = url.href.match(/^data:application\/vnd\.openxmlformats-officedocument\.wordprocessingml\.document;base64,([A-Za-z0-9+/=]+)$/);
@@ -112,11 +113,11 @@ window.WordDocuments = (() => {
       }
       if (session !== current) return;
       current.editor = module.mount(document.querySelector('#wordDocumentEditor'), {
-        bytes, title: current.title, readOnly: current.readOnly, groups,
+        bytes, title: current.title, readOnly: current.readOnly, groups: options.external && options.readOnly ? () => [] : groups,
         onReady() {
           if (session !== current) return;
           current.ready = true;
-          setStatus(current.dirty ? 'Document non enregistré. Cliquez sur Enregistrer pour le garder dans la séance.' : 'Document ouvert.');
+          setStatus(current.dirty ? 'Document non enregistré. Cliquez sur Enregistrer pour le conserver.' : 'Document ouvert.');
           updateButtons();
           if (options.present) requestAnimationFrame(() => { if (session === current) current.editor?.present(); });
         },
@@ -151,10 +152,17 @@ window.WordDocuments = (() => {
         // Serialization can commit pending editor input before producing the DOCX.
         generation = current.generation;
         const file = new File([bytes], `${slugify(title) || 'document'}.docx`, { type: mime });
-        const uploaded = usesServerStorage()
+        const uploaded = current.external ? await current.external.upload(file) : usesServerStorage()
           ? await window.ServerAPI.upload(file)
           : { content_url: await readFileAsDataUrl(file) };
-        current.pendingUpload = { generation, url: uploaded.content_url, fileName: file.name };
+        current.pendingUpload = { generation, id: uploaded.id, url: uploaded.content_url, fileName: file.name };
+      }
+      if (current.external) {
+        await current.external.save({ title, ...current.pendingUpload });
+        current.isNew = false;
+        current.dirty = current.generation !== generation;
+        setStatus('Document enregistré.');
+        return true;
       }
       let activity = findItem('activity', current.id);
       if (current.isNew && !activity) {
@@ -227,7 +235,8 @@ window.WordDocuments = (() => {
     current.editor?.destroy();
     session = null;
     document.querySelector('#editorModal').hidden = true;
-    render();
+    if (current.onClose) await current.onClose();
+    else render();
     return true;
   }
 
@@ -240,6 +249,7 @@ window.WordDocuments = (() => {
 
   return {
     create: lessonId => open(null, { lessonId }), importFile, open, save, download, requestClose,
+    openExternal: options => open(null, options),
     tools: () => { if (session?.ready && !session.busy && !session.readOnly && !session.closing) session.editor.tools(); },
     present: activityId => activityId ? open(activityId, { readOnly: true, present: true }) : (session?.ready && !session.busy && !session.closing ? session.editor.present() : undefined),
     openLinkedTool,

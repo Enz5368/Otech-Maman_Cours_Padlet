@@ -108,6 +108,7 @@ def file_content(
     user: CurrentUser,
     db: DbDep,
     range_header: str | None = Header(default=None, alias="Range"),
+    download: bool = False,
 ):
     record = owned_file(db, user.id, file_id)
     path = resolve_user_file(get_settings(), user.id, record.relative_path)
@@ -117,7 +118,7 @@ def file_content(
         "Accept-Ranges": "bytes",
         "Content-Disposition": (
             f"attachment; filename*=UTF-8''{quote(Path(record.original_name).name, safe='')}"
-            if potentially_active
+            if potentially_active or download
             else inline_content_disposition(record.original_name)
         ),
         "Cache-Control": "private, max-age=300",

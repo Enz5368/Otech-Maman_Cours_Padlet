@@ -19,6 +19,17 @@ jobs:
     name: Tests et validation
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    services:
+      postgres-test:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: mep_test
+          POSTGRES_PASSWORD: ci-only-password
+          POSTGRES_DB: mep_test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U mep_test -d mep_test"
+          --health-interval 5s --health-timeout 5s --health-retries 10
     steps:
       - uses: actions/checkout@v4
 
@@ -50,6 +61,13 @@ jobs:
           ruff check backend/app backend/tests tests scripts
           pytest backend/tests tests
           python scripts/security_check.py
+          node tests/padlets-smoke.mjs
+          node tests/ui-smoke.mjs
+
+      - name: Vérifier les migrations PostgreSQL
+        env:
+          MEP_DATABASE_URL: postgresql://mep_test:ci-only-password@127.0.0.1:5432/mep_test
+        run: python backend/scripts/migrate.py
 
       - name: Valider la syntaxe YAML et Compose
         run: |
@@ -174,6 +192,7 @@ jobs:
                   echo "Le frontend servi ne correspond pas au commit $EXPECTED_COMMIT" >&2
                   exit 1
                 fi
+                docker_cmd compose exec -T backend python -m scripts.verify_padlets
                 trap - 0
                 docker_cmd image prune -f --filter "until=168h" >/dev/null
                 echo "Déploiement validé : $(date -u +%FT%TZ)"
