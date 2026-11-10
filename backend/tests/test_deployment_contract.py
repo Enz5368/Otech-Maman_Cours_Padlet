@@ -13,6 +13,12 @@ def test_persistent_data_is_outside_frontend_image() -> None:
 
 def test_deployment_no_longer_uses_destructive_rsync() -> None:
     workflow = (ROOT / ".github" / "workflows" / "deploy.yml").read_text(encoding="utf-8")
+    worker = (ROOT / "scripts" / "deploy_remote.sh").read_text(encoding="utf-8")
+    assert "nohup setsid" in workflow
+    assert "ServerAliveInterval 20" in workflow
+    assert "mep-deploy.lock" in worker
+    assert "mep-last-deployed-commit" in worker
+    workflow += worker
     assert "rsync --delete" not in workflow
     assert "scripts/backup.sh" in workflow
     assert 'git show "$EXPECTED_COMMIT:scripts/backup.sh" | sh' in workflow
