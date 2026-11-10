@@ -231,3 +231,5 @@ def test_url_validation_idempotency_and_invalid_upload(client):
     assert response.status_code == 415
     response = client.post(f'/api/v1/padlets/{board["id"]}/files', files={'upload': ('active.svg', b'<svg/>', 'image/svg+xml')}, headers=csrf_headers(client))
     assert response.status_code == 415
+    response = client.post(f'/api/v1/padlets/{board["id"]}/files', files={'upload': ('fake.docx', b'PK\x03\x04fake', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document')}, headers=csrf_headers(client))
+    assert response.status_code == 415

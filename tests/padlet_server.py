@@ -6,15 +6,14 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 
 import uvicorn
-from fastapi.responses import FileResponse
-from fastapi.staticfiles import StaticFiles
-from sqlalchemy import select
-
 from app.config import get_settings
 from app.database import SessionLocal
 from app.main import app
 from app.models import UserWorkspace
 from app.services.accounts import create_user
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
+from sqlalchemy import select
 
 ROOT = Path(__file__).resolve().parents[1]
 original_lifespan = app.router.lifespan_context

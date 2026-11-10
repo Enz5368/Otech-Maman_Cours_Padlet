@@ -8,6 +8,7 @@ from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Annotated, Literal
 from urllib.parse import parse_qs, urlsplit
+from zipfile import BadZipFile, ZipFile
 
 from fastapi import APIRouter, File, Header, HTTPException, Request, Response, UploadFile
 from pydantic import BaseModel, ConfigDict, Field, field_validator
@@ -188,7 +189,7 @@ def list_boards(user: CurrentUser, db: DbDep) -> list[dict]:
 def create_board(payload: BoardInput, user: CurrentUser, db: DbDep, _csrf: CsrfGuard) -> dict:
     if db.scalar(select(func.count()).select_from(Padlet).where(Padlet.user_id == user.id)) >= 100:
         raise HTTPException(422, "La limite de 100 Padlets est atteinte.")
-    board = Padlet(user_id=user.id, title=payload.title, slug=payload.slug, visibility="public", access_version=1)
+    board = Padlet(id=uuid.uuid4(), user_id=user.id, title=payload.title, slug=payload.slug, visibility="public", access_version=1)
     update_board(board, payload)
     db.add(board)
     commit_board(db, board, "padlet.created")
@@ -364,6 +365,20 @@ def upload_board_file(board_id: uuid.UUID, user: CurrentUser, db: DbDep, _csrf: 
         raise HTTPException(413, f"La limite pour ce fichier est de {limit} Mo.")
     if Path(upload.filename or "").suffix.lower() == ".svg":
         raise HTTPException(415, "Choisissez une image PNG, JPEG, GIF ou WebP.")
+    if Path(upload.filename or "").suffix.lower() == ".docx":
+        try:
+            with ZipFile(upload.file) as archive:
+                members = archive.infolist()
+                if ('word/document.xml' not in archive.namelist() or len(members) > 2500
+                        or sum(item.file_size for item in members) > 100 * 1024 * 1024
+                        or any(item.flag_bits & 1 or '..' in Path(item.filename).parts
+                               or item.filename.startswith(('/', '\\'))
+                               or 'vbaproject' in item.filename.lower() for item in members)):
+                    raise HTTPException(415, "Ce Word est invalide, chiffré ou trop volumineux une fois ouvert.")
+        except BadZipFile as exc:
+            raise HTTPException(415, "Ce fichier n’est pas un document Word .docx valide.") from exc
+        finally:
+            upload.file.seek(0)
     file = store_upload(db, get_settings(), user, upload)
     db.commit()
     return {"id": str(file.id), "original_name": file.original_name, "mime_type": file.mime_type,
