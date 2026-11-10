@@ -50,7 +50,7 @@ esac
     worker = worker.replace('test "$(git rev-parse HEAD)" = "$EXPECTED_COMMIT"', ': # fake git has no real commits')
     path = tmp_path / 'worker.sh'
     path.write_text(worker, encoding='utf-8')
-    result = subprocess.run([shell, str(path)], env={  # noqa: S603 - fixed script and isolated stub executables
+    result = subprocess.run([shell, str(path)], check=False, env={
         **os.environ, 'PATH': str(tools) + os.pathsep + os.environ['PATH'], 'EXPECTED_COMMIT': 'new-commit',
         'DEPLOY_TEST_FAIL': str(fails).lower(), 'DEPLOY_TEST_LOG': str(tmp_path / 'commands.log'),
     }, capture_output=True, text=True, timeout=20)
