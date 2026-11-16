@@ -803,7 +803,7 @@ def test_plan_de_classe_style_cinema_et_emploi_du_temps_lycee() -> None:
     assert ".timetable-course" in STYLES
     assert "assets/styles.css?v=espace-prof-65" in INDEX
     assert "assets/app.js?v=espace-prof-115" in INDEX
-    assert "assets/api-client.js?v=espace-prof-6" in INDEX
+    assert "assets/api-client.js?v=espace-prof-7" in INDEX
 
 
 def test_les_videos_non_natives_sont_converties_pour_le_navigateur() -> None:
