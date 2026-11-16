@@ -315,19 +315,26 @@ window.Padlets = (() => {
     ui.form.append(error, row(save, button('Annuler', () => ui.dialog.close())));
     ui.form.addEventListener('submit', async event => {
       event.preventDefault(); error.textContent = '';
+      if (save.disabled) return;
       await busy(save, async () => {
         try {
+          save.textContent = 'Enregistrement en cours…';
           const values = Object.fromEntries(new FormData(ui.form)); delete values.upload;
           if (upload?.files[0] && upload.files[0] !== uploadedFile) {
+            save.textContent = 'Envoi du fichier en cours…';
             const response = await uploadFile(board.id, upload.files[0]);
             uploadedId = response.id; uploadedFile = upload.files[0];
           }
+          save.textContent = 'Enregistrement de la ressource…';
           const payload = { ...(post ? postPayload(post) : {}), ...values, type, id: postId, file_id: uploadedId };
           if (uploadedFile) payload.external_url = '';
           else if (values.external_url) payload.file_id = null;
           await api(post ? `${base(board.id)}/posts/${post.id}` : `${base(board.id)}/posts`, post ? 'PUT' : 'POST', payload);
           ui.dialog.close(); await refresh();
-        } catch (cause) { error.textContent = message(cause); }
+        } catch (cause) {
+          error.textContent = message(cause);
+          error.scrollIntoView({ block: 'nearest' });
+        } finally { save.textContent = 'Enregistrer la ressource'; }
       });
     });
   }

@@ -29,8 +29,8 @@ const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR
 let downloads = 0;
 page.on('download', () => { downloads += 1; });
 const resourceCard = title => page.locator('.padlet-post').filter({ has: page.getByRole('heading', { name: title, exact: true }) });
-async function addFile(title, name, mimeType, buffer) {
-  await page.getByRole('button', { name: 'Ajouter un fichier', exact: true }).click();
+async function addFile(title, name, mimeType, buffer, action = 'Ajouter un fichier') {
+  await page.getByRole('button', { name: action, exact: true }).click();
   await page.getByLabel('Titre', { exact: true }).fill(title);
   await page.getByLabel('Importer le fichier').setInputFiles({ name, mimeType, buffer: Buffer.from(buffer) });
   await page.getByRole('button', { name: 'Enregistrer la ressource', exact: true }).click();
@@ -78,6 +78,8 @@ try {
   await page.getByRole('button', { name: 'Enregistrer la ressource', exact: true }).click();
   await page.getByRole('heading', { name: 'À faire avant mardi', exact: true }).waitFor();
   await addFile('Image du cours', 'cours.png', 'image/png', png);
+  await addFile('Audio MP3', 'ecoute.mp3', 'audio/mpeg', Buffer.concat([Buffer.from('ID3'), Buffer.alloc(40)]), 'Ajouter un audio');
+  assert.equal(await resourceCard('Audio MP3').locator('audio[controls]').count(), 1);
   await page.getByRole('button', { name: 'Créer un Word', exact: true }).click();
   await page.waitForFunction(() => !document.querySelector('[data-word-action]').disabled);
   await page.getByLabel('Titre du document', { exact: true }).fill('Consignes Word du Padlet');
@@ -140,7 +142,7 @@ try {
   await page.getByLabel('Mot de passe du Padlet').fill('Classe-Italie-2026');
   await page.getByRole('button', { name: 'Accéder au Padlet' }).click();
   await page.getByRole('heading', { name: 'Italien — ressources de la semaine' }).waitFor();
-  assert.equal(await page.locator('.padlet-post').count(), 12);
+  assert.equal(await page.locator('.padlet-post').count(), 13);
   assert.equal(await page.locator('.padlet-text script').count(), 0);
   await page.waitForFunction(() => {
     const image = document.querySelector('.padlet-post img'); return image?.complete && image.naturalWidth > 0;
