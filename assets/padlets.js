@@ -3,7 +3,7 @@ window.Padlets = (() => {
   'use strict';
   let board = null, publicSlug = null, drawVersion = 0, dragId = null;
   let pdfRendererPromise = null;
-  const names = { text: 'Texte', image: 'Image', video: 'Vidéo', docx: 'Word', pdf: 'PDF', link: 'Lien', file: 'Fichier' };
+  const names = { text: 'Texte', image: 'Image', audio: 'Audio', video: 'Vidéo', docx: 'Word', pdf: 'PDF', link: 'Lien', file: 'Fichier' };
   const api = (path, method = 'GET', body) => ServerAPI.request(path, {
     method, ...(body === undefined ? {} : { body: body instanceof FormData ? body : JSON.stringify(body) }),
   });
@@ -237,8 +237,8 @@ window.Padlets = (() => {
     } else if (['video', 'audio'].includes(kind) && source) {
       const video = node(kind); video.controls = true; video.preload = 'metadata'; video.src = source;
       video.setAttribute('aria-label', post.title); video.playsInline = true;
-      video.append(node('p', 'Votre navigateur ne peut pas lire cette vidéo. Utilisez Télécharger.'));
-      video.addEventListener('error', () => card.append(node('p', 'Cette vidéo ne peut pas être lue dans ce navigateur. Téléchargez-la pour la consulter.', 'padlet-error')));
+      video.append(node('p', 'Votre navigateur ne peut pas lire ce média. Utilisez Télécharger.'));
+      video.addEventListener('error', () => card.append(node('p', 'Ce média ne peut pas être lu dans ce navigateur. Téléchargez-le pour le consulter.', 'padlet-error')));
       card.append(video);
     } else if (post.type === 'video' && post.external_url) {
       const url = safeUrl(post.external_url);
@@ -303,7 +303,9 @@ window.Padlets = (() => {
     if (!['text', 'link'].includes(type)) {
       upload = field(ui.form, post?.file_id ? 'Remplacer le fichier (facultatif)' : 'Importer le fichier', 'upload', '', 'file');
       upload.removeAttribute('maxlength');
-      upload.accept = ({ image: '.png,.jpg,.jpeg,.gif,.webp', video: 'video/*', docx: '.docx', pdf: '.pdf', file: '.docx,.pdf,.pptx,.odt,.ods,.odp,.png,.jpg,.mp4,.mp3,.txt,.csv,.zip' })[type];
+      upload.accept = ({ image: '.png,.jpg,.jpeg,.gif,.webp', audio: '.mp3,.wav,.ogg,audio/mpeg,audio/wav,audio/ogg', video: '.mp4,video/*', docx: '.docx', pdf: '.pdf', file: '.docx,.pdf,.pptx,.odt,.ods,.odp,.png,.jpg,.mp4,.mp3,.txt,.csv,.zip' })[type];
+      if (type === 'audio') ui.form.append(node('p', 'Importez un fichier MP3, WAV ou OGG pour l’écouter directement dans le Padlet.', 'small'));
+      if (type === 'video') ui.form.append(node('p', 'Importez un fichier MP4 pour le lire directement dans le Padlet.', 'small'));
       ui.form.append(node('p', type === 'docx' ? 'Word : 30 Mo maximum.' : 'Fichier : 250 Mo maximum, dans la limite de votre espace.', 'small'));
     }
     let uploadedId = post?.file_id || null, uploadedFile = null;

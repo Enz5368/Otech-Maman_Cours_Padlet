@@ -192,6 +192,11 @@ def test_hidden_deleted_cross_board_files_and_unpublication(client):
 @pytest.mark.parametrize('kind,filename,mime,data', [
     ('image', 'photo.png', 'image/png', PNG),
     ('video', 'clip.mp4', 'video/mp4', b'\x00\x00\x00\x18ftypmp42' + b'0' * 40),
+    ('video', 'clip.MP4', 'application/octet-stream', b'\x00\x00\x00\x18ftypmp42' + b'0' * 40),
+    ('audio', 'ecoute.mp3', 'audio/mpeg', b'ID3' + b'0' * 40),
+    ('audio', 'ecoute.MP3', 'application/octet-stream', b'ID3' + b'0' * 40),
+    ('file', 'ecoute.mp3', 'audio/mp3', b'ID3' + b'0' * 40),
+    ('file', 'clip.mp4', 'application/mp4', b'\x00\x00\x00\x18ftypmp42' + b'0' * 40),
     ('pdf', 'cours.pdf', 'application/pdf', b'%PDF-1.4\n%%EOF'),
     ('file', 'notes.txt', 'text/plain', b'Ciao'),
     ('docx', 'cours.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', b'DOCX'),
@@ -211,8 +216,24 @@ def test_resource_files(client, kind, filename, mime, data):
         result = visitor.get(f'/api/v1/public/padlets/{board["slug"]}').json()
         response = visitor.get(result['posts'][0]['content_url'])
         assert response.content == data
-        if kind in {'docx', 'file'}:
+        if filename.lower().endswith(('.mp3', '.mp4')):
+            expected_mime = 'audio/mpeg' if filename.lower().endswith('.mp3') else 'video/mp4'
+            assert response.headers['content-type'] == expected_mime
+            assert response.headers['content-disposition'].startswith('inline;')
+            partial = visitor.get(result['posts'][0]['content_url'], headers={'Range': 'bytes=0-9'})
+            assert partial.status_code == 206
+            assert partial.content == data[:10]
+        elif kind in {'docx', 'file'}:
             assert response.headers['content-disposition'].startswith('attachment;')
+
+
+@pytest.mark.parametrize('filename,mime', [('fake.mp3', 'audio/mp3'), ('fake.mp4', 'application/mp4')])
+def test_invalid_media_signature(client, filename, mime):
+    register(client, f'media-{uuid.uuid4().hex[:8]}')
+    board = create(client)
+    response = client.post(f'/api/v1/padlets/{board["id"]}/files',
+                           files={'upload': (filename, b'not a media file', mime)}, headers=csrf_headers(client))
+    assert response.status_code == 415
 
 
 def test_url_validation_idempotency_and_invalid_upload(client):

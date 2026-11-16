@@ -337,6 +337,9 @@ def store_upload(db: Session, settings: Settings, user: User, upload: UploadFile
     original_name = upload.filename or "fichier.bin"
     mime_type = (upload.content_type or "application/octet-stream").lower()
     extension = Path(original_name).suffix.lower()
+    if extension in {".mp3", ".mp4"}:
+        # Normalize browser/OS MIME aliases; store_stream still checks the signature.
+        mime_type = {".mp3": "audio/mpeg", ".mp4": "video/mp4"}[extension]
     if mime_type.startswith("image/") or extension in IMAGE_FORMATS.values():
         signature = upload.file.read(32)
         upload.file.seek(0)

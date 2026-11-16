@@ -62,7 +62,7 @@ class BoardInput(BaseModel):
 class PostInput(BaseModel):
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
     id: uuid.UUID | None = None
-    type: Literal["text", "image", "video", "docx", "pdf", "link", "file"]
+    type: Literal["text", "image", "audio", "video", "docx", "pdf", "link", "file"]
     title: str = Field(min_length=1, max_length=200)
     description: str = Field(default="", max_length=5000)
     instruction: str = Field(default="", max_length=5000)
@@ -257,6 +257,7 @@ def validate_post(db: DbDep, user: User, payload: PostInput) -> None:
         file = owned_file(db, user.id, payload.file_id)
         valid = ((payload.type == "image" and file.mime_type in RASTER)
                  or (payload.type == "video" and file.mime_type.startswith("video/"))
+                 or (payload.type == "audio" and file.mime_type.startswith("audio/"))
                  or (payload.type == "docx" and file.mime_type == DOCX)
                  or (payload.type == "pdf" and file.mime_type == "application/pdf")
                  or (payload.type == "file" and file.mime_type != "image/svg+xml"))
