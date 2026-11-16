@@ -321,8 +321,10 @@ window.Padlets = (() => {
           save.textContent = 'Enregistrement en cours…';
           const values = Object.fromEntries(new FormData(ui.form)); delete values.upload;
           if (upload?.files[0] && upload.files[0] !== uploadedFile) {
-            save.textContent = 'Envoi du fichier en cours…';
-            const response = await uploadFile(board.id, upload.files[0]);
+            save.textContent = 'Envoi du fichier : 0 %';
+            const response = await uploadFile(board.id, upload.files[0], percent => {
+              save.textContent = percent === 100 ? 'Envoi terminé, traitement en cours…' : `Envoi du fichier : ${percent} %`;
+            });
             uploadedId = response.id; uploadedFile = upload.files[0];
           }
           save.textContent = 'Enregistrement de la ressource…';
@@ -338,8 +340,9 @@ window.Padlets = (() => {
       });
     });
   }
-  function uploadFile(id, file) {
-    const form = new FormData(); form.append('upload', file); return api(`${base(id)}/files`, 'POST', form);
+  function uploadFile(id, file, onProgress) {
+    const form = new FormData(); form.append('upload', file);
+    return onProgress ? ServerAPI.uploadWithProgress(`${base(id)}/files`, form, onProgress) : api(`${base(id)}/files`, 'POST', form);
   }
   async function word(post = null, publicView = false) {
     const savedPosition = position(), id = board?.id, postId = post?.id || crypto.randomUUID();

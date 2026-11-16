@@ -36,6 +36,31 @@
   const ServerAPI = {
     request,
 
+    uploadWithProgress(path, body, onProgress) {
+      return new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open('POST', `${API_ROOT}${path}`);
+        xhr.withCredentials = true;
+        const csrf = decodeURIComponent(cookie('mep_csrf'));
+        if (csrf) xhr.setRequestHeader('X-CSRF-Token', csrf);
+        xhr.upload.addEventListener('progress', event => {
+          if (event.lengthComputable) onProgress(Math.min(100, Math.round(event.loaded / event.total * 100)));
+        });
+        xhr.addEventListener('load', () => {
+          let payload = xhr.responseText;
+          if (xhr.getResponseHeader('content-type')?.includes('application/json')) {
+            try { payload = JSON.parse(payload); } catch { /* Keep the server response as text. */ }
+          }
+          if (xhr.status >= 200 && xhr.status < 300) return resolve(payload);
+          const error = new Error(typeof payload === 'object' && payload !== null ? payload.detail?.message || payload.detail || 'Erreur serveur' : payload || 'Erreur serveur');
+          error.status = xhr.status; error.payload = payload; reject(error);
+        });
+        xhr.addEventListener('error', () => reject(new TypeError('Connexion impossible')));
+        xhr.addEventListener('abort', () => reject(new TypeError('Envoi interrompu')));
+        xhr.send(body);
+      });
+    },
+
     login(username, password) {
       return request("/auth/login", { method: "POST", body: JSON.stringify({ username, password, auto_register: false }) });
     },
