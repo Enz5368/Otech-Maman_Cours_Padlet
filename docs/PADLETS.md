@@ -4,10 +4,10 @@ Les professeurs retrouvent leurs murs dans **Padlets**, depuis l’accueil, ou a
 
 ## Utilisation
 
-**Ajouter un audio** permet d’importer un MP3 (également WAV ou OGG), et **Ajouter une vidéo** permet d’importer un MP4. Les lecteurs intégrés permettent l’écoute et la lecture directement dans le mur, côté professeur et côté élève. Ces fichiers restent aussi disponibles via **Ajouter un fichier**. La limite est de 250 Mo par fichier, dans le quota de stockage du compte.
+**Ajouter un fichier** permet d’importer les documents, images, MP3 et MP4. Les lecteurs intégrés permettent leur consultation directement dans le mur, côté professeur et côté élève. La limite est de 250 Mo par fichier, dans le quota de stockage du compte. **Ajouter un lien** affiche la page ou la vidéo dans le Padlet ; certains sites interdisent l’intégration et restent accessibles par le bouton d’ouverture dans un nouvel onglet.
 
 1. Donner un titre, choisir un lien, un fil vertical ou un mur horizontal et l’accès avec ou sans mot de passe.
-2. Ajouter textes, consignes, images, vidéos, Word, PDF, liens ou fichiers. Un Word peut être créé et modifié dans l’éditeur existant, avec enregistrement manuel.
+2. Ajouter des fichiers ou des liens, avec un titre, une description et une consigne facultatives. Un Word importé peut être modifié dans l’éditeur existant, avec enregistrement manuel.
 3. Cliquer sur **Publier**, puis **Partager** pour copier le lien. Un brouillon ou un mur archivé est inaccessible aux visiteurs.
 4. Déplacer les cartes avec Avant/Après ou par glisser-déposer. Masquer une carte la retire immédiatement du mur public. Les cartes supprimées passent dans une corbeille et peuvent être restaurées ou supprimées définitivement.
 

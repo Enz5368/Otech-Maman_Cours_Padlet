@@ -72,15 +72,27 @@ try {
   await page.getByLabel('Accès des élèves').selectOption('password');
   await page.getByLabel('Mot de passe (6 caractères minimum)', { exact: true }).fill('Classe-Italie-2026');
   await page.getByRole('button', { name: 'Créer le Padlet', exact: true }).click();
-  await page.getByRole('button', { name: 'Ajouter un texte', exact: true }).click();
-  await page.getByLabel('Titre', { exact: true }).fill('À faire avant mardi');
-  await page.getByLabel('Texte', { exact: true }).fill('Lis la consigne, puis regarde les documents. <script>alert(1)</script>');
-  await page.getByRole('button', { name: 'Enregistrer la ressource', exact: true }).click();
+  await page.getByRole('button', { name: 'Ajouter un fichier', exact: true }).waitFor();
+  assert.deepEqual(await page.locator('.padlet-add button').allTextContents(), ['Ajouter un fichier', 'Ajouter un lien']);
+  await page.evaluate(async () => {
+    const id = new URLSearchParams(location.search).get('padlet');
+    await ServerAPI.request(`/padlets/${id}/posts`, { method: 'POST', body: JSON.stringify({
+      type: 'text', title: 'À faire avant mardi', body: 'Lis la consigne, puis regarde les documents. <script>alert(1)</script>'
+    }) });
+    await Padlets.home();
+  });
   await page.getByRole('heading', { name: 'À faire avant mardi', exact: true }).waitFor();
   await addFile('Image du cours', 'cours.png', 'image/png', png);
-  await addFile('Audio MP3', 'ecoute.mp3', 'audio/mpeg', Buffer.concat([Buffer.from('ID3'), Buffer.alloc(40)]), 'Ajouter un audio');
+  await addFile('Audio MP3', 'ecoute.mp3', 'audio/mpeg', Buffer.concat([Buffer.from('ID3'), Buffer.alloc(40)]));
   assert.equal(await resourceCard('Audio MP3').locator('audio[controls]').count(), 1);
-  await page.getByRole('button', { name: 'Créer un Word', exact: true }).click();
+  await page.evaluate(() => {
+    const id = new URLSearchParams(location.search).get('padlet');
+    const postId = crypto.randomUUID();
+    return WordDocuments.openExternal({ title: 'Nouveau document Word', external: {
+      upload: file => { const data = new FormData(); data.append('upload', file); return ServerAPI.request(`/padlets/${id}/files`, { method: 'POST', body: data }); },
+      save: file => ServerAPI.request(`/padlets/${id}/posts`, { method: 'POST', body: JSON.stringify({ id: postId, type: 'docx', title: file.title, file_id: file.id }) })
+    }, onClose: () => Padlets.home() });
+  });
   await page.waitForFunction(() => !document.querySelector('[data-word-action]').disabled);
   await page.getByLabel('Titre du document', { exact: true }).fill('Consignes Word du Padlet');
   await page.locator('[contenteditable=true]').focus(); await page.keyboard.type('Ciao, les eleves !');
@@ -106,9 +118,24 @@ try {
   await addFile('Archive du cours', 'cours.zip', 'application/zip', zipSync({ 'notes.txt': strToU8('Ciao') }));
   await page.getByRole('button', { name: 'Ajouter un lien', exact: true }).click();
   await page.getByLabel('Titre', { exact: true }).fill('Dictionnaire');
+  await page.route('https://www.wordreference.com/itfr/**', route => route.fulfill({
+    contentType: 'text/html', body: route.request().url().endsWith('/ciao')
+      ? '<a href="/itfr/bonjour">Mot suivant</a>' : '<p>Page suivante</p>'
+  }));
   await page.getByLabel('Adresse du lien', { exact: true }).fill('https://www.wordreference.com/itfr/ciao');
   await page.getByRole('button', { name: 'Enregistrer la ressource', exact: true }).click();
   await page.getByRole('heading', { name: 'Dictionnaire' }).waitFor();
+  assert.equal(await resourceCard('Dictionnaire').locator('iframe').getAttribute('src'), 'https://www.wordreference.com/itfr/ciao');
+  await resourceCard('Dictionnaire').locator('iframe').scrollIntoViewIfNeeded();
+  const dictionary = resourceCard('Dictionnaire').frameLocator('iframe');
+  await dictionary.getByRole('link', { name: 'Mot suivant' }).click();
+  await dictionary.getByText('Page suivante').waitFor();
+  await page.getByRole('button', { name: 'Ajouter un lien', exact: true }).click();
+  await page.getByLabel('Titre', { exact: true }).fill('Vidéo YouTube');
+  await page.getByLabel('Adresse du lien', { exact: true }).fill('https://www.youtube.com/watch?v=dQw4w9WgXcQ');
+  await page.getByRole('button', { name: 'Enregistrer la ressource', exact: true }).click();
+  await page.getByRole('heading', { name: 'Vidéo YouTube' }).waitFor();
+  assert.equal(await resourceCard('Vidéo YouTube').locator('iframe').getAttribute('src'), 'https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ');
   await page.getByRole('button', { name: 'Réglages', exact: true }).click();
   await page.getByLabel('Défilement').selectOption('vertical');
   await page.getByRole('button', { name: 'Enregistrer', exact: true }).click();
@@ -142,14 +169,15 @@ try {
   await page.getByLabel('Mot de passe du Padlet').fill('Classe-Italie-2026');
   await page.getByRole('button', { name: 'Accéder au Padlet' }).click();
   await page.getByRole('heading', { name: 'Italien — ressources de la semaine' }).waitFor();
-  assert.equal(await page.locator('.padlet-post').count(), 13);
+  assert.equal(await page.locator('.padlet-post').count(), 14);
   assert.equal(await page.locator('.padlet-text script').count(), 0);
   await page.waitForFunction(() => {
     const image = document.querySelector('.padlet-post img'); return image?.complete && image.naturalWidth > 0;
   });
   assert.equal(await page.getByRole('button', { name: 'Modifier', exact: true }).count(), 0);
   await page.waitForFunction(() => document.querySelector('.padlet-post video').readyState >= 1);
-  assert.equal(await page.getByRole('link', { name: 'Ouvrir le lien', exact: true }).getAttribute('href'), 'https://www.wordreference.com/itfr/ciao');
+  assert.equal(await resourceCard('Dictionnaire').getByRole('link', { name: 'Ouvrir le lien dans un nouvel onglet', exact: true }).getAttribute('href'), 'https://www.wordreference.com/itfr/ciao');
+  assert.equal(await resourceCard('Vidéo YouTube').locator('iframe').getAttribute('src'), 'https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ');
   await page.getByRole('button', { name: 'Ouvrir le PDF', exact: true }).click();
   await page.locator('.padlet-pdf-dialog canvas[data-rendered=true]').waitFor();
   assert.ok(await page.locator('.padlet-pdf-dialog canvas').evaluate(canvas =>

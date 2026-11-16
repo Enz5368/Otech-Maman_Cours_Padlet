@@ -165,8 +165,8 @@ window.Padlets = (() => {
           await api(base(id), 'DELETE'); history.replaceState(null, '', '/?view=padlets'); setView('padlets');
         }, 'btn danger')));
     const add = node('section', null, 'padlet-add'); add.append(node('strong', 'Ajouter une ressource'));
-    for (const [type, name] of Object.entries(names)) add.append(button(`Ajouter ${['image', 'video'].includes(type) ? 'une' : 'un'} ${['docx', 'pdf'].includes(type) ? name : name.toLowerCase()}`, () => resourceForm(type)));
-    add.append(button('Créer un Word', () => word(), 'btn create-word-button'));
+    add.append(button('Ajouter un fichier', () => resourceForm('file')),
+      button('Ajouter un lien', () => resourceForm('link')));
     const wall = wallNode(loaded, false);
     content.replaceChildren(toolbar, add, wall);
     const deleted = loaded.posts.filter(post => post.is_deleted);
@@ -221,6 +221,23 @@ window.Padlets = (() => {
     if (mime === 'application/zip' || extension === 'zip') return 'archive';
     return 'file';
   }
+  function linkEmbedUrl(value) {
+    const safe = safeUrl(value);
+    if (!safe) return '';
+    const url = new URL(safe), host = url.hostname.toLowerCase();
+    let id = '';
+    if (['youtube.com', 'www.youtube.com', 'm.youtube.com', 'youtu.be', 'www.youtube-nocookie.com'].includes(host)) {
+      if (host === 'youtu.be') id = url.pathname.slice(1);
+      else if (url.pathname === '/watch') id = url.searchParams.get('v') || '';
+      else id = url.pathname.replace(/^\/(?:embed|shorts)\//, '');
+      if (/^[A-Za-z0-9_-]{11}$/.test(id)) return `https://www.youtube-nocookie.com/embed/${id}`;
+    }
+    if (['vimeo.com', 'www.vimeo.com', 'player.vimeo.com'].includes(host)) {
+      id = url.pathname.split('/').filter(Boolean).pop() || '';
+      if (/^[0-9]{1,15}$/.test(id)) return `https://player.vimeo.com/video/${id}`;
+    }
+    return safe;
+  }
   function postCard(post, publicView) {
     const card = node('article', null, 'padlet-post'); card.dataset.postId = post.id;
     const kind = resourceKind(post);
@@ -251,7 +268,13 @@ window.Padlets = (() => {
       }
     } else if (post.type === 'link') {
       const url = safeUrl(post.external_url);
-      if (url) { const a = node('a', 'Ouvrir le lien', 'btn'); a.href = url; a.rel = 'noreferrer'; card.append(a); }
+      if (url) {
+        const frame = node('iframe'); frame.title = post.title; frame.src = linkEmbedUrl(url); frame.loading = 'lazy';
+        frame.setAttribute('sandbox', new URL(frame.src).origin === location.origin ? 'allow-scripts allow-forms allow-presentation' : 'allow-scripts allow-same-origin allow-forms allow-presentation allow-popups');
+        frame.setAttribute('allow', 'fullscreen; picture-in-picture'); frame.allowFullscreen = true;
+        const a = node('a', 'Ouvrir le lien dans un nouvel onglet', 'btn'); a.href = url; a.target = '_blank'; a.rel = 'noopener noreferrer';
+        card.append(frame, node('p', 'Si le site ne s’affiche pas ici, ouvrez-le dans un nouvel onglet.', 'small'), a);
+      }
     } else if (source && ['docx', 'pdf'].includes(kind)) {
       card.append(button(`Ouvrir le ${names[kind]}`, () => kind === 'docx' ? word(post, publicView) : previewPdf(post), 'btn primary'));
       if (!publicView && kind === 'docx') card.append(button('Modifier le Word', () => word(post)));
@@ -303,7 +326,7 @@ window.Padlets = (() => {
     if (!['text', 'link'].includes(type)) {
       upload = field(ui.form, post?.file_id ? 'Remplacer le fichier (facultatif)' : 'Importer le fichier', 'upload', '', 'file');
       upload.removeAttribute('maxlength');
-      upload.accept = ({ image: '.png,.jpg,.jpeg,.gif,.webp', audio: '.mp3,.wav,.ogg,audio/mpeg,audio/wav,audio/ogg', video: '.mp4,video/*', docx: '.docx', pdf: '.pdf', file: '.docx,.pdf,.pptx,.odt,.ods,.odp,.png,.jpg,.mp4,.mp3,.txt,.csv,.zip' })[type];
+      upload.accept = ({ image: '.png,.jpg,.jpeg,.gif,.webp', audio: '.mp3,.wav,.ogg,audio/mpeg,audio/wav,audio/ogg', video: '.mp4,video/*', docx: '.docx', pdf: '.pdf', file: '.png,.jpg,.jpeg,.gif,.webp,.mp4,.webm,.mov,.m4v,.mkv,.avi,.wmv,.flv,.mpeg,.mpg,.3gp,.ts,.m2ts,.mp3,.wav,.ogg,.pdf,.zip,.json,.pptx,.docx,.odt,.ods,.odp,.txt,.csv,.md' })[type];
       if (type === 'audio') ui.form.append(node('p', 'Importez un fichier MP3, WAV ou OGG pour l’écouter directement dans le Padlet.', 'small'));
       if (type === 'video') ui.form.append(node('p', 'Importez un fichier MP4 pour le lire directement dans le Padlet.', 'small'));
       ui.form.append(node('p', type === 'docx' ? 'Word : 30 Mo maximum.' : 'Fichier : 250 Mo maximum, dans la limite de votre espace.', 'small'));

@@ -93,7 +93,7 @@ def main() -> None:
             if call(visitor, file_url) != image:
                 raise RuntimeError('Le fichier public servi ne correspond pas au fichier publié.')
             html = call(visitor, f'/padlet/{slug}')
-            if b'assets/padlets.js?v=4' not in html:
+            if b'assets/padlets.js?v=5' not in html:
                 raise RuntimeError('La page publique ne sert pas la nouvelle version du frontend.')
             if protected:
                 call(visitor, public + '/lock', 'POST', expected=204)
@@ -101,7 +101,7 @@ def main() -> None:
             print(f'Padlet HTTPS vérifié : {origin}/padlet/{slug} (données de test supprimées à la fin)')
         # Verify that direct private file links are still denied to anonymous readers.
         call(visitor, '/api/v1/files', expected=401)
-        for path, marker in (('/assets/padlets.js?v=4', b'previewFile'),
+        for path, marker in (('/assets/padlets.js?v=5', b'previewFile'),
                              ('/assets/pdf-viewer/pdf.js?v=1', b'getDocument'),
                              ('/assets/pdf-viewer/pdf.worker.js?v=1', b'WorkerMessageHandler')):
             if marker not in call(visitor, path):
