@@ -56,6 +56,7 @@ ALLOWED_EXTENSIONS = {
     ".ts",
     ".m2ts",
     ".mp3",
+    ".m4a",
     ".wav",
     ".ogg",
     ".pdf",
@@ -71,6 +72,7 @@ ALLOWED_EXTENSIONS = {
     ".md",
 }
 MIME_EXTENSION_OVERRIDES = {
+    "audio/mp4": ".m4a",
     "application/vnd.openxmlformats-officedocument.presentationml.presentation": ".pptx",
     "application/vnd.openxmlformats-officedocument.wordprocessingml.document": ".docx",
     "application/vnd.oasis.opendocument.text": ".odt",
@@ -87,6 +89,7 @@ VIDEO_MIME_BY_EXTENSION = {
     ".flv": "video/x-flv", ".m4v": "video/x-m4v", ".mpeg": "video/mpeg",
     ".mpg": "video/mpeg", ".3gp": "video/3gpp", ".ts": "video/mp2t", ".m2ts": "video/mp2t",
 }
+AUDIO_MIME_BY_EXTENSION = {".m4a": "audio/mp4"}
 DATA_URL_RE = re.compile(r"^data:([^;,]+)?(?:;[^,]*)?;base64,(.*)$", re.DOTALL)
 IMAGE_FORMATS = {
     "image/png": ".png",
@@ -125,7 +128,8 @@ def validate_mime_and_extension(filename: str, mime_type: str) -> str:
     if not (mime_type.startswith(ALLOWED_MIME_PREFIXES) or mime_type in ALLOWED_MIME_TYPES):
         raise HTTPException(status_code=415, detail="Type MIME non autorisé")
     guessed = mimetypes.guess_type(filename)[0]
-    if guessed and extension not in VIDEO_MIME_BY_EXTENSION and guessed.split("/", 1)[0] != mime_type.split("/", 1)[0]:
+    if (guessed and extension not in VIDEO_MIME_BY_EXTENSION and extension not in AUDIO_MIME_BY_EXTENSION
+            and guessed.split("/", 1)[0] != mime_type.split("/", 1)[0]):
         raise HTTPException(status_code=415, detail="Extension et type MIME incompatibles")
     return extension
 
@@ -154,7 +158,7 @@ def validate_content_signature(data: bytes, mime_type: str) -> None:
         "application/vnd.oasis.opendocument.presentation",
     }:
         valid = data.startswith(b"PK\x03\x04")
-    elif mime_type in {"video/mp4", "video/quicktime"}:
+    elif mime_type in {"video/mp4", "video/quicktime", "audio/mp4", "audio/x-m4a"}:
         valid = len(data) >= 12 and data[4:8] == b"ftyp"
     elif mime_type == "video/webm":
         valid = data.startswith(b"\x1a\x45\xdf\xa3")
@@ -356,6 +360,10 @@ def store_upload(db: Session, settings: Settings, user: User, upload: UploadFile
         mime_type = OPENDOCUMENT_MIME_BY_EXTENSION[extension]
     if extension in VIDEO_MIME_BY_EXTENSION and not mime_type.startswith("video/"):
         mime_type = VIDEO_MIME_BY_EXTENSION[extension]
+    if extension in AUDIO_MIME_BY_EXTENSION:
+        # Browsers report M4A as audio/mp4, audio/x-m4a or octet-stream.
+        # Normalize it before checking the actual MP4 container signature.
+        mime_type = AUDIO_MIME_BY_EXTENSION[extension]
     if mime_type == "application/octet-stream":
         mime_type = mimetypes.guess_type(original_name)[0] or mime_type
     return store_stream(

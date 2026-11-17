@@ -326,8 +326,8 @@ window.Padlets = (() => {
     if (!['text', 'link'].includes(type)) {
       upload = field(ui.form, post?.file_id ? 'Remplacer le fichier (facultatif)' : 'Importer le fichier', 'upload', '', 'file');
       upload.removeAttribute('maxlength');
-      upload.accept = ({ image: '.png,.jpg,.jpeg,.gif,.webp', audio: '.mp3,.wav,.ogg,audio/mpeg,audio/wav,audio/ogg', video: '.mp4,video/*', docx: '.docx', pdf: '.pdf', file: '.png,.jpg,.jpeg,.gif,.webp,.mp4,.webm,.mov,.m4v,.mkv,.avi,.wmv,.flv,.mpeg,.mpg,.3gp,.ts,.m2ts,.mp3,.wav,.ogg,.pdf,.zip,.json,.pptx,.docx,.odt,.ods,.odp,.txt,.csv,.md' })[type];
-      if (type === 'audio') ui.form.append(node('p', 'Importez un fichier MP3, WAV ou OGG pour l’écouter directement dans le Padlet.', 'small'));
+      upload.accept = ({ image: '.png,.jpg,.jpeg,.gif,.webp', audio: '.mp3,.m4a,.wav,.ogg,audio/mpeg,audio/mp4,audio/x-m4a,audio/wav,audio/ogg', video: '.mp4,video/*', docx: '.docx', pdf: '.pdf', file: '.png,.jpg,.jpeg,.gif,.webp,.mp4,.webm,.mov,.m4v,.mkv,.avi,.wmv,.flv,.mpeg,.mpg,.3gp,.ts,.m2ts,.mp3,.m4a,.wav,.ogg,.pdf,.zip,.json,.pptx,.docx,.odt,.ods,.odp,.txt,.csv,.md' })[type];
+      if (type === 'audio') ui.form.append(node('p', 'Importez un fichier MP3, M4A, WAV ou OGG pour l’écouter directement dans le Padlet.', 'small'));
       if (type === 'video') ui.form.append(node('p', 'Importez un fichier MP4 pour le lire directement dans le Padlet.', 'small'));
       ui.form.append(node('p', type === 'docx' ? 'Word : 30 Mo maximum.' : 'Fichier : 250 Mo maximum, dans la limite de votre espace.', 'small'));
     }

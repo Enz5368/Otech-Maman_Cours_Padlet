@@ -19,6 +19,8 @@ Le lecteur PDF est hébergé avec le site, avec navigation par page, zoom et tex
 
 ## Données et droits
 
+Les audios MP3, M4A, WAV et OGG s’ajoutent avec **Ajouter un fichier** et s’écoutent directement dans le mur. Les M4A sont identifiés comme `audio/mp4`, même si le navigateur les envoie comme `audio/x-m4a` ou fichier binaire ; leur signature de conteneur est vérifiée avant stockage.
+
 - `padlets` : propriétaire (`user_id`), titre, slug global unique, description, présentation, fond, publication, archivage, séance historique facultative, révision et version d’accès.
 - `padlet_posts` : texte ou fichier, type, description, consigne, position, visibilité et corbeille.
 - `padlet_grants` : session anonyme opaque de 12 heures, dont seul le SHA-256 est stocké, liée à un seul mur et à sa version d’accès.

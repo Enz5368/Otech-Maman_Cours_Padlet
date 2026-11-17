@@ -4,6 +4,7 @@ from __future__ import annotations
 import base64
 import uuid
 from io import BytesIO
+from pathlib import Path
 from zipfile import ZipFile
 
 import pytest
@@ -234,6 +235,32 @@ def test_invalid_media_signature(client, filename, mime):
     response = client.post(f'/api/v1/padlets/{board["id"]}/files',
                            files={'upload': (filename, b'not a media file', mime)}, headers=csrf_headers(client))
     assert response.status_code == 415
+
+
+@pytest.mark.parametrize('mime', ['audio/mp4', 'audio/x-m4a', 'audio/m4a', 'application/octet-stream', 'application/mp4', 'video/mp4'])
+def test_m4a_upload_normalization_and_protected_playback(client, mime):
+    register(client, f'm4a-{uuid.uuid4().hex[:8]}')
+    board = create(client, is_published=True, visibility='password', password='audio-secret')
+    data = (Path(__file__).resolve().parents[2] / 'tests/fixtures/tone.m4a').read_bytes()
+    uploaded = client.post(f'/api/v1/padlets/{board["id"]}/files',
+                           files={'upload': ('Présentation coralie.M4A', data, mime)}, headers=csrf_headers(client))
+    assert uploaded.status_code == 201, uploaded.text
+    assert uploaded.json()['mime_type'] == 'audio/mp4'
+    board = post(client, board, type='file', file_id=uploaded.json()['id']).json()
+    with TestClient(app) as visitor:
+        public = f'/api/v1/public/padlets/{board["slug"]}'
+        content = f'{public}/posts/{board["posts"][0]["id"]}/content'
+        assert visitor.get(content).status_code == 401
+        assert visitor.post(public + '/unlock', json={'password': 'audio-secret'}).status_code == 200
+        result = visitor.get(content)
+        assert result.content == data
+        assert result.headers['content-type'] == 'audio/mp4'
+        assert result.headers['content-disposition'].startswith('inline;')
+        partial = visitor.get(content, headers={'Range': 'bytes=0-31'})
+        assert partial.status_code == 206 and partial.content == data[:32]
+    invalid = client.post(f'/api/v1/padlets/{board["id"]}/files',
+                          files={'upload': ('fake.m4a', b'<html>not audio</html>', mime)}, headers=csrf_headers(client))
+    assert invalid.status_code == 415
 
 
 def test_url_validation_idempotency_and_invalid_upload(client):

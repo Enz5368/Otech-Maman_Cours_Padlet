@@ -60,7 +60,9 @@ async function waitServer() {
 }
 try {
   await waitServer();
+  const initialSession = page.waitForResponse(response => response.url() === origin + '/api/v1/auth/me');
   await page.goto(origin);
+  await initialSession;
   await page.getByLabel('Identifiant', { exact: true }).fill('padlet-browser-test');
   await page.getByLabel('Mot de passe', { exact: true }).fill(password);
   await page.getByRole('button', { name: 'Se connecter', exact: true }).click();
@@ -111,10 +113,10 @@ try {
   await addFile('PowerPoint à consulter', 'cours.pptx', 'application/vnd.openxmlformats-officedocument.presentationml.presentation', pptx);
   const odt = zipSync({ 'content.xml': strToU8('<office:document-content xmlns:office="urn:oasis:names:tc:opendocument:xmlns:office:1.0" xmlns:text="urn:oasis:names:tc:opendocument:xmlns:text:1.0"><text:p>Bonjour depuis LibreOffice</text:p></office:document-content>') });
   await addFile('Document LibreOffice', 'cours.odt', 'application/vnd.oasis.opendocument.text', odt);
-  const audio = Buffer.alloc(1644); audio.write('RIFF'); audio.writeUInt32LE(1636, 4); audio.write('WAVEfmt ', 8);
-  audio.writeUInt32LE(16, 16); audio.writeUInt16LE(1, 20); audio.writeUInt16LE(1, 22); audio.writeUInt32LE(8000, 24);
-  audio.writeUInt32LE(16000, 28); audio.writeUInt16LE(2, 32); audio.writeUInt16LE(16, 34); audio.write('data', 36); audio.writeUInt32LE(1600, 40);
-  await addFile('Écouter le cours', 'cours.wav', 'audio/wav', audio);
+  await page.getByRole('button', { name: 'Ajouter un fichier', exact: true }).click();
+  assert.ok((await page.getByLabel('Importer le fichier').getAttribute('accept')).includes('.m4a'));
+  await page.getByRole('button', { name: 'Annuler', exact: true }).click();
+  await addFile('Écouter le cours', 'Présentation coralie.m4a', 'audio/x-m4a', await readFile('tests/fixtures/tone.m4a'));
   await addFile('Archive du cours', 'cours.zip', 'application/zip', zipSync({ 'notes.txt': strToU8('Ciao') }));
   await page.getByRole('button', { name: 'Ajouter un lien', exact: true }).click();
   await page.getByLabel('Titre', { exact: true }).fill('Dictionnaire');
@@ -178,6 +180,11 @@ try {
   await page.waitForFunction(() => document.querySelector('.padlet-post video').readyState >= 1);
   assert.equal(await resourceCard('Dictionnaire').getByRole('link', { name: 'Ouvrir le lien dans un nouvel onglet', exact: true }).getAttribute('href'), 'https://www.wordreference.com/itfr/ciao');
   assert.equal(await resourceCard('Vidéo YouTube').locator('iframe').getAttribute('src'), 'https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ');
+  const audioPlayer = resourceCard('Écouter le cours').locator('audio');
+  await page.waitForFunction(() => document.querySelector('audio[aria-label="Écouter le cours"]')?.readyState >= 2);
+  await audioPlayer.evaluate(audio => audio.play());
+  await page.waitForFunction(() => document.querySelector('audio[aria-label="Écouter le cours"]').currentTime > .05);
+  await audioPlayer.evaluate(audio => audio.pause());
   await page.getByRole('button', { name: 'Ouvrir le PDF', exact: true }).click();
   await page.locator('.padlet-pdf-dialog canvas[data-rendered=true]').waitFor();
   assert.ok(await page.locator('.padlet-pdf-dialog canvas').evaluate(canvas =>
@@ -255,6 +262,7 @@ try {
 } catch (error) {
   await page.screenshot({ path: 'tests/visual/current-padlet-error.png', fullPage: true });
   console.error(await page.locator('body').innerText());
+  console.error('Browser errors:', errors);
   throw error;
 } finally {
   await browser.close(); python.kill();

@@ -5,7 +5,10 @@ import base64
 import json
 import secrets
 import shutil
+import subprocess
 from http.cookiejar import CookieJar
+from pathlib import Path
+from tempfile import TemporaryDirectory
 from urllib.error import HTTPError
 from urllib.parse import unquote
 from urllib.request import HTTPCookieProcessor, Request, build_opener
@@ -21,6 +24,17 @@ def main() -> None:
     origin = settings.public_base_url.rstrip('/')
     if not origin.startswith('https://'):
         raise SystemExit('La vérification publique doit utiliser HTTPS.')
+    ffmpeg = shutil.which('ffmpeg')
+    if not ffmpeg:
+        raise RuntimeError('FFmpeg est requis pour vérifier le lecteur audio M4A.')
+    with TemporaryDirectory(prefix='mep-m4a-check-') as temporary:
+        audio_path = Path(temporary) / 'verification.m4a'
+        subprocess.run(  # noqa: S603 - resolved binary, fixed arguments, private temporary file
+            [ffmpeg, '-nostdin', '-loglevel', 'error', '-f', 'lavfi', '-i',
+             'sine=frequency=440:sample_rate=44100', '-t', '0.35', '-c:a', 'aac', '-movflags', '+faststart', str(audio_path)],
+            check=True, timeout=30, capture_output=True,
+        )
+        audio = audio_path.read_bytes()
     cookies = CookieJar()
     owner = build_opener(HTTPCookieProcessor(cookies))
     visitor = build_opener(HTTPCookieProcessor(CookieJar()))
@@ -59,6 +73,13 @@ def main() -> None:
             raw = response.read()
             return json.loads(raw) if 'application/json' in response.headers.get('Content-Type', '') else raw
 
+    def upload_file(board_id, filename, mime, data):
+        boundary = f'mep-{secrets.token_hex(16)}'
+        multipart = (f'--{boundary}\r\nContent-Disposition: form-data; name="upload"; filename="{filename}"\r\n'
+                     f'Content-Type: {mime}\r\n\r\n').encode() + data + f'\r\n--{boundary}--\r\n'.encode()
+        return call(owner, f'/api/v1/padlets/{board_id}/files', 'POST', multipart, 201,
+                    f'multipart/form-data; boundary={boundary}')
+
     try:
         call(owner, '/api/v1/auth/login', 'POST', {'username': username, 'password': password, 'auto_register': False})
         for protected in (False, True):
@@ -72,41 +93,49 @@ def main() -> None:
             call(owner, f'/api/v1/padlets/{board["id"]}/posts', 'POST',
                  {'type': 'text', 'title': 'Ressource de vérification', 'body': 'Test technique sans données personnelles.'}, 201)
             image = base64.b64decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+a1XcAAAAASUVORK5CYII=')
-            boundary = f'mep-{secrets.token_hex(16)}'
-            multipart = (f'--{boundary}\r\nContent-Disposition: form-data; name="upload"; filename="test.png"\r\n'
-                         'Content-Type: image/png\r\n\r\n').encode() + image + f'\r\n--{boundary}--\r\n'.encode()
-            uploaded = call(owner, f'/api/v1/padlets/{board["id"]}/files', 'POST', multipart, 201,
-                            f'multipart/form-data; boundary={boundary}')
+            uploaded = upload_file(board['id'], 'test.png', 'image/png', image)
             posted = call(owner, f'/api/v1/padlets/{board["id"]}/posts', 'POST',
                           {'type': 'file', 'title': 'Image de vérification', 'file_id': uploaded['id']}, 201)
             post_id = next(post['id'] for post in posted['posts'] if post.get('file_id') == uploaded['id'])
+            uploaded_audio = upload_file(board['id'], 'verification.m4a', 'audio/x-m4a', audio)
+            if uploaded_audio['mime_type'] != 'audio/mp4':
+                raise RuntimeError('Le fichier M4A ne possède pas le type audio attendu.')
+            posted = call(owner, f'/api/v1/padlets/{board["id"]}/posts', 'POST',
+                          {'type': 'file', 'title': 'Audio de vérification', 'file_id': uploaded_audio['id']}, 201)
+            audio_id = next(post['id'] for post in posted['posts'] if post.get('file_id') == uploaded_audio['id'])
             public = f'/api/v1/public/padlets/{slug}'
             file_url = f'{public}/posts/{post_id}/content'
+            audio_url = f'{public}/posts/{audio_id}/content'
             if protected:
                 call(visitor, public, expected=401)
                 call(visitor, file_url, expected=401)
+                call(visitor, audio_url, expected=401)
                 call(visitor, public + '/unlock', 'POST', {'password': 'incorrect'}, 401)
                 call(visitor, public + '/unlock', 'POST', {'password': board_password})
             document = call(visitor, public)
-            if len(document['posts']) != 2 or 'password_hash' in json.dumps(document):
+            if len(document['posts']) != 3 or 'password_hash' in json.dumps(document):
                 raise RuntimeError('Le contenu public du Padlet ne correspond pas au contenu publié.')
             if call(visitor, file_url) != image:
                 raise RuntimeError('Le fichier public servi ne correspond pas au fichier publié.')
+            if call(visitor, audio_url) != audio:
+                raise RuntimeError('Le fichier audio M4A servi ne correspond pas au fichier publié.')
             html = call(visitor, f'/padlet/{slug}')
-            if b'assets/padlets.js?v=5' not in html:
+            if b'assets/padlets.js?v=6' not in html:
                 raise RuntimeError('La page publique ne sert pas la nouvelle version du frontend.')
             if protected:
                 call(visitor, public + '/lock', 'POST', expected=204)
                 call(visitor, file_url, expected=401)
+                call(visitor, audio_url, expected=401)
             print(f'Padlet HTTPS vérifié : {origin}/padlet/{slug} (données de test supprimées à la fin)')
         # Verify that direct private file links are still denied to anonymous readers.
         call(visitor, '/api/v1/files', expected=401)
-        for path, marker in (('/assets/padlets.js?v=5', b'previewFile'),
+        for path, marker in (('/assets/padlets.js?v=6', b'.m4a'),
                              ('/assets/pdf-viewer/pdf.js?v=1', b'getDocument'),
                              ('/assets/pdf-viewer/pdf.worker.js?v=1', b'WorkerMessageHandler')):
             if marker not in call(visitor, path):
                 raise RuntimeError('Le lecteur de fichiers déployé est incomplet.')
         print('Lecteur de fichiers et moteur PDF : fichiers HTTPS vérifiés.')
+        print('Audio M4A : import et accès public/protégé vérifiés en HTTPS.')
         print('Padlets publics et protégés : vérification HTTPS réussie.')
     finally:
         with SessionLocal() as db:
